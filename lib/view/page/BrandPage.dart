@@ -45,7 +45,7 @@ class BrandPage extends StatelessWidget {
               Text("Vertree维树", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text(
-                "vertree维树，树状文件版本管理🌲，让每一次变更都有备无患！",
+                "vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
