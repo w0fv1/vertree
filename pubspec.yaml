@@ -1,0 +1,45 @@
+name: vertree
+description: "针对单文件的版本管理系统"
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.0
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  uuid: ^4.5.1
+  bitsdojo_window: ^0.1.6
+  flutter_background_service: ^5.1.0
+  intl: ^0.20.2
+  tray_manager:
+    git:
+      url: https://github.com/w0fv1/tray_manager.git
+      ref: main
+      path: packages/tray_manager
+  win32_registry: ^2.1.0
+  window_manager: ^0.4.3
+  superuser: ^2.1.1
+  ffi: ^2.1.4
+  win32: ^5.11.0
+  windows_single_instance: ^1.0.1
+  path_provider: ^2.1.5
+  loading_indicator: ^3.1.1
+  local_notifier: ^0.1.6
+  file_picker: ^9.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/img/logo/logo.ico
+    - assets/img/logo/logo.png
+    - assets/img/icon/exit.ico
+    - assets/img/icon/exit.png
+    - assets/img/icon/setting.ico
+    - assets/img/icon/setting.png
