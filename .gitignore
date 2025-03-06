@@ -45,3 +45,6 @@ app.*.map.json
 /android/app/release
 
 /testree/*
+
+/windows/Vertree_Setup.exe
+/windows/Vertree_Setup.zip
