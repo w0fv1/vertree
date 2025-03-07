@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
@@ -116,6 +117,14 @@ class _SettingPageState extends State<SettingPage> {
     });
   }
 
+  /// 打开网址
+  void _openUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw '无法打开 $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -175,6 +184,29 @@ class _SettingPageState extends State<SettingPage> {
                       print("${configer.configFilePath}");
                       FileUtils.openFile(configer.configFilePath);
                     },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 网址快捷方式
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.language),
+                          tooltip: "访问官方网站",
+                          onPressed: () => _openUrl("https://w0fv1.github.io/vertree/"),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.code),
+                          tooltip: "查看 GitHub 仓库",
+                          onPressed: () => _openUrl("https://github.com/w0fv1/vertree"),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
