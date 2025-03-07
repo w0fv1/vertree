@@ -1,10 +1,5 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
-
 .heroBanner {
-  padding: 4rem 0;
+  padding: 4rem 5%; /* 增加左右间距，避免图片紧贴屏幕边缘 */
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -12,12 +7,63 @@
 
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 2rem;
+    padding: 2rem 5%;
   }
 }
 
 .buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 按钮靠左对齐 */
+}
+
+.heroContainer {
+  width: 100%;
+  max-width: 1200px; /* 限制最大宽度，避免内容太分散 */
+  margin: 0 auto; /* 居中 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; /* 让窄屏时换行 */
+  gap: 40px; /* 增加间距，避免文本和图片过于挤在一起 */
+  padding: 0 2rem; /* 适当增加左右内边距 */
+}
+
+.heroText {
+  flex: 1;
+  min-width: 300px; /* 确保文本不会过小 */
+  text-align: left; /* 文本左对齐，增强可读性 */
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 让标题、描述、按钮有适当间距 */
+}
+
+.heroImage {
+  max-width: 480px; /* 适当增加图片大小，使其更突出 */
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* 在窄屏时调整布局，使其垂直排列 */
+@media (max-width: 768px) {
+  .heroContainer {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 1rem; /* 减少窄屏下的左右间距 */
+  }
+
+  .heroText {
+    text-align: center; /* 让文本在窄屏下居中对齐 */
+    align-items: center;
+  }
+
+  .buttons {
+    justify-content: center; /* 按钮在窄屏时居中 */
+  }
+
+  .heroImage {
+    max-width: 300px; /* 在窄屏时适当缩小图片 */
+  }
 }
