@@ -1,15 +1,28 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
 import 'package:window_manager/window_manager.dart';
 
-class BrandPage extends StatelessWidget {
+class BrandPage extends StatefulWidget {
+  const BrandPage({super.key});
+
+  @override
+  State<BrandPage> createState() => _BrandPageState();
+}
+
+class _BrandPageState extends State<BrandPage> {
+
+
+
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: VAppBar(
         title: Row(
@@ -82,5 +95,49 @@ class BrandPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> setup(BuildContext context) async {
+    bool isSetupDone = configer.get<bool>('isSetupDone', false);
+    if (isSetupDone) return;
+
+    // Show confirmation dialog after UI is ready
+    bool? userConsent = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text("初始化设置"),
+          content: const Text("是否允许Vertree添加右键菜单和开机启动？"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
+              child: const Text("取消"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
+              child: const Text("确定"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (userConsent == true) {
+      // Perform setup actions
+      VerTreeRegistryService.addVerTreeBackupContextMenu();
+      VerTreeRegistryService.addVerTreeMonitorContextMenu();
+      VerTreeRegistryService.addVerTreeViewContextMenu();
+      VerTreeRegistryService.enableAutoStart();
+
+      // Mark setup as done
+      configer.set<bool>('isSetupDone', true);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(seconds:1), () => setup(context));
+    //
   }
 }

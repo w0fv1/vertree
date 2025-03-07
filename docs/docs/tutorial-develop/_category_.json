@@ -1,0 +1,8 @@
+{
+  "label": "Tutorial - 开发",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description":"参与Vertree的开发"
+  }
+}
