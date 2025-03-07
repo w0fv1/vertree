@@ -3,6 +3,17 @@ import 'package:path/path.dart' as p;
 import 'package:vertree/main.dart';
 
 class FileUtils {
+
+  /// 获取当前应用程序的目录路径，并确保路径格式适合当前操作系统
+  static String appDirPath() {
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = File(exePath).parent.path;
+
+    // 使用path库自动适配不同平台的路径分隔符
+    return p.normalize(exeDir);
+  }
+
+
   /// 处理路径，确保路径格式适合当前操作系统
   static String _normalizePath(String path) {
     return p.normalize(path); // 处理不规范的路径，适配当前系统

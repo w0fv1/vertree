@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'package:vertree/component/FileUtils.dart';
+
 import 'component/WindowsRegistryHelper.dart';
+import 'package:path/path.dart' as path;
 
 class VerTreeRegistryService {
   static const String backupMenuName = "VerTree Backup";
@@ -24,29 +27,25 @@ class VerTreeRegistryService {
     return RegistryHelper.checkRegistryMenuExists(viewTreeMenuName);
   }
 
-  // 添加右键菜单项
   static bool addVerTreeBackupContextMenu() {
-    return RegistryHelper.addContextMenuOption(
-      backupMenuName,
-      '"$exePath" --backup %1',
-      iconPath: "assets/img/logo/logo.ico",
-    );
+    final exePath = Platform.resolvedExecutable;
+    final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'save.ico');
+
+    return RegistryHelper.addContextMenuOption(backupMenuName, '"$exePath" --backup %1', iconPath: iconPath);
   }
 
   static bool addVerTreeMonitorContextMenu() {
-    return RegistryHelper.addContextMenuOption(
-      monitorMenuName,
-      '"$exePath" --monitor %1',
-      iconPath: "assets/img/logo/logo.ico",
-    );
+    final exePath = Platform.resolvedExecutable;
+    final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'monit.ico');
+
+    return RegistryHelper.addContextMenuOption(monitorMenuName, '"$exePath" --monitor %1', iconPath: iconPath);
   }
 
   static bool addVerTreeViewContextMenu() {
-    return RegistryHelper.addContextMenuOption(
-      viewTreeMenuName,
-      '"$exePath" --viewtree %1',
-      iconPath: "assets/img/logo/logo.ico",
-    );
+    final exePath = Platform.resolvedExecutable;
+    final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'logo', 'logo.ico');
+
+    return RegistryHelper.addContextMenuOption(viewTreeMenuName, '"$exePath" --viewtree %1', iconPath: iconPath);
   }
 
   // 移除右键菜单项
