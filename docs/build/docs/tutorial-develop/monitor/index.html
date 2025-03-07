@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-tutorial-develop/monitor" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.7.0">
+<title data-rh="true">🛡️ Vertree文件监控设计解析 | Vertree维树</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://w0fv1.github.io/vertree/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://w0fv1.github.io/vertree/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://w0fv1.github.io/vertree/docs/tutorial-develop/monitor"><meta data-rh="true" property="og:locale" content="zh"><meta data-rh="true" name="docusaurus_locale" content="zh"><meta data-rh="true" name="docsearch:language" content="zh"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="🛡️ Vertree文件监控设计解析 | Vertree维树"><meta data-rh="true" name="description" content="Monitor 模块负责实现文件的实时监控和自动备份功能。它能够侦听指定文件的修改事件，并在检测到文件发生变化时，自动备份文件，避免数据意外丢失或误修改带来的损失。"><meta data-rh="true" property="og:description" content="Monitor 模块负责实现文件的实时监控和自动备份功能。它能够侦听指定文件的修改事件，并在检测到文件发生变化时，自动备份文件，避免数据意外丢失或误修改带来的损失。"><link data-rh="true" rel="icon" href="/vertree/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://w0fv1.github.io/vertree/docs/tutorial-develop/monitor"><link data-rh="true" rel="alternate" href="https://w0fv1.github.io/vertree/docs/tutorial-develop/monitor" hreflang="zh"><link data-rh="true" rel="alternate" href="https://w0fv1.github.io/vertree/docs/tutorial-develop/monitor" hreflang="x-default"><link rel="alternate" type="application/rss+xml" href="/vertree/blog/rss.xml" title="Vertree维树 RSS Feed">
+<link rel="alternate" type="application/atom+xml" href="/vertree/blog/atom.xml" title="Vertree维树 Atom Feed"><link rel="stylesheet" href="/vertree/assets/css/styles.ebd0f903.css">
+<script src="/vertree/assets/js/runtime~main.ddd7c851.js" defer="defer"></script>
+<script src="/vertree/assets/js/main.c1b3b21a.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();t(null!==e?e:"light")}(),function(){try{const n=new URLSearchParams(window.location.search).entries();for(var[t,e]of n)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/vertree/img/logo.svg"><div role="region" aria-label="跳到主要内容"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">跳到主要内容</a></div><nav aria-label="主导航" class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="切换导航栏" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/vertree/"><div class="navbar__logo"><img src="/vertree/img/logo.svg" alt="Vertree Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/vertree/img/logo.svg" alt="Vertree Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Vertree</b></a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/vertree/docs/intro">Tutorial</a><a class="navbar__item navbar__link" href="/vertree/blog">Blog</a></div><div class="navbar__items navbar__items--right"><a href="https://github.com/w0fv1/vertree" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="切换浅色/暗黑模式（当前为浅色模式）" aria-label="切换浅色/暗黑模式（当前为浅色模式）" aria-live="polite" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" class="lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" class="darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="回到顶部" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="文档侧边栏" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/vertree/docs/intro">🚀 introduction</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/vertree/docs/category/tutorial---使用">Tutorial - 使用</a><button aria-label="展开侧边栏分类 &#x27;Tutorial - 使用&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--active" href="/vertree/docs/category/tutorial---开发">Tutorial - 开发</a><button aria-label="折叠侧边栏分类 &#x27;Tutorial - 开发&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/vertree/docs/tutorial-develop/develop">🚀 VerTree 开发入门</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/vertree/docs/tutorial-develop/filetree">🌳 Vertree版本树设计解析</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/vertree/docs/tutorial-develop/monitor">🛡️ Vertree文件监控设计解析</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/vertree/docs/tutorial-develop/roadmap">🚧 VerTree 后续开发规划</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/vertree/docs/tutorial-develop/design">🖌️ VerTree 设计理念</a></li></ul></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="页面路径"><ul class="breadcrumbs" itemscope="" itemtype="https://schema.org/BreadcrumbList"><li class="breadcrumbs__item"><a aria-label="主页面" class="breadcrumbs__link" href="/vertree/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item"><a class="breadcrumbs__link" itemprop="item" href="/vertree/docs/category/tutorial---开发"><span itemprop="name">Tutorial - 开发</span></a><meta itemprop="position" content="1"></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link" itemprop="name">🛡️ Vertree文件监控设计解析</span><meta itemprop="position" content="2"></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">本页总览</button></div><div class="theme-doc-markdown markdown"><header><h1>🛡️ Vertree文件监控设计解析</h1></header>
+<p><code>Monitor</code> 模块负责实现文件的实时监控和自动备份功能。它能够侦听指定文件的修改事件，并在检测到文件发生变化时，自动备份文件，避免数据意外丢失或误修改带来的损失。</p>
+<p>本模块主要包含以下几个类：</p>
+<ul>
+<li><code>Monitor</code>：负责单个文件的实时监控和备份。</li>
+<li><code>MonitService</code>：负责管理多个监控任务，提供启动、暂停、移除任务的接口。</li>
+<li><code>FileMonitTask</code>：代表一个具体的监控任务，记录监控状态和文件信息。</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="一monitor-类设计介绍">一、Monitor 类设计介绍<a href="#一monitor-类设计介绍" class="hash-link" aria-label="一、Monitor 类设计介绍的直接链接" title="一、Monitor 类设计介绍的直接链接">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-monitor-类作用">🎯 Monitor 类作用：<a href="#-monitor-类作用" class="hash-link" aria-label="🎯 Monitor 类作用：的直接链接" title="🎯 Monitor 类作用：的直接链接">​</a></h3>
+<ul>
+<li><strong>文件监听</strong>：监听单个文件的变更事件。</li>
+<li><strong>自动备份</strong>：文件发生变化后，自动进行备份到指定目录中。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-核心工作流程">📌 核心工作流程：<a href="#-核心工作流程" class="hash-link" aria-label="📌 核心工作流程：的直接链接" title="📌 核心工作流程：的直接链接">​</a></h3>
+<ol>
+<li><strong>初始化</strong>：</li>
+</ol>
+<ul>
+<li>检查文件路径有效性；</li>
+<li>创建专属备份目录，通常为源文件目录的子目录（如：<code>yourFile_bak</code>）。</li>
+</ul>
+<ol start="2">
+<li><strong>启动监控 (<code>start()</code>)</strong>：</li>
+</ol>
+<ul>
+<li>使用 <code>dart:io</code> 提供的文件监听机制 (<code>file.parent.watch()</code>)；</li>
+<li>实时监听文件的修改事件；</li>
+<li>当文件被修改时，触发 <code>_handleFileChange</code> 方法进行备份。</li>
+</ul>
+<ol start="3">
+<li><strong>备份逻辑 (<code>_handleFileChange</code>)</strong>：</li>
+</ol>
+<ul>
+<li>限制备份频率（默认1分钟内变化只备份一次）；</li>
+<li>备份文件名中包含时间戳，防止重复。</li>
+</ul>
+<ol start="4">
+<li><strong>停止监控 (<code>stop()</code>)</strong>：</li>
+</ol>
+<ul>
+<li>停止监听，释放资源。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-关键方法说明">🚩 关键方法说明：<a href="#-关键方法说明" class="hash-link" aria-label="🚩 关键方法说明：的直接链接" title="🚩 关键方法说明：的直接链接">​</a></h3>
+<ul>
+<li>
+<p><strong><code>start()</code></strong>：</p>
+<ul>
+<li>开启文件监听任务，使用 Stream 监听文件夹下文件的修改事件。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>_handleFileChange(File file, Directory backupDir)</code></strong>：</p>
+<ul>
+<li>检测到文件变更时调用；</li>
+<li>控制备份频率，防止备份过于频繁。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>_backupFile(File file, Directory backupDir)</code></strong>：</p>
+<ul>
+<li>执行实际的文件复制操作，创建备份副本；</li>
+<li>文件备份名带有精确到秒的时间戳，保证唯一性。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>stop()</code></strong>：</p>
+<ul>
+<li>停止监控任务，取消事件监听。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="二monitservice-类设计介绍">二、MonitService 类设计介绍<a href="#二monitservice-类设计介绍" class="hash-link" aria-label="二、MonitService 类设计介绍的直接链接" title="二、MonitService 类设计介绍的直接链接">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-monitservice-类作用">🎯 MonitService 类作用：<a href="#-monitservice-类作用" class="hash-link" aria-label="🎯 MonitService 类作用：的直接链接" title="🎯 MonitService 类作用：的直接链接">​</a></h3>
+<ul>
+<li>统一管理多个文件的监控任务；</li>
+<li>提供对任务的增删改查与启动/暂停等控制。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-核心工作流程-1">📌 核心工作流程：<a href="#-核心工作流程-1" class="hash-link" aria-label="📌 核心工作流程：的直接链接" title="📌 核心工作流程：的直接链接">​</a></h3>
+<ol>
+<li><strong>任务初始化与加载</strong>：</li>
+</ol>
+<ul>
+<li>从本地配置文件（通过 <code>Configer</code> 类）加载已保存的任务；</li>
+<li>初始化时自动启动状态为 <code>isRunning</code> 的任务。</li>
+</ul>
+<ol start="2">
+<li><strong>任务管理方法</strong>：</li>
+</ol>
+<ul>
+<li><strong><code>addFileMonitTask(String path)</code></strong>：增加新监控任务；</li>
+<li><strong><code>removeFileMonitTask(String path)</code></strong>：移除指定任务；</li>
+<li><strong><code>toggleFileMonitTaskStatus(FileMonitTask task)</code></strong>：切换任务运行状态（启动/暂停）；</li>
+<li><strong><code>startAll()</code></strong>：启动所有标记为运行的监控任务。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-状态持久化">🚩 状态持久化：<a href="#-状态持久化" class="hash-link" aria-label="🚩 状态持久化：的直接链接" title="🚩 状态持久化：的直接链接">​</a></h3>
+<ul>
+<li>MonitService 使用 <code>Configer</code> 存储监控任务列表，以 JSON 格式序列化保存到配置中，保证应用重启后仍能恢复任务状态。</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="三filemonittask-类设计介绍">三、FileMonitTask 类设计介绍<a href="#三filemonittask-类设计介绍" class="hash-link" aria-label="三、FileMonitTask 类设计介绍的直接链接" title="三、FileMonitTask 类设计介绍的直接链接">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-filemonittask-类作用">🎯 FileMonitTask 类作用：<a href="#-filemonittask-类作用" class="hash-link" aria-label="🎯 FileMonitTask 类作用：的直接链接" title="🎯 FileMonitTask 类作用：的直接链接">​</a></h3>
+<ul>
+<li>描述一个具体的文件监控任务，记录监控文件的路径、备份目录以及运行状态。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-核心属性">📌 核心属性：<a href="#-核心属性" class="hash-link" aria-label="📌 核心属性：的直接链接" title="📌 核心属性：的直接链接">​</a></h3>
+<ul>
+<li><strong><code>filePath</code></strong>：监控文件的绝对路径；</li>
+<li><strong><code>backupDirPath</code></strong>：自动备份的存放路径；</li>
+<li><strong><code>isRunning</code></strong>：标记任务是否处于运行状态；</li>
+<li><strong><code>monitor</code></strong>：任务对应的 Monitor 实例（可为空）。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-序列化与反序列化">🚩 序列化与反序列化：<a href="#-序列化与反序列化" class="hash-link" aria-label="🚩 序列化与反序列化：的直接链接" title="🚩 序列化与反序列化：的直接链接">​</a></h3>
+<ul>
+<li><strong><code>toJson()</code></strong>：将任务状态序列化为 JSON，用于持久化；</li>
+<li><strong><code>fromJson()</code></strong>：从 JSON 数据还原任务实例。</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="四monitor-设计思想与优势">四、Monitor 设计思想与优势<a href="#四monitor-设计思想与优势" class="hash-link" aria-label="四、Monitor 设计思想与优势的直接链接" title="四、Monitor 设计思想与优势的直接链接">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-为什么设计为实时监控">🌟 为什么设计为实时监控？<a href="#-为什么设计为实时监控" class="hash-link" aria-label="🌟 为什么设计为实时监控？的直接链接" title="🌟 为什么设计为实时监控？的直接链接">​</a></h3>
+<ul>
+<li>
+<p><strong>安全性与稳定性</strong>：</p>
+<ul>
+<li>保证用户文件修改实时备份，避免数据丢失；</li>
+<li>减少人为误操作带来的风险。</li>
+</ul>
+</li>
+<li>
+<p><strong>用户体验</strong>：</p>
+<ul>
+<li>完全自动化，无需手动干预，提升工作效率；</li>
+<li>文件发生意外时，可以快速恢复到最近的版本。</li>
+</ul>
+</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-为什么控制备份频率">🌟 为什么控制备份频率？<a href="#-为什么控制备份频率" class="hash-link" aria-label="🌟 为什么控制备份频率？的直接链接" title="🌟 为什么控制备份频率？的直接链接">​</a></h3>
+<ul>
+<li>避免频繁的文件保存事件产生过多冗余备份；</li>
+<li>提高性能，节省磁盘空间。</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-为什么备份文件名包含时间戳">🌟 为什么备份文件名包含时间戳？<a href="#-为什么备份文件名包含时间戳" class="hash-link" aria-label="🌟 为什么备份文件名包含时间戳？的直接链接" title="🌟 为什么备份文件名包含时间戳？的直接链接">​</a></h3>
+<ul>
+<li>直观展示备份时间，便于回溯；</li>
+<li>防止备份文件名冲突。</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="五开发与扩展建议">五、开发与扩展建议<a href="#五开发与扩展建议" class="hash-link" aria-label="五、开发与扩展建议的直接链接" title="五、开发与扩展建议的直接链接">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="-如何参与开发">🚀 如何参与开发？<a href="#-如何参与开发" class="hash-link" aria-label="🚀 如何参与开发？的直接链接" title="🚀 如何参与开发？的直接链接">​</a></h3>
+<ul>
+<li>
+<p>增强 Monitor 的灵活性：</p>
+<ul>
+<li>提供配置项（如备份频率、备份文件名格式化规则等）；</li>
+<li>优化资源占用和文件监控性能。</li>
+</ul>
+</li>
+<li>
+<p>提升 MonitService 的易用性：</p>
+<ul>
+<li>增加批量启动/停止功能；</li>
+<li>提供监控状态的 UI 展示。</li>
+</ul>
+</li>
+<li>
+<p>改进错误处理与日志输出：</p>
+<ul>
+<li>增加更多日志输出与异常处理逻辑；</li>
+<li>便于用户与开发者排查问题。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-总结给开发者的话">🛠️ 总结（给开发者的话）：<a href="#️-总结给开发者的话" class="hash-link" aria-label="🛠️ 总结（给开发者的话）：的直接链接" title="🛠️ 总结（给开发者的话）：的直接链接">​</a></h2>
+<p>Vertree 的监控模块是保障用户数据安全的重要组件，设计核心强调实时性、稳定性和用户体验。<br>
+<!-- -->开发时，你只需关注：</p>
+<ul>
+<li>文件监听事件；</li>
+<li>备份触发逻辑；</li>
+<li>任务管理机制。</li>
+</ul>
+<p>你可以快速上手并参与到新功能的开发与优化中！</p>
+<p>期待你的贡献，让 Vertree 更安全、更可靠！🚀✨</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col"><a href="https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/tutorial-develop/monitor.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>编辑此页</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="文件选项卡"><a class="pagination-nav__link pagination-nav__link--prev" href="/vertree/docs/tutorial-develop/filetree"><div class="pagination-nav__sublabel">上一页</div><div class="pagination-nav__label">🌳 Vertree版本树设计解析</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/vertree/docs/tutorial-develop/roadmap"><div class="pagination-nav__sublabel">下一页</div><div class="pagination-nav__label">🚧 VerTree 后续开发规划</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#一monitor-类设计介绍" class="table-of-contents__link toc-highlight">一、Monitor 类设计介绍</a><ul><li><a href="#-monitor-类作用" class="table-of-contents__link toc-highlight">🎯 Monitor 类作用：</a></li><li><a href="#-核心工作流程" class="table-of-contents__link toc-highlight">📌 核心工作流程：</a></li><li><a href="#-关键方法说明" class="table-of-contents__link toc-highlight">🚩 关键方法说明：</a></li></ul></li><li><a href="#二monitservice-类设计介绍" class="table-of-contents__link toc-highlight">二、MonitService 类设计介绍</a><ul><li><a href="#-monitservice-类作用" class="table-of-contents__link toc-highlight">🎯 MonitService 类作用：</a></li><li><a href="#-核心工作流程-1" class="table-of-contents__link toc-highlight">📌 核心工作流程：</a></li><li><a href="#-状态持久化" class="table-of-contents__link toc-highlight">🚩 状态持久化：</a></li></ul></li><li><a href="#三filemonittask-类设计介绍" class="table-of-contents__link toc-highlight">三、FileMonitTask 类设计介绍</a><ul><li><a href="#-filemonittask-类作用" class="table-of-contents__link toc-highlight">🎯 FileMonitTask 类作用：</a></li><li><a href="#-核心属性" class="table-of-contents__link toc-highlight">📌 核心属性：</a></li><li><a href="#-序列化与反序列化" class="table-of-contents__link toc-highlight">🚩 序列化与反序列化：</a></li></ul></li><li><a href="#四monitor-设计思想与优势" class="table-of-contents__link toc-highlight">四、Monitor 设计思想与优势</a><ul><li><a href="#-为什么设计为实时监控" class="table-of-contents__link toc-highlight">🌟 为什么设计为实时监控？</a></li><li><a href="#-为什么控制备份频率" class="table-of-contents__link toc-highlight">🌟 为什么控制备份频率？</a></li><li><a href="#-为什么备份文件名包含时间戳" class="table-of-contents__link toc-highlight">🌟 为什么备份文件名包含时间戳？</a></li></ul></li><li><a href="#五开发与扩展建议" class="table-of-contents__link toc-highlight">五、开发与扩展建议</a><ul><li><a href="#-如何参与开发" class="table-of-contents__link toc-highlight">🚀 如何参与开发？</a></li></ul></li><li><a href="#️-总结给开发者的话" class="table-of-contents__link toc-highlight">🛠️ 总结（给开发者的话）：</a></li></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/vertree/docs/intro">Tutorial</a></li></ul></div><div class="col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/vertree/blog">Blog</a></li><li class="footer__item"><a href="https://github.com/w0fv1/vertree" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2025 My Project, Inc. Built with Docusaurus.</div></div></div></footer></div>
+</body>
+</html>
