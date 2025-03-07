@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vertree/MonitService.dart';
+import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
 import 'package:vertree/component/Notifier.dart';
@@ -17,7 +18,7 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitService monitService;
-late Configer configer  = Configer();
+Configer configer  = Configer();
 void main(List<String> args) async {
   await logger.init();
   await configer.init();
@@ -52,7 +53,7 @@ void main(List<String> args) async {
       ),
       () async {
         Future.delayed(Duration(milliseconds: 1500), () async {
-          await windowManager.hide(); // 启动时隐藏窗口
+          // await windowManager.hide(); // 启动时隐藏窗口
 
           monitService.startAll().then((_) async {
             if (monitService.runningTaskCount == 0) {
@@ -131,7 +132,15 @@ class _MainPageState extends State<MainPage> {
   Widget page = BrandPage();
 
   @override
+  void initState() {
+    super.initState();
+    go = goPage;
+
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       title: 'Vertree维树',
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white)),
@@ -139,17 +148,11 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    go = goPage;
-  }
-
   void goPage(Widget page) async {
     await windowManager.show(); // 显示窗口
-
     setState(() {
       this.page = page;
     });
   }
+
 }

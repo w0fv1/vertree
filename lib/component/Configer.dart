@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:vertree/main.dart';
 
 class Configer {
   static const String _configFileName = "config.json";
@@ -23,7 +24,8 @@ class Configer {
         String content = await configFile.readAsString();
         _config = jsonDecode(content);
       } catch (e) {
-        print("Error reading config file: $e");
+        logger.error("Error reading config file: $e");
+        await _saveConfig();
       }
     } else {
       // 如果不存在配置文件，则创建一个空配置
@@ -33,8 +35,12 @@ class Configer {
 
   /// 通用的 get 方法：根据 key 获取配置
   T get<T>(String key, T defaultValue) {
-    return _config.containsKey(key) ? _config[key] as T : defaultValue;
+    if (!_config.containsKey(key)) {
+      set<T>(key, defaultValue); // Save the missing key with its default value
+    }
+    return _config[key] as T;
   }
+
 
   /// 通用的 set 方法：设置配置并立即写入文件
   void set<T>(String key, T value) {
@@ -42,12 +48,15 @@ class Configer {
     _saveConfig();
   }
 
-  /// 私有方法：保存配置到 JSON 文件
+
   Future<void> _saveConfig() async {
     final dir = await getApplicationSupportDirectory();
     final configFile = File('${dir.path}/$_configFileName');
 
-    await configFile.writeAsString(jsonEncode(_config));
+    final encoder = JsonEncoder.withIndent("  "); // Pretty print with indentation
+    final formattedJson = encoder.convert(_config);
+
+    await configFile.writeAsString(formattedJson);
   }
 
   /// 将配置转换为 JSON（可根据需要使用）
