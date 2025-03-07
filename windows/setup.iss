@@ -25,3 +25,37 @@ Filename: "{app}\vertree.exe"; Description: "Launch Vertree"; Flags: nowait post
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{userappdata}\dev.w0fv1"
+
+[Code]
+
+function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // 在卸载前尝试强制关闭 vertree.exe
+  Exec('taskkill.exe', '/f /im vertree.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := True;
+end;
+
+procedure DeleteRegistryKeys();
+begin
+  // 删除右键菜单项
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Backup');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Monitor');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\View VerTree');
+
+  // 删除开机自启项
+  if RegValueExists(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree') then
+    RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree');
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    DeleteRegistryKeys();
+  end;
+end;
+
+
