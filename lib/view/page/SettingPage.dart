@@ -17,9 +17,9 @@ class SettingPage extends StatefulWidget {
 class _SettingPageState extends State<SettingPage> {
   late bool backupFile = VerTreeRegistryService.checkBackupKeyExists();
   late bool monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
-  late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists(); // 检查是否存在
+  late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
+  late bool autoStart = VerTreeRegistryService.isAutoStartEnabled(); // 初始化开机自启状态
 
-  bool autoStart = false;
   bool isLoading = false;
 
   /// 更新 `backupFile` 状态
@@ -35,7 +35,7 @@ class _SettingPageState extends State<SettingPage> {
       success = VerTreeRegistryService.removeVerTreeBackupContextMenu();
       await showWindowsNotification("Vertree", "已从右键菜单移除 '备份当前文件版本' 功能按钮");
     }
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         if (success) {
           backupFile = value;
@@ -58,7 +58,7 @@ class _SettingPageState extends State<SettingPage> {
       success = VerTreeRegistryService.removeVerTreeMonitorContextMenu();
       await showWindowsNotification("Vertree", "已从右键菜单移除 '监控该文件' 功能按钮");
     }
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         if (success) {
           monitorFile = value;
@@ -68,6 +68,7 @@ class _SettingPageState extends State<SettingPage> {
     });
   }
 
+  /// 更新 `viewTreeFile` 状态
   Future<void> _toggleViewTreeFile(bool? value) async {
     if (value == null) return;
     setState(() => isLoading = true);
@@ -81,7 +82,7 @@ class _SettingPageState extends State<SettingPage> {
       await showWindowsNotification("Vertree", "已从右键菜单移除 '浏览文件版本树' 功能按钮");
     }
 
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         if (success) {
           viewTreeFile = value;
@@ -92,9 +93,26 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   /// 更新 `autoStart` 状态
-  void _toggleAutoStart(bool? value) {
-    setState(() {
-      autoStart = value ?? false;
+  Future<void> _toggleAutoStart(bool? value) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    bool success;
+    if (value) {
+      success = VerTreeRegistryService.enableAutoStart();
+      await showWindowsNotification("Vertree", "已启用开机自启");
+    } else {
+      success = VerTreeRegistryService.disableAutoStart();
+      await showWindowsNotification("Vertree", "已禁用开机自启");
+    }
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      setState(() {
+        if (success) {
+          autoStart = value;
+        }
+        isLoading = false;
+      });
     });
   }
 
@@ -112,44 +130,52 @@ class _SettingPageState extends State<SettingPage> {
           ),
           body: Center(
             child: Container(
-              constraints: BoxConstraints(maxWidth: 400),
-              padding: EdgeInsets.all(16),
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
-                      SizedBox(width: 10),
-                      Icon(Icons.settings, size: 24),
-                      SizedBox(width: 8),
-                      Text("设置", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.settings, size: 24),
+                      const SizedBox(width: 8),
+                      const Text("设置", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  SizedBox(height: 16),
-                  CheckboxListTile(title: Text("将“备份当前文件版本”增加到右键菜单"), value: backupFile, onChanged: _toggleBackupFile),
-                  CheckboxListTile(title: Text("将“监控该文件”增加到右键菜单"), value: monitorFile, onChanged: _toggleMonitorFile),
-                  CheckboxListTile(
-                    title: Text("将“浏览文件版本树”增加到右键菜单"),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    title: const Text("将“备份当前文件版本”增加到右键菜单"),
+                    value: backupFile,
+                    onChanged: _toggleBackupFile,
+                  ),
+                  SwitchListTile(
+                    title: const Text("将“监控该文件”增加到右键菜单"),
+                    value: monitorFile,
+                    onChanged: _toggleMonitorFile,
+                  ),
+                  SwitchListTile(
+                    title: const Text("将“浏览文件版本树”增加到右键菜单"),
                     value: viewTreeFile,
                     onChanged: _toggleViewTreeFile,
                   ),
-                  CheckboxListTile(title: Text("开机自启Vertree（推荐）"), value: autoStart, onChanged: _toggleAutoStart),
+                  SwitchListTile(
+                    title: const Text("开机自启 Vertree（推荐）"),
+                    value: autoStart,
+                    onChanged: _toggleAutoStart,
+                  ),
                   const SizedBox(height: 16),
 
                   // 新增按钮：选择文件并指定打开方式
                   ListTile(
-                    leading: const Icon(Icons.open_in_new,size: 18,),
-                    title: const Text("打开Config.json"),
-                    onTap: (){
-
+                    leading: const Icon(Icons.open_in_new, size: 18),
+                    title: const Text("打开 config.json"),
+                    onTap: () {
                       print("${configer.configFilePath}");
-
                       FileUtils.openFile(configer.configFilePath);
-
                     },
                   ),
-
                 ],
               ),
             ),
