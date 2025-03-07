@@ -29,7 +29,7 @@ dependencies:
   loading_indicator: ^3.1.1
   local_notifier: ^0.1.6
   file_picker: ^9.0.2
-
+  url_launcher: ^6.3.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
