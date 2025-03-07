@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[463],{699:e=>{e.exports=JSON.parse('{"tags":[{"label":"Hello","permalink":"/vertree/blog/tags/hello","description":"Hello tag description","count":1}]}')}}]);

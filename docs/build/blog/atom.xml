@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://w0fv1.github.io/vertree/blog</id>
+    <title>Vertree维树 Blog</title>
+    <updated>2025-03-06T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://w0fv1.github.io/vertree/blog"/>
+    <subtitle>Vertree维树 Blog</subtitle>
+    <icon>https://w0fv1.github.io/vertree/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[Welcome]]></title>
+        <id>https://w0fv1.github.io/vertree/blog/welcome</id>
+        <link href="https://w0fv1.github.io/vertree/blog/welcome"/>
+        <updated>2025-03-06T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[为什么我们需要Vertree：单文件版本管理的革命]]></summary>
+        <content type="html"><![CDATA[<h3 class="anchor anchorWithStickyNavbar_LWe7" id="为什么我们需要vertree单文件版本管理的革命">为什么我们需要Vertree：单文件版本管理的革命<a href="https://w0fv1.github.io/vertree/blog/welcome#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81vertree%E5%8D%95%E6%96%87%E4%BB%B6%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86%E7%9A%84%E9%9D%A9%E5%91%BD" class="hash-link" aria-label="为什么我们需要Vertree：单文件版本管理的革命的直接链接" title="为什么我们需要Vertree：单文件版本管理的革命的直接链接">​</a></h3>
+<p>在数字创作的时代，文件版本管理是一个不可忽视的问题。无论是设计师、程序员还是普通的文档编辑者，我们都面临着文件版本混乱的困境。Vertree的诞生，正是为了应对这一挑战，提供一个简单而高效的解决方案。</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="动机从混乱到有序">动机：从混乱到有序<a href="https://w0fv1.github.io/vertree/blog/welcome#%E5%8A%A8%E6%9C%BA%E4%BB%8E%E6%B7%B7%E4%B9%B1%E5%88%B0%E6%9C%89%E5%BA%8F" class="hash-link" aria-label="动机：从混乱到有序的直接链接" title="动机：从混乱到有序的直接链接">​</a></h4>
+<p>多年以前，我目睹了一位设计师朋友的经历，他为甲方的反复修改而苦恼。每次修改，文件都会被复制一份，版本越来越多，越来越乱。甲方的每一次推倒重来，都像是在无序的海洋中挣扎。这让我意识到，<strong>版本管理</strong>不仅仅是一个技术问题，更是一个实际的工作痛点。</p>
+<p>在编程领域，我们有Git、SVN这样的工具，它们帮助我们管理代码的版本，记录每一次的修改和更新。但在设计、文档编辑等领域，这样的工具却显得力不从心。PSD、DOCX等文件格式，无法像文本一样被轻松地纳入版本控制系统。市场上的解决方案要么复杂难用，要么根本不存在。</p>
+<p>经过对用户需求的深入分析，我发现了一个空白：<strong>单文件版本管理</strong>。这个领域的痛点很明显，但一直被忽视。Vertree的出现，就是为了填补这个空白，让每一个创作者都能轻松管理自己的文件版本。</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="设计思路让复杂变得简单">设计思路：让复杂变得简单<a href="https://w0fv1.github.io/vertree/blog/welcome#%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF%E8%AE%A9%E5%A4%8D%E6%9D%82%E5%8F%98%E5%BE%97%E7%AE%80%E5%8D%95" class="hash-link" aria-label="设计思路：让复杂变得简单的直接链接" title="设计思路：让复杂变得简单的直接链接">​</a></h4>
+<p>Vertree的核心设计思路，是让版本管理变得直观、自然，符合用户的使用习惯。</p>
+<ol>
+<li>
+<p><strong>树状版本结构</strong>：我们引入了分支和备份的概念，把复杂的版本关系转化为清晰的树状结构。<strong>分支</strong>用于记录文件的不同走向，<strong>备份</strong>则捕捉每次修改的关键节点。用户不需要了解复杂的版本管理理论，只需要轻轻一点，就能生成清晰的版本树。</p>
+</li>
+<li>
+<p><strong>实时监控</strong>：Vertree会默默地守护你的文件，记录每一次的细微修改。它就像是一个智能的守护者，当你忙于创作时，它在背后默默工作。如果出现问题，它可以快速还原到任何版本，让你的创作过程永远不会被中断。</p>
+</li>
+<li>
+<p><strong>无缝使用，无侵入性</strong>：这是Vertree最大的特点。我们没有创造新的流程，而是简化了现有的操作。你只需要像平常一样使用文件，Vertree会在背后自动完成版本管理。所有的备份操作都是无感的，不会干扰你的工作流程。</p>
+</li>
+</ol>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="从混乱到有序vertree的承诺">从混乱到有序：vertree的承诺<a href="https://w0fv1.github.io/vertree/blog/welcome#%E4%BB%8E%E6%B7%B7%E4%B9%B1%E5%88%B0%E6%9C%89%E5%BA%8Fvertree%E7%9A%84%E6%89%BF%E8%AF%BA" class="hash-link" aria-label="从混乱到有序：vertree的承诺的直接链接" title="从混乱到有序：vertree的承诺的直接链接">​</a></h4>
+<p>vertree不仅仅是一个工具，它是一种对创作过程的尊重。我们相信，每一个创作者都应该专注于自己的作品，而不是被版本管理的复杂性所困扰。vertree的出现，是为了让创作变得更加自由和高效。</p>
+<p>通过vertree，我们希望改变的不仅仅是文件管理的方式，更是创作者的工作习惯。每一次的修改，都会成为创作历程中清晰的印记。每一次的回溯，都可以找到灵感的来源。</p>
+<p>vertree的使命，是让每一个创作者都能轻松管理自己的文件版本，让创作的每一步都变得清晰、有序。</p>
+<p>vertree：让每一次修改都有迹可循。</p>]]></content>
+        <author>
+            <name>w0fv1.dev</name>
+            <uri>https://w0fv1.dev/</uri>
+        </author>
+        <category label="Hello" term="Hello"/>
+    </entry>
+</feed>
