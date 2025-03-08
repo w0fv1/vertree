@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vertree/VerTreeRegistryService.dart';
+import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/page/MonitPage.dart';
@@ -128,6 +129,11 @@ class _BrandPageState extends State<BrandPage> {
       VerTreeRegistryService.addVerTreeMonitorContextMenu();
       VerTreeRegistryService.addVerTreeViewContextMenu();
       VerTreeRegistryService.enableAutoStart();
+
+      await showWindowsNotification(
+        "Vertree初始设置已完成！",
+        "开始使用吧！"
+      );
 
       // Mark setup as done
       configer.set<bool>('isSetupDone', true);
