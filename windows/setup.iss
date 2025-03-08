@@ -1,20 +1,21 @@
 [Setup]
 AppName=Vertree
 AppVersion=0.1.0
-AppPublisher=w0fv1.dev
+AppPublisher=Vertree
 AppPublisherURL=https://vertree.w0fv1.dev
-DefaultDirName={pf}\Vertree
+DefaultDirName={commonpf}\Vertree
 DefaultGroupName=Vertree
 OutputDir=.
 OutputBaseFilename=Vertree_Setup
-SetupIconFile="D:\project\vertree\build\windows\x64\runner\Release\data\flutter_assets\assets\img\logo\logo.ico"
+SetupIconFile="..\build\windows\x64\runner\Release\data\flutter_assets\assets\img\logo\logo.ico"
 UninstallDisplayIcon={app}\vertree.exe
 Compression=lzma2
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
+PrivilegesRequired=admin
 
 [Files]
-Source: "D:\project\vertree\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\Vertree"; Filename: "{app}\vertree.exe"
@@ -33,19 +34,16 @@ function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // 在卸载前尝试强制关闭 vertree.exe
   Exec('taskkill.exe', '/f /im vertree.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Result := True;
 end;
 
 procedure DeleteRegistryKeys();
 begin
-  // 删除右键菜单项
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Backup');
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Monitor');
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\View VerTree');
 
-  // 删除开机自启项
   if RegValueExists(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree') then
     RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree');
 end;
@@ -57,5 +55,3 @@ begin
     DeleteRegistryKeys();
   end;
 end;
-
-

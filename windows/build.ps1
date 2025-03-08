@@ -1,6 +1,24 @@
 # 设置 Inno Setup 编译器路径（请确认你的 Inno Setup 安装位置）
 $innoSetupCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
+# 保存当前脚本目录
+$currentDir = Get-Location
+
+# 回到上一层目录执行 flutter build windows
+Set-Location ".."
+
+Write-Host "正在执行 flutter build windows..."
+flutter build windows
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Flutter编译失败，请检查错误日志。"
+    Set-Location $currentDir
+    exit $LASTEXITCODE
+}
+
+# 返回原脚本目录
+Set-Location $currentDir
+
 # 当前脚本目录
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
