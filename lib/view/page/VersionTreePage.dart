@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/TreeBuilder.dart';
 import 'package:vertree/view/component/AppBar.dart';
+import 'package:vertree/view/component/Loading.dart';
 import 'package:vertree/view/component/tree/FileTree.dart';
+import 'package:window_manager/window_manager.dart';
 
 class FileTreePage extends StatefulWidget {
   const FileTreePage({super.key, required this.path});
@@ -12,17 +14,25 @@ class FileTreePage extends StatefulWidget {
   @override
   State<FileTreePage> createState() => _FileTreePageState();
 }
-
 class _FileTreePageState extends State<FileTreePage> {
   late String path = widget.path;
   FileNode? rootNode;
+  bool isLoading = true; // 加载状态
 
   @override
   void initState() {
+    windowManager.maximize();
     super.initState();
-    buildTree(path).then((fileNodeResult) {
+    // 同时等待构建文件树和500ms延时
+    Future.wait([
+      buildTree(path),
+      Future.delayed(Duration(milliseconds: 500)),
+    ]).then((results) {
+      // 第一个结果为构建文件树的结果
+      final fileNodeResult = results[0];
       setState(() {
         rootNode = fileNodeResult.unwrap();
+        isLoading = false;
       });
     });
   }
@@ -38,7 +48,7 @@ class _FileTreePageState extends State<FileTreePage> {
             children: [
               Container(
                 width: 20,
-                height: 20, // 4:3 aspect ratio (400x300)
+                height: 20,
                 decoration: BoxDecoration(
                   image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
                 ),
@@ -49,17 +59,19 @@ class _FileTreePageState extends State<FileTreePage> {
               ),
             ],
           ),
-          showMaximize: false,
         ),
-        body:
-            rootNode != null
-                ? FileTree(
-                  rootNode: rootNode!,
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                )
-                : Container(),
+        body: LoadingWidget(
+          isLoading: isLoading,
+          child: rootNode != null
+              ? FileTree(
+            rootNode: rootNode!,
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+          )
+              : Container(),
+        ),
       ),
     );
   }
 }
+

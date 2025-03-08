@@ -22,9 +22,14 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
   List<String> bottomBranchIds = [];
 
   @override
+  void onInitState() {
+    super.dragable = false;
+  }
+
+  @override
   Widget buildComponent() {
     return GestureDetector(
-      onTap: (){
+      onTap: () {
         FileUtils.openFile(fileNode.mate.fullPath);
       },
       child: Container(

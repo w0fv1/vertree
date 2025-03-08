@@ -29,6 +29,8 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
 
   @override
   void initState() {
+    onInitState();
+
     super.initState();
     _animationController = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
     _animation = Tween<Offset>(
@@ -40,6 +42,10 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
     });
   }
 
+  void onInitState() {
+    return;
+  }
+
   String getId() {
     return widget.id;
   }
@@ -49,6 +55,9 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
   }
 
   bool isDragging = false;
+
+  bool dragable = false;
+
   double scale = 1.0; // 初始缩放比例
   bool isHovered = false;
 
@@ -64,13 +73,15 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
   Widget build(BuildContext context) {
     return SizeListenerWidget(
       onSizeChange: (Size size) {
-        this.size = size;
+        setState(() {
+          this.size = size;
+        });
       },
       child: Positioned(
         left: position.dx + widget.offset.dx,
         top: position.dy + widget.offset.dy,
         child: MouseRegion(
-          cursor: _cursor ,
+          cursor: _cursor,
           onEnter: (_) {
             if (!isDragging) {
               setState(() {
@@ -96,10 +107,12 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
               });
             },
             onPanUpdate: (details) {
+              if (!dragable) {
+                return;
+              }
               setState(() {
                 position += details.delta;
                 _cursor = SystemMouseCursors.allScroll;
-
               });
             },
             onPanEnd: (_) {
@@ -111,7 +124,6 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
                   scale = 1.0; // 拖动结束恢复正常大小
                 }
                 _cursor = SystemMouseCursors.grab;
-
               });
             },
             child: AnimatedScale(
