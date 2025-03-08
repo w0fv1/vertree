@@ -22,6 +22,9 @@ function HomepageHeader() {
                         <Link className="button button--secondary button--lg" to="/docs/intro">
                             快速开始 _>
                         </Link>
+                        <Link className="button button--text button--lg" to="https://github.com/w0fv1/vertree/releases">
+                            下载
+                        </Link>
                     </div>
                 </div>
 
