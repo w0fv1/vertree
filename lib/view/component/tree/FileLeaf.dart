@@ -30,10 +30,13 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
   Widget buildComponent() {
     return GestureDetector(
       onTap: () {
-        FileUtils.openFile(fileNode.mate.fullPath);
+        _showOpenFileDialog();
       },
       child: Container(
-        decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: Colors.grey,
+          borderRadius: BorderRadius.circular(10),
+        ),
         padding: EdgeInsets.only(top: 4, bottom: 4, left: 18, right: 10),
         child: Row(
           children: [
@@ -42,7 +45,6 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white),
             ),
-
             IconButton(
               iconSize: 20,
               icon: Center(child: Icon(Icons.save, color: Colors.white, size: 14)),
@@ -55,4 +57,33 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       ),
     );
   }
+
+  /// 显示打开文件的确认对话框
+  void _showOpenFileDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("打开文件 ${fileNode.mate.name}.${fileNode.mate.extension} ?"),
+          content: Text("即将打开 \"${fileNode.mate.name}.${fileNode.mate.extension}\" ${fileNode.mate.version} 版"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 关闭对话框
+              },
+              child: Text("取消"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 关闭对话框
+                FileUtils.openFile(fileNode.mate.fullPath); // 执行打开文件
+              },
+              child: Text("确认"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }
