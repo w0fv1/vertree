@@ -20,7 +20,7 @@ class FileTree extends StatefulWidget {
 }
 
 class _FileTreeState extends State<FileTree> {
-  final double _Xmobility = 200;
+  final double _Xmobility = 260;
   final double _Ymobility = 60;
 
   late FileNode rootNode = widget.rootNode;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/core/FileVersionTree.dart';
+import 'package:vertree/utils/StringUtils.dart';
 import 'package:vertree/view/component/tree/CanvasComponent.dart';
 
 class FileLeaf extends CanvasComponent {
@@ -33,15 +34,12 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
         _showOpenFileDialog();
       },
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(10)),
         padding: EdgeInsets.only(top: 4, bottom: 4, left: 18, right: 10),
         child: Row(
           children: [
             Text(
-              "${fileNode.mate.name} ${fileNode.version.toString()}",
+              "${StringUtils.truncate(fileNode.mate.name, 12)} ${fileNode.version.toString()}",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white),
             ),
@@ -85,5 +83,4 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       },
     );
   }
-
 }
