@@ -7,7 +7,6 @@ import 'package:vertree/main.dart';
 import 'package:path/path.dart' as p;
 
 class MonitService {
-
   /// 由 MonitService 持有的任务列表
   List<FileMonitTask> monitFileTasks = [];
 
@@ -27,7 +26,6 @@ class MonitService {
         _startMonitor(task);
       }
     }
-
   }
 
   /// 将当前任务列表保存到 configer
@@ -42,7 +40,6 @@ class MonitService {
 
   /// 启动所有已标记为运行的监视任务
   Future<void> startAll() async {
-
     for (var task in monitFileTasks) {
       if (task.isRunning && task.monitor == null) {
         _startMonitor(task);
@@ -52,7 +49,6 @@ class MonitService {
 
   /// 添加文件监视任务
   Future<Result<FileMonitTask, String>> addFileMonitTask(String path) async {
-
     // 检查任务是否已存在
     if (monitFileTasks.any((task) => task.filePath == path)) {
       logger.info("Task already exists for: $path");
@@ -73,7 +69,6 @@ class MonitService {
 
   /// 移除文件监视任务
   Future<void> removeFileMonitTask(String path) async {
-
     final index = monitFileTasks.indexWhere((t) => t.filePath == path);
     if (index == -1) {
       print("Task not found for: $path");
@@ -90,58 +85,66 @@ class MonitService {
   }
 
   /// 切换文件监视任务的运行状态
-  Future<FileMonitTask> toggleFileMonitTaskStatus(FileMonitTask task) async {
-
+  /// 切换文件监视任务的运行状态
+  Future<Result<FileMonitTask, String>> toggleFileMonitTaskStatus(FileMonitTask task) async {
     final index = monitFileTasks.indexWhere((t) => t.filePath == task.filePath);
     if (index == -1) {
-      print("Task not found for: ${task.filePath}");
-      return task;
+      final errMsg = "Task not found for: ${task.filePath}";
+      logger.error(errMsg);
+      return Result.err(errMsg);
     }
 
-    // 切换状态
-    task.isRunning = !task.isRunning;
+    Result<FileMonitTask, String> result;
+
     if (task.isRunning) {
-      _startMonitor(task);
+      result = _pauseMonitor(task);
     } else {
-      _pauseMonitor(task);
+      result = _startMonitor(task);
     }
 
-    monitFileTasks[index] = task;
-    await _saveMonitFiles();
-
-    return task;
+    return result;
   }
 
   /// 启动监视
-  void _startMonitor(FileMonitTask task) {
+  Result<FileMonitTask, String> _startMonitor(FileMonitTask task) {
+    if (!File(task.filePath).existsSync()) {
+      logger.error("Cannot start monitor: File does not exist: ${task.filePath}");
+      return Result.eMsg("Cannot start monitor: File does not exist: ${task.filePath}");
+    }
+
     task.monitor ??= Monitor.fromTask(task);
     task.monitor?.start();
     task.isRunning = true;
+
+    return Result.ok(task);
   }
 
   /// 停止监视
-  void _pauseMonitor(FileMonitTask task) {
+  Result<FileMonitTask, String> _pauseMonitor(FileMonitTask task) {
     task.monitor?.stop();
     task.monitor = null;
     task.isRunning = false;
+
+    return Result.ok(task);
   }
 }
 
-
 class FileMonitTask {
   String filePath;
-  late String backupDirPath;
+  String? backupDirPath;
   bool isRunning; // 是否正在运行
+  bool fileExists; // 文件是否存在的标记
   late File file;
   Monitor? monitor;
 
-  FileMonitTask({required this.filePath, this.isRunning = false}) {
-    final file = File(filePath);
-    if (!file.existsSync()) {
+  FileMonitTask({required this.filePath, this.isRunning = false}) : fileExists = File(filePath).existsSync() {
+    if (!fileExists) {
       print("File does not exist: $filePath");
+      isRunning = false;
       return;
     }
 
+    file = File(filePath);
     final directory = file.parent;
     final fileName = p.basenameWithoutExtension(file.path);
 
@@ -150,13 +153,26 @@ class FileMonitTask {
   }
 
   // 将对象转换为 Map（用于 JSON 序列化）
-  Map<String, dynamic> toJson() => {"filePath": filePath, "backupDirPath": backupDirPath, "isRunning": isRunning};
+  Map<String, dynamic> toJson() => {
+    "filePath": filePath,
+    "backupDirPath": backupDirPath,
+    "isRunning": isRunning,
+    "fileExists": fileExists,
+  };
 
   // 从 Map（JSON 反序列化）创建对象
   factory FileMonitTask.fromJson(Map<String, dynamic> json) {
-    return FileMonitTask(filePath: json["filePath"], isRunning: json["isRunning"] ?? false);
+    final task = FileMonitTask(filePath: json["filePath"], isRunning: json["isRunning"] ?? false);
+    task.fileExists = File(task.filePath).existsSync();
+
+    if (!task.fileExists) {
+      task.isRunning = false;
+    }
+
+    return task;
   }
 
   @override
-  String toString() => 'FileMonitTask(filePath: $filePath, backupDirPath: $backupDirPath, isRunning: $isRunning)';
+  String toString() =>
+      'FileMonitTask(filePath: $filePath, backupDirPath: $backupDirPath, isRunning: $isRunning, fileExists: $fileExists)';
 }

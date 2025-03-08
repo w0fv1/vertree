@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import 'package:vertree/MonitService.dart';
 import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/component/AppLogger.dart';
@@ -112,8 +113,10 @@ void processArgs(List<String> args) {
         return;
       }
       FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
+      if(fileMonitTask.backupDirPath != null){
+        showWindowsNotificationWithFolder("Vertree以开始监控文件，", "点击我打开备份目录", fileMonitTask.backupDirPath!);
+      }
 
-      showWindowsNotificationWithFolder("Vertree以开始监控文件，", "点击我打开备份目录", fileMonitTask.backupDirPath);
     });
   } else if (action == "--viewtree") {
     logger.info(path);
@@ -141,10 +144,12 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
 
-    return MaterialApp(
-      title: 'Vertree维树',
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white)),
-      home: page,
+    return ToastificationWrapper(
+      child: MaterialApp(
+        title: 'Vertree维树',
+        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white)),
+        home: page,
+      ),
     );
   }
 

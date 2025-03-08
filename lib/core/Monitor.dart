@@ -35,11 +35,15 @@ class Monitor {
     filePath = fileMonitTask.filePath;
     file = File(filePath);
     if (!file.existsSync()) {
-      print("File does not exist: $filePath");
+      logger.error("File does not exist: $filePath");
+      return;
+    }
+    if (fileMonitTask.backupDirPath == null) {
+      logger.error("Backup dir does not exist: $filePath");
       return;
     }
 
-    backupDirPath = fileMonitTask.backupDirPath;
+    backupDirPath = fileMonitTask.backupDirPath!;
 
     backupDir = Directory(backupDirPath);
 

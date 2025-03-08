@@ -25,12 +25,6 @@ class _MonitPageState extends State<MonitPage> {
     // 初始化时，先确保 monitService 初始化完成（如果在 main.dart 里已确保，则无需 await）
   }
 
-  /// 切换监控开关
-  Future<void> _toggleTask(FileMonitTask task) async {
-    // 调用服务进行启动/暂停
-    await monitService.toggleFileMonitTaskStatus(task);
-    setState(() {});
-  }
 
   /// 选择文件并添加监控任务
   Future<void> _addNewTask() async {
@@ -95,13 +89,7 @@ class _MonitPageState extends State<MonitPage> {
                     onDismissed: (direction) => _removeTask(task),
                     child: MonitTaskCard(
                       task: task,
-                      onSwitchChanged: (value) async {
-                        // 直接调用 toggle，让任务状态翻转即可
-                        await _toggleTask(task);
-                        // Flutter 的 switch 里可以由 toggleFileMonitTaskStatus 来负责更新状态
-                        // 并 setState 刷新UI
-                      },
-                      onOpenFolder: () => FileUtils.openFolder(task.backupDirPath),
+
                     ),
                   );
                 },
