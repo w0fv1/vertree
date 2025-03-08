@@ -12,7 +12,17 @@ class TreeCanvas extends StatefulWidget {
   final List<CanvasComponentContainer>? children;
   final List<Edge>? edges;
 
-  const TreeCanvas({super.key, required this.manager, this.height = 300, this.width = 500, this.children, this.edges});
+  final Function refresh;
+
+  const TreeCanvas({
+    super.key,
+    required this.manager,
+    this.height = 300,
+    this.width = 500,
+    this.children,
+    this.edges,
+    required this.refresh,
+  });
 
   @override
   _TreeCanvasState createState() => _TreeCanvasState();
@@ -32,11 +42,11 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
   double _scale = 1.0;
   double minScale = 0.5;
   double maxScale = 3.0;
-   SystemMouseCursor _cursor = SystemMouseCursors.allScroll;
+  SystemMouseCursor _cursor = SystemMouseCursors.allScroll;
+  UniqueKey refreshKey = UniqueKey();
 
   @override
   void initState() {
-
     widget.manager.put = put;
 
     widget.manager.move = move;
@@ -55,7 +65,6 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     }
 
     super.initState();
-
   }
 
   @override
@@ -89,6 +98,7 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
         child: Stack(
           children: [
             Positioned(
+              key: refreshKey,
               top: canvasPosition.dy,
               left: canvasPosition.dx,
               child: Transform.scale(
@@ -111,7 +121,7 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
                     });
                   },
                   child: MouseRegion(
-                    cursor: _cursor ,
+                    cursor: _cursor,
 
                     child: Stack(
                       clipBehavior: Clip.none,
@@ -125,6 +135,30 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Colors.white),
+                      onPressed: () {
+                        // 点击刷新后重绘 edges 和 components
+                        setState(() {
+                          widget.refresh.call();
+
+                          refreshKey = UniqueKey();
+                        });
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
