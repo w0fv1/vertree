@@ -75,6 +75,7 @@ void main(List<String> args) async {
 
     Tray().init();
     runApp(const MainPage()); // 运行设置页面
+    processArgs(args);
   } catch (e) {
     logger.error('Vertree启动失败: $e');
     exit(0);
@@ -173,7 +174,9 @@ void processArgs(List<String> args) {
     });
   } else if (action == "--viewtree") {
     logger.info(path);
-    go(FileTreePage(path: path));
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      go(FileTreePage(path: path));
+    });
   }
 }
 
