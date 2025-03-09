@@ -477,6 +477,7 @@ class FileNode {
     return buffer.toString();
   }
 
+
   @override
   String toString() {
     return 'FileNode(file: $mate, child: [$child], branches: [$branches])';
