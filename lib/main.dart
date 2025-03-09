@@ -19,11 +19,11 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitService monitService;
-Configer configer  = Configer();
+Configer configer = Configer();
+
 void main(List<String> args) async {
   await logger.init();
   await configer.init();
-
 
   monitService = MonitService();
   logger.info("启动参数: $args");
@@ -61,13 +61,9 @@ void main(List<String> args) async {
               logger.info("Vertree没有需要监控的文件");
               return;
             }
-            await showWindowsNotificationWithTask(
-              "Vertree开始监控 ${monitService.runningTaskCount} 个文件",
-              "点击查看监控任务",
-              (_) {
-                go(MonitPage());
-              },
-            );
+            await showWindowsNotificationWithTask("Vertree开始监控 ${monitService.runningTaskCount} 个文件", "点击查看监控任务", (_) {
+              go(MonitPage());
+            });
 
             return;
           });
@@ -96,15 +92,68 @@ void processArgs(List<String> args) {
   if (action == "--backup") {
     logger.info(path);
     FileNode fileNode = FileNode(path);
-    fileNode.safeBackup().then((Result<FileNode, String> result) {
-      if (result.isErr) {
-        showWindowsNotification("Vertree备份文件失败，", result.msg);
+
+    // 先延迟一段时间，确保 UI 已经渲染并且 navigatorKey.currentContext 有效
+    Future.delayed(const Duration(milliseconds: 1500), () async {
+      await windowManager.show(); // 显示窗口
+      await windowManager.focus(); // 让窗口获取焦点
+
+      // 弹出输入备注对话框
+      String? label = await showDialog<String>(
+        context: navigatorKey.currentState!.overlay!.context,
+        builder: (context) {
+          String input = "";
+          return AlertDialog(
+            title: Text("请输入备份 ${fileNode.mate.name} 的备注/原因（可选）"),
+            content: TextField(
+              autofocus: true,
+              decoration: const InputDecoration(hintText: "备注信息（可选）"),
+              onChanged: (value) {
+                input = value;
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop('\$CANCEL_BACKUP'); // 取消备份
+                },
+                child: const Text("取消备份", style: TextStyle(color: Colors.red)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(null); // 无备注，直接备份
+                },
+                child: const Text("无备注，直接备份"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(input); // 用户输入备注
+                },
+                child: const Text("确定"),
+              ),
+            ],
+          );
+        },
+      );
+
+      // 处理用户取消的情况
+      if (label == '\$CANCEL_BACKUP') {
+        showWindowsNotification("Vertree 备份已取消", "用户取消了备份操作");
+        logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
         return;
       }
-      FileNode backup = result.unwrap();
 
-      showWindowsNotificationWithFile("Vertree已备份文件，", "点击我打开新文件", backup.mate.fullPath);
+      // 调用 safeBackup，同时传入用户输入的 label（可能为 null）
+      fileNode.safeBackup(label).then((Result<FileNode, String> result) {
+        if (result.isErr) {
+          showWindowsNotification("Vertree 备份文件失败", result.msg);
+          return;
+        }
+        FileNode backup = result.unwrap();
+        showWindowsNotificationWithFile("Vertree 已备份文件", "点击我打开新文件", backup.mate.fullPath);
+      });
     });
+
   } else if (action == "--monitor") {
     logger.info(path);
     monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
@@ -113,16 +162,17 @@ void processArgs(List<String> args) {
         return;
       }
       FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
-      if(fileMonitTask.backupDirPath != null){
+      if (fileMonitTask.backupDirPath != null) {
         showWindowsNotificationWithFolder("Vertree以开始监控文件，", "点击我打开备份目录", fileMonitTask.backupDirPath!);
       }
-
     });
   } else if (action == "--viewtree") {
     logger.info(path);
     go(FileTreePage(path: path));
   }
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -138,14 +188,14 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     go = goPage;
-
   }
 
   @override
   Widget build(BuildContext context) {
-
     return ToastificationWrapper(
       child: MaterialApp(
+        navigatorKey: navigatorKey,
+
         title: 'Vertree维树',
         theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white)),
         home: page,
@@ -159,5 +209,4 @@ class _MainPageState extends State<MainPage> {
       this.page = page;
     });
   }
-
 }

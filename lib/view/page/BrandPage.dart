@@ -21,6 +21,7 @@ class _BrandPageState extends State<BrandPage> {
 
 
 
+
   @override
   Widget build(BuildContext context) {
 
@@ -142,6 +143,7 @@ class _BrandPageState extends State<BrandPage> {
 
   @override
   void initState() {
+    windowManager.restore();
     super.initState();
     Future.delayed(Duration(seconds:1), () => setup(context));
     //

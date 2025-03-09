@@ -19,7 +19,14 @@ class _SettingPageState extends State<SettingPage> {
   late bool backupFile = VerTreeRegistryService.checkBackupKeyExists();
   late bool monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
   late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
-  late bool autoStart = VerTreeRegistryService.isAutoStartEnabled(); // 初始化开机自启状态
+  late bool autoStart = VerTreeRegistryService.isAutoStartEnabled();
+
+  @override
+  void initState() {
+    windowManager.restore();
+
+    super.initState();
+  } // 初始化开机自启状态
 
   bool isLoading = false;
 

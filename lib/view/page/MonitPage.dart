@@ -6,6 +6,7 @@ import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/component/MonitTaskCard.dart';
+import 'package:window_manager/window_manager.dart';
 
 class MonitPage extends StatefulWidget {
   const MonitPage({super.key});
@@ -20,6 +21,8 @@ class _MonitPageState extends State<MonitPage> {
 
   @override
   void initState() {
+    windowManager.restore();
+
     monitTasks.addAll(monitService.monitFileTasks);
     super.initState();
     // 初始化时，先确保 monitService 初始化完成（如果在 main.dart 里已确保，则无需 await）
