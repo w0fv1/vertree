@@ -2615,7 +2615,7 @@ void processArgs(List<String> args) {
 
       showWindowsNotificationWithFile("Vertree已备份文件，", "点击我打开新文件", backup.mate.fullPath);
     });
-  } else if (action == "--monitor") {
+  } else if (action == "--monit") {
     logger.info(path);
     monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
       if (fileMonitTaskResult.isErr) {
@@ -2942,7 +2942,7 @@ class VerTreeRegistryService {
   static bool addVerTreeMonitorContextMenu() {
     return RegistryHelper.addContextMenuOption(
       monitorMenuName,
-      '$exePath --monitor %1',
+      '$exePath --monit %1',
       iconPath: "assets/img/logo/logo.ico",
     );
   }
@@ -4577,7 +4577,7 @@ void processArgs(List<String> args) {
 
       showWindowsNotificationWithFile("Vertree已备份文件，", "点击我打开新文件", backup.mate.fullPath);
     });
-  } else if (action == "--monitor") {
+  } else if (action == "--monit") {
     logger.info(path);
     monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
       if (fileMonitTaskResult.isErr) {
@@ -4909,7 +4909,7 @@ class VerTreeRegistryService {
   static bool addVerTreeMonitorContextMenu() {
     return RegistryHelper.addContextMenuOption(
       monitorMenuName,
-      '"$exePath" --monitor %1',
+      '"$exePath" --monit %1',
       iconPath: "assets/img/logo/logo.ico",
     );
   }
