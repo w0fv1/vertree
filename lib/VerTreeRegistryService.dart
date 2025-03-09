@@ -38,7 +38,7 @@ class VerTreeRegistryService {
     final exePath = Platform.resolvedExecutable;
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'monit.ico');
 
-    return RegistryHelper.addContextMenuOption(monitorMenuName, '"$exePath" --monitor %1', iconPath: iconPath);
+    return RegistryHelper.addContextMenuOption(monitorMenuName, '"$exePath" --monit %1', iconPath: iconPath);
   }
 
   static bool addVerTreeViewContextMenu() {
