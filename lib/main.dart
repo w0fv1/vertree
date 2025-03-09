@@ -94,53 +94,60 @@ void processArgs(List<String> args) {
     FileNode fileNode = FileNode(path);
 
     // 先延迟一段时间，确保 UI 已经渲染并且 navigatorKey.currentContext 有效
-    Future.delayed(const Duration(milliseconds: 1500), () async {
+    Future.delayed(const Duration(milliseconds: 500), () async {
       await windowManager.show(); // 显示窗口
       await windowManager.focus(); // 让窗口获取焦点
 
       // 弹出输入备注对话框
-      String? label = await showDialog<String>(
-        context: navigatorKey.currentState!.overlay!.context,
-        builder: (context) {
-          String input = "";
-          return AlertDialog(
-            title: Text("请输入备份 ${fileNode.mate.name} 的备注/原因（可选）"),
-            content: TextField(
-              autofocus: true,
-              decoration: const InputDecoration(hintText: "备注信息（可选）"),
-              onChanged: (value) {
-                input = value;
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop('\$CANCEL_BACKUP'); // 取消备份
-                },
-                child: const Text("取消备份", style: TextStyle(color: Colors.red)),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(null); // 无备注，直接备份
-                },
-                child: const Text("无备注，直接备份"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(input); // 用户输入备注
-                },
-                child: const Text("确定"),
-              ),
-            ],
-          );
-        },
-      );
+      String? label;
 
-      // 处理用户取消的情况
-      if (label == '\$CANCEL_BACKUP') {
-        showWindowsNotification("Vertree 备份已取消", "用户取消了备份操作");
-        logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
-        return;
+      try{
+        label = await showDialog<String>(
+          context: navigatorKey.currentState!.overlay!.context,
+          builder: (context) {
+            String input = "";
+            return AlertDialog(
+              title: Text("请输入备份 ${fileNode.mate.name} 的备注/原因（可选）"),
+              content: TextField(
+                autofocus: true,
+                decoration: const InputDecoration(hintText: "备注信息（可选）"),
+                onChanged: (value) {
+                  input = value;
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop('\$CANCEL_BACKUP'); // 取消备份
+                  },
+                  child: const Text("取消备份", style: TextStyle(color: Colors.red)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(null); // 无备注，直接备份
+                  },
+                  child: const Text("无备注，直接备份"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(input); // 用户输入备注
+                  },
+                  child: const Text("确定"),
+                ),
+              ],
+            );
+          },
+        );
+        // 处理用户取消的情况
+        if (label == '\$CANCEL_BACKUP') {
+          showWindowsNotification("Vertree 备份已取消", "用户取消了备份操作");
+          logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
+          return;
+        }
+
+      }catch(e){
+        logger.error("创建询问label失败：${e}");
+        showToast("创建询问label失败：${e}");
       }
 
       // 调用 safeBackup，同时传入用户输入的 label（可能为 null）
