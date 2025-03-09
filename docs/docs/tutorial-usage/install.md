@@ -15,6 +15,10 @@ VerTree 目前支持 Windows，**macOS 和 Linux 版本将在未来推出，敬�
 
 ## **Windows 安装步骤**
 
+👉 **[下载 VerTree 最新版本](https://github.com/w0fv1/vertree/releases)**
+
+![下载](/img/tutorial/download.png) 
+
 ### **1. 解压安装包**
 下载完成后，**右键解压 `Vertree_Setup.zip`**，得到 **`Vertree_Setup.exe`** 安装程序。
 
@@ -30,6 +34,13 @@ VerTree 目前支持 Windows，**macOS 和 Linux 版本将在未来推出，敬�
 ### **5. 初次启动**
 安装完成后，**打开 VerTree**，软件会进行 **初始化**，请点击 **“确定”** 继续。
 
+![setup](/img/tutorial/setup.png)
+
+setup会设置功能菜单和开机自启，您随时可以在设置中关闭。
+
+![setup](/img/tutorial/menu.png)
+
+
 ---
 
 ## **VerTree 使用介绍**
@@ -38,6 +49,7 @@ VerTree 目前支持 Windows，**macOS 和 Linux 版本将在未来推出，敬�
 
 ### **🔹 备份文件**
 - 右键文件，选择 **“备份”**。
+- 输入备注信息，这将为未来提供参考。
 - VerTree **自动创建版本副本**，并管理版本历史。
 - 你可以随时回溯到旧版本，无需手动重命名文件！
 

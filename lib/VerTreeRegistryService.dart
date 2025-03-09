@@ -5,9 +5,9 @@ import 'component/WindowsRegistryHelper.dart';
 import 'package:path/path.dart' as path;
 
 class VerTreeRegistryService {
-  static const String backupMenuName = "VerTree Backup";
-  static const String monitorMenuName = "VerTree Monitor";
-  static const String viewTreeMenuName = "View VerTree"; // 新增菜单项名称
+  static const String backupMenuName = "备份文件 VerTree";
+  static const String monitorMenuName = "监控文件变动 VerTree";
+  static const String viewTreeMenuName = "查看文件版本树 VerTree"; // 新增菜单项名称
   static const String appName = "VerTree"; // 应用名称
 
   static const String runRegistryPath = r'Software\Microsoft\Windows\CurrentVersion\Run';
