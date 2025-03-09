@@ -101,7 +101,7 @@ void processArgs(List<String> args) {
       // 弹出输入备注对话框
       String? label;
 
-      try{
+      try {
         label = await showDialog<String>(
           context: navigatorKey.currentState!.overlay!.context,
           builder: (context) {
@@ -144,8 +144,7 @@ void processArgs(List<String> args) {
           logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
           return;
         }
-
-      }catch(e){
+      } catch (e) {
         logger.error("创建询问label失败：${e}");
         showToast("创建询问label失败：${e}");
       }
@@ -160,7 +159,6 @@ void processArgs(List<String> args) {
         showWindowsNotificationWithFile("Vertree 已备份文件", "点击我打开新文件", backup.mate.fullPath);
       });
     });
-
   } else if (action == "--monitor") {
     logger.info(path);
     monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
@@ -188,13 +186,14 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with WindowListener {
   Widget page = BrandPage();
 
   @override
   void initState() {
     super.initState();
     go = goPage;
+    windowManager.addListener(this);
   }
 
   @override
@@ -215,5 +214,38 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       this.page = page;
     });
+  }
+
+  @override
+  void onWindowClose() async {
+    bool? confirmExit = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("确认退出"),
+          content: Text("确定要退出应用吗？"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // 取消关闭
+              },
+              child: Text("最小化"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // 允许关闭
+              },
+              child: Text("退出"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmExit == true) {
+      await windowManager.destroy(); // 允许应用关闭
+    } else {
+      windowManager.minimize(); // 取消关闭并最小化
+    }
   }
 }
