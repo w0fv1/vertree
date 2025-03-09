@@ -16,12 +16,16 @@ class FileTreePage extends StatefulWidget {
 }
 class _FileTreePageState extends State<FileTreePage> {
   late String path = widget.path;
+  late FileNode focusNode;
   FileNode? rootNode;
   bool isLoading = true; // 加载状态
 
   @override
   void initState() {
+    focusNode = FileNode(path);
+
     windowManager.maximize();
+
     super.initState();
     // 同时等待构建文件树和500ms延时
     Future.wait([
@@ -65,6 +69,7 @@ class _FileTreePageState extends State<FileTreePage> {
           child: rootNode != null
               ? FileTree(
             rootNode: rootNode!,
+            focusNode: focusNode,
             height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
           )

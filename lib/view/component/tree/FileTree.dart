@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
+import 'package:vertree/main.dart';
 import 'package:vertree/view/component/Loading.dart';
 import 'package:vertree/view/component/tree/CanvasComponent.dart';
 import 'package:vertree/view/component/tree/EdgePainter.dart';
@@ -9,11 +10,12 @@ import 'package:vertree/view/component/tree/CanvasManager.dart';
 import 'package:vertree/view/component/tree/FileLeaf.dart';
 
 class FileTree extends StatefulWidget {
-  const FileTree({super.key, required this.rootNode, required this.height, required this.width});
+  const FileTree({super.key, required this.rootNode, required this.height, required this.width, this.focusNode});
 
   final double height;
   final double width;
   final FileNode rootNode;
+  final FileNode? focusNode;
 
   @override
   State<FileTree> createState() => _FileTreeState();
@@ -68,6 +70,7 @@ class _FileTreeState extends State<FileTree> {
     // 调用 setState 通知刷新
     setState(() {});
   }
+
   /// 弹出对话框，询问用户输入备注（label），用户取消则返回 null
   Future<String?> _askForLabel() async {
     return showDialog<String>(
@@ -78,27 +81,20 @@ class _FileTreeState extends State<FileTree> {
           title: const Text("请输入备注"),
           content: TextField(
             autofocus: true,
-            decoration: const InputDecoration(
-              hintText: "请输入备注（可选）",
-            ),
+            decoration: const InputDecoration(hintText: "请输入备注（可选）"),
             onChanged: (value) {
               label = value;
             },
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: const Text("取消"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(label),
-              child: const Text("确认"),
-            )
+            TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text("取消")),
+            TextButton(onPressed: () => Navigator.of(context).pop(label), child: const Text("确认")),
           ],
         );
       },
     );
   }
+
   /// sprout 方法：更新数据模型后刷新整个树，同时展示 loading 效果 500ms
   void sprout(FileNode parentNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) async {
     // 弹出对话框询问备注信息
@@ -133,28 +129,37 @@ class _FileTreeState extends State<FileTree> {
     }
 
     // 保证 loading 状态至少展示 500ms
-    Future.delayed(const Duration(milliseconds: 500)).then((_){
+    Future.delayed(const Duration(milliseconds: 500)).then((_) {
       // 数据更新后，刷新整棵树，并取消 loading 状态
       _refreshTree();
       setState(() {
         isLoading = false;
       });
-
     });
-
   }
 
   /// **绘制子节点并连接**
   GlobalKey<CanvasComponentState> addChild(
-      FileNode child,
-      Offset childPosition, {
-        GlobalKey<CanvasComponentState>? parentKey,
-      }) {
+    FileNode child,
+    Offset childPosition, {
+    GlobalKey<CanvasComponentState>? parentKey,
+  }) {
     GlobalKey<CanvasComponentState> childKey = GlobalKey<CanvasComponentState>();
+    bool isFocused = widget.focusNode != null && (widget.focusNode!.version.compareTo(child.version) == 0);
+    logger.info(
+      "isFocused: $isFocused, widget.focusNode version: ${widget.focusNode?.version}, child version: ${child.version}",
+    );
 
     canvasComponentContainers.add(
       CanvasComponentContainer.component(
-        FileLeaf(child, sprout: sprout, key: childKey, treeCanvasManager: treeCanvasManager, position: childPosition),
+        FileLeaf(
+          child,
+          sprout: sprout,
+          key: childKey,
+          treeCanvasManager: treeCanvasManager,
+          position: childPosition,
+          isFocused: isFocused, // 传入焦点状态
+        ),
       ),
     );
 
