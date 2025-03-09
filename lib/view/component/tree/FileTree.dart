@@ -68,9 +68,42 @@ class _FileTreeState extends State<FileTree> {
     // 调用 setState 通知刷新
     setState(() {});
   }
-
+  /// 弹出对话框，询问用户输入备注（label），用户取消则返回 null
+  Future<String?> _askForLabel() async {
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        String label = "";
+        return AlertDialog(
+          title: const Text("请输入备注"),
+          content: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: "请输入备注（可选）",
+            ),
+            onChanged: (value) {
+              label = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text("取消"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(label),
+              child: const Text("确认"),
+            )
+          ],
+        );
+      },
+    );
+  }
   /// sprout 方法：更新数据模型后刷新整个树，同时展示 loading 效果 500ms
   void sprout(FileNode parentNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) async {
+    // 弹出对话框询问备注信息
+    final label = await _askForLabel();
+
     setState(() {
       isLoading = true;
     });
@@ -78,7 +111,7 @@ class _FileTreeState extends State<FileTree> {
     Result<FileNode, String> sproutResult;
 
     if (parentNode.child == null) {
-      sproutResult = await parentNode.backup();
+      sproutResult = await parentNode.backup(label);
       if (sproutResult.isErr) {
         setState(() {
           isLoading = false;
@@ -88,7 +121,7 @@ class _FileTreeState extends State<FileTree> {
       // 更新数据模型，设置 child 属性
       parentNode.child = sproutResult.unwrap();
     } else {
-      sproutResult = await parentNode.branch();
+      sproutResult = await parentNode.branch(label);
       if (sproutResult.isErr) {
         setState(() {
           isLoading = false;
