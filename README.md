@@ -27,7 +27,7 @@ vertree：让每一次修改都有迹可循，让每一次迭代都有备无患�
 ### 克隆仓库
 
 ```bash
-git clone https://github.com/your-username/vertree.git
+git clone https://github.com/w0fv1/vertree.git
 ```
 
 ### 安装依赖
