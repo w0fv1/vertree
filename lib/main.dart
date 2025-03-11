@@ -134,6 +134,10 @@ class _MainPageState extends State<MainPage> with WindowListener {
   void goPage(Widget page) async {
     await windowManager.show(); // 显示窗口
     setState(() {
+      this.page = BrandPage();
+    });
+    setState(() {
+      this.page = Container();
       this.page = page;
     });
   }
@@ -172,7 +176,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
   }
 }
 
-void backup(String path){
+void backup(String path) {
   logger.info(path);
   FileNode fileNode = FileNode(path);
 
@@ -249,14 +253,8 @@ void backup(String path){
             title: const Text("开启监控？"),
             content: const Text("是否对备份的新版本进行监控？"),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text("否"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text("是"),
-              ),
+              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("否")),
+              TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text("是")),
             ],
           );
         },
@@ -270,7 +268,7 @@ void backup(String path){
   });
 }
 
-void  monit(String path){
+void monit(String path) {
   logger.info(path);
   monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
     if (fileMonitTaskResult.isErr) {
@@ -284,9 +282,9 @@ void  monit(String path){
   });
 }
 
-void viewtree(String path){
+void viewtree(String path) {
   logger.info(path);
   Future.delayed(const Duration(milliseconds: 500), () async {
-    go(FileTreePage(path: path));
+    go(FileTreePage(key: UniqueKey(), path: path));
   });
 }
