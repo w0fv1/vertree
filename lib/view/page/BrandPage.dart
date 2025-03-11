@@ -54,7 +54,7 @@ class _BrandPageState extends State<BrandPage> {
               Text("Vertree维树", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text(
-                "vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！",
+                "Vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
@@ -95,7 +95,18 @@ class _BrandPageState extends State<BrandPage> {
 
   Future<void> setup(BuildContext context) async {
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
-    if (isSetupDone) return;
+    if (isSetupDone) {
+      if (VerTreeRegistryService.checkBackupKeyExists()) {
+        VerTreeRegistryService.addVerTreeBackupContextMenu();
+      }
+      if (VerTreeRegistryService.checkMonitorKeyExists()) {
+        VerTreeRegistryService.addVerTreeMonitorContextMenu();
+      }
+      if (VerTreeRegistryService.checkViewTreeKeyExists()) {
+        VerTreeRegistryService.addVerTreeViewContextMenu();
+      }
+      return;
+    }
 
     // Show confirmation dialog after UI is ready
     bool? userConsent = await showDialog<bool>(
@@ -131,16 +142,6 @@ class _BrandPageState extends State<BrandPage> {
 
       // Mark setup as done
       configer.set<bool>('isSetupDone', true);
-    }
-
-    if (VerTreeRegistryService.checkBackupKeyExists()) {
-      VerTreeRegistryService.addVerTreeBackupContextMenu();
-    }
-    if (VerTreeRegistryService.checkMonitorKeyExists()) {
-      VerTreeRegistryService.addVerTreeMonitorContextMenu();
-    }
-    if (VerTreeRegistryService.checkViewTreeKeyExists()) {
-      VerTreeRegistryService.addVerTreeViewContextMenu();
     }
   }
 
