@@ -125,7 +125,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
         navigatorKey: navigatorKey,
 
         title: 'Vertree维树',
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white)),
+        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), fontFamily: 'Microsoft YaHei', ),
         home: page,
       ),
     );
