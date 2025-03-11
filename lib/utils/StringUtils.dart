@@ -8,6 +8,6 @@ class StringUtils {
     if (input.length <= maxLength) {
       return input;
     }
-    return "\${input.substring(0, maxLength)}\$suffix";
+    return "${input.substring(0, maxLength)}$suffix";
   }
 }

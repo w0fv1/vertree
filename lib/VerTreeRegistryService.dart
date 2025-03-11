@@ -31,21 +31,21 @@ class VerTreeRegistryService {
     final exePath = Platform.resolvedExecutable;
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'save.ico');
 
-    return RegistryHelper.addContextMenuOption(backupMenuName, '"$exePath" --backup %1', iconPath: iconPath);
+    return RegistryHelper.addContextMenuOption(backupMenuName, '"$exePath" --backup "%1"', iconPath: iconPath);
   }
 
   static bool addVerTreeMonitorContextMenu() {
     final exePath = Platform.resolvedExecutable;
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'monit.ico');
 
-    return RegistryHelper.addContextMenuOption(monitorMenuName, '"$exePath" --monit %1', iconPath: iconPath);
+    return RegistryHelper.addContextMenuOption(monitorMenuName, '"$exePath" --monit "%1"', iconPath: iconPath);
   }
 
   static bool addVerTreeViewContextMenu() {
     final exePath = Platform.resolvedExecutable;
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'logo', 'logo.ico');
 
-    return RegistryHelper.addContextMenuOption(viewTreeMenuName, '"$exePath" --viewtree %1', iconPath: iconPath);
+    return RegistryHelper.addContextMenuOption(viewTreeMenuName, '"$exePath" --viewtree "%1"', iconPath: iconPath);
   }
 
   // 移除右键菜单项
