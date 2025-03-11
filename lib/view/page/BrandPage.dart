@@ -17,14 +17,8 @@ class BrandPage extends StatefulWidget {
 }
 
 class _BrandPageState extends State<BrandPage> {
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: VAppBar(
         title: Row(
@@ -127,17 +121,26 @@ class _BrandPageState extends State<BrandPage> {
     if (userConsent == true) {
       // Perform setup actions
       VerTreeRegistryService.addVerTreeBackupContextMenu();
+
       VerTreeRegistryService.addVerTreeMonitorContextMenu();
+
       VerTreeRegistryService.addVerTreeViewContextMenu();
       VerTreeRegistryService.enableAutoStart();
 
-      await showWindowsNotification(
-        "Vertree初始设置已完成！",
-        "开始使用吧！"
-      );
+      await showWindowsNotification("Vertree初始设置已完成！", "开始使用吧！");
 
       // Mark setup as done
       configer.set<bool>('isSetupDone', true);
+    }
+
+    if (VerTreeRegistryService.checkBackupKeyExists()) {
+      VerTreeRegistryService.addVerTreeBackupContextMenu();
+    }
+    if (VerTreeRegistryService.checkMonitorKeyExists()) {
+      VerTreeRegistryService.addVerTreeMonitorContextMenu();
+    }
+    if (VerTreeRegistryService.checkViewTreeKeyExists()) {
+      VerTreeRegistryService.addVerTreeViewContextMenu();
     }
   }
 
@@ -145,7 +148,7 @@ class _BrandPageState extends State<BrandPage> {
   void initState() {
     windowManager.restore();
     super.initState();
-    Future.delayed(Duration(seconds:1), () => setup(context));
+    Future.delayed(Duration(seconds: 1), () => setup(context));
     //
   }
 }
