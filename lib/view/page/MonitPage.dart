@@ -57,11 +57,43 @@ class _MonitPageState extends State<MonitPage> {
   }
 
   /// 演示移除某个任务
+  /// 演示移除某个任务
   Future<void> _removeTask(FileMonitTask task) async {
-    await monitService.removeFileMonitTask(task.filePath);
-    setState(() {
-      monitTasks.remove(task);
-    });
+    // 弹出确认对话框
+    bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("确认删除"),
+          content: Text("确定要删除监控任务: ${task.filePath} 吗？"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                // 用户选择取消，返回 false
+                Navigator.of(context).pop(false);
+              },
+              child: const Text("取消"),
+            ),
+            TextButton(
+              onPressed: () {
+                // 用户选择确认，返回 true
+                Navigator.of(context).pop(true);
+              },
+              child: const Text("删除"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // 如果用户确认删除
+    if (confirmDelete == true) {
+      await monitService.removeFileMonitTask(task.filePath);
+      setState(() {
+        monitTasks.remove(task);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("已删除监控任务: ${task.filePath}")));
+    }
   }
 
   @override
@@ -92,7 +124,7 @@ class _MonitPageState extends State<MonitPage> {
                     onDismissed: (direction) => _removeTask(task),
                     child: MonitTaskCard(
                       task: task,
-
+                      removeTask: _removeTask,
                     ),
                   );
                 },

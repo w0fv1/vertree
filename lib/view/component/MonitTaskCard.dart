@@ -6,20 +6,19 @@ import 'package:vertree/main.dart';
 
 class MonitTaskCard extends StatefulWidget {
   final FileMonitTask task;
-
-  const MonitTaskCard({Key? key, required this.task}) : super(key: key);
+  final Function(FileMonitTask task) removeTask;
+  const MonitTaskCard({Key? key, required this.task, required this.removeTask}) : super(key: key);
 
   @override
   State<MonitTaskCard> createState() => _MonitTaskCardState();
 }
 
 class _MonitTaskCardState extends State<MonitTaskCard> {
-  late FileMonitTask task;
+  late FileMonitTask task = widget.task;
 
   @override
   void initState() {
     super.initState();
-    task = widget.task;
   }
   /// 内置切换监控状态
   Future<void> _toggleTask() async {
@@ -29,6 +28,7 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
         setState(() {
           task = updatedTask;
         });
+        showToast("${task.file.path}的监控已经${updatedTask.isRunning?"开启":"关闭"}");
       },
       err: (_, msg) {
         showToast(msg);
@@ -74,8 +74,13 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                   child: Switch(value: task.isRunning, onChanged: (_) => _toggleTask()),
                 ),
                 IconButton(
+                    onPressed: (){
+                      widget.removeTask(task);
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded)),
+                IconButton(
                     onPressed: _openBackupFolder,
-                    icon: const Icon(Icons.open_in_new_rounded)),
+                    icon: const Icon(Icons.open_in_new_rounded,size: 22,)),
               ],
             ),
           ],
