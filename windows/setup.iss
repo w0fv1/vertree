@@ -1,6 +1,6 @@
 [Setup]
 AppName=Vertree
-AppVersion=0.1.0
+AppVersion=0.3.0
 AppPublisher=Vertree
 AppPublisherURL=https://vertree.w0fv1.dev
 DefaultDirName={commonpf}\Vertree

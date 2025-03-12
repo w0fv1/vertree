@@ -53,7 +53,9 @@ void main(List<String> args) async {
       ),
       () async {
         bool launch2Tray = configer.get("launch2Tray", true);
-        if (launch2Tray) {
+        bool isSetupDone = configer.get<bool>('isSetupDone', false);
+
+        if (launch2Tray && isSetupDone) {
           await showWindowsNotificationWithTask("Vertree最小化运行中", "树状文件版本管理🌲（点我打开）", () {
             go(BrandPage());
           });
