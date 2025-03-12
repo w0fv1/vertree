@@ -3,6 +3,7 @@ import 'package:path/path.dart' as path;
 
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
+import 'package:vertree/main.dart';
 
 Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
   // print("selectedFileNodePath $selectedFileNodePath");
@@ -17,9 +18,16 @@ Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
   // 过滤掉所有 name 与 selectedFileNode 不相同的文件
   final filteredFiles =
       files.where((file) {
-        if (file is! File) return false;
+        FileMeta? fileMeta;
+        try {
+          if (file is! File) return false;
 
-        final fileMeta = FileMeta(file.path);
+          fileMeta = FileMeta(file.path);
+        } catch (e) {
+          logger.error("$e");
+          return false;
+        }
+
         return fileMeta.name == selectedFileNode.mate.name;
       }).toList();
 
@@ -33,8 +41,7 @@ Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
     final fileNode = FileNode(file.path);
     fileNodes.add(fileNode);
 
-    if (rootNode == null ||
-        fileMeta.version.compareTo(rootNode.mate.version) < 0) {
+    if (rootNode == null || fileMeta.version.compareTo(rootNode.mate.version) < 0) {
       rootNode = fileNode;
     }
   }
@@ -55,4 +62,3 @@ Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
 
   return Result.ok(rootNode);
 }
-

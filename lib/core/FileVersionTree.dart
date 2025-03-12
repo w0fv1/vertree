@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:path/path.dart' as path;
 import 'package:vertree/core/Result.dart';
+import 'package:vertree/main.dart';
 
 class FileVersion implements Comparable<FileVersion> {
   final List<Segment> segments;
@@ -15,9 +17,10 @@ class FileVersion implements Comparable<FileVersion> {
     final parts = versionString.split('-');
     final segs = <Segment>[];
     for (final part in parts) {
-      final bv = part.split('.');
+      List<String> bv = part.split('.');
       if (bv.length != 2) {
-        throw FormatException("版本段格式错误，每段必须是 X.Y 形式: $part");
+       logger.error("版本段格式错误，每段必须是 X.Y 形式: $part");
+       bv = ["0","0"];
       }
       final branch = int.parse(bv[0]);
       final ver = int.parse(bv[1]);
@@ -262,6 +265,12 @@ class FileMeta {
         'lastModifiedTime: $lastModifiedTime'
         ')';
   }
+}
+
+
+void main(List<String> args){
+  FileMeta fileMeta = FileMeta("D:\\project\\vertree\\testree\\0.0.docx");
+  print(fileMeta);
 }
 
 /// 文件节点，表示文件的一个版本，并可能有子版本（child）和分支（branches）
