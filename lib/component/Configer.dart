@@ -43,9 +43,10 @@ class Configer {
 
 
   /// 通用的 set 方法：设置配置并立即写入文件
-  void set<T>(String key, T value) {
+  T set<T>(String key, T value) {
     _config[key] = value;
     _saveConfig();
+    return get(key,value);
   }
 
 
