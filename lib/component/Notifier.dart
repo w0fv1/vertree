@@ -60,6 +60,7 @@ Future<void> showWindowsNotificationWithFolder(String title, String description,
   notification.onClick = () {
     logger.info('用户点击了通知: ${notification.identifier}');
     FileUtils.openFolder(folderPath);
+
   };
 
   await notification.show();
@@ -73,8 +74,12 @@ Future<void> showWindowsNotificationWithTask(
   );
 
   notification.onClick = () {
-    logger.info('用户点击了通知: \${notification.identifier}');
-    task(); // 执行传入的任务
+    logger.info('用户点击了通知: ${notification.identifier}');
+    logger.info('用户点击了通知: ${notification.identifier}');
+    task.call(); // 执行传入的任务
+    logger.info('用户点击了通知: ${notification.identifier}');
+    logger.info('用户点击了通知: ${notification.identifier}');
+
   };
 
   await notification.show();

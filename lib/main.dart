@@ -42,7 +42,6 @@ void main(List<String> args) async {
       bringWindowToFront: false,
     );
     await initLocalNotifier(); // 确保通知系统已初始化
-    await showWindowsNotification("Vertree运行中", "树状文件版本管理🌲");
 
     // 隐藏窗口
     windowManager.waitUntilReadyToShow(
@@ -53,7 +52,15 @@ void main(List<String> args) async {
         titleBarStyle: TitleBarStyle.hidden,
       ),
       () async {
-        Future.delayed(Duration(milliseconds: 1500), () async {
+        bool launch2Tray = configer.get("launch2Tray", true);
+        if (launch2Tray) {
+          await showWindowsNotificationWithTask("Vertree最小化运行中", "树状文件版本管理🌲", () {
+            go(BrandPage());
+          });
+          windowManager.hide();
+        }
+
+        Future.delayed(Duration(milliseconds: 2500), () async {
           // await windowManager.hide(); // 启动时隐藏窗口
 
           monitService.startAll().then((_) async {
@@ -61,7 +68,7 @@ void main(List<String> args) async {
               logger.info("Vertree没有需要监控的文件");
               return;
             }
-            await showWindowsNotificationWithTask("Vertree开始监控 ${monitService.runningTaskCount} 个文件", "点击查看监控任务", (_) {
+            await showWindowsNotificationWithTask("Vertree开始监控 ${monitService.runningTaskCount} 个文件", "点击查看监控任务", () {
               go(MonitPage());
             });
 
@@ -125,20 +132,28 @@ class _MainPageState extends State<MainPage> with WindowListener {
         navigatorKey: navigatorKey,
 
         title: 'Vertree维树',
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), fontFamily: 'Microsoft YaHei', ),
+        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), fontFamily: 'Microsoft YaHei'),
         home: page,
       ),
     );
   }
 
   void goPage(Widget page) async {
+    logger.info("goPage");
+
     await windowManager.show(); // 显示窗口
-    setState(() {
-      this.page = BrandPage();
-    });
-    setState(() {
-      this.page = Container();
-      this.page = page;
+    await windowManager.focus();
+
+    logger.info("goPage");
+    Future.delayed(Duration(milliseconds: 500), () {
+      logger.info("setState");
+      setState(() {
+        this.page = BrandPage();
+      });
+      setState(() {
+        this.page = Container();
+        this.page = page;
+      });
     });
   }
 
