@@ -294,7 +294,7 @@ void monit(String path) {
     }
     FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
     if (fileMonitTask.backupDirPath != null) {
-      showWindowsNotificationWithFolder("Vertree以开始监控文件，", "点击我打开备份目录", fileMonitTask.backupDirPath!);
+      showWindowsNotificationWithFolder("Vertree以开始监控文件", "点击我打开备份目录", fileMonitTask.backupDirPath!);
     }
   });
 }
