@@ -108,6 +108,9 @@ class _BrandPageState extends State<BrandPage> {
       return;
     }
 
+    windowManager.show();
+    windowManager.focus();
+
     // Show confirmation dialog after UI is ready
     bool? userConsent = await showDialog<bool>(
       context: context,

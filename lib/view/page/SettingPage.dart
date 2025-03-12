@@ -114,7 +114,7 @@ class _SettingPageState extends State<SettingPage> {
       await showWindowsNotification("Vertree", "已禁用开机自启");
     }
 
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 200), () {
       setState(() {
         if (success) {
           autoStart = value;
