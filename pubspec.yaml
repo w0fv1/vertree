@@ -2,7 +2,7 @@ name: vertree
 description: "针对单文件的版本管理系统"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 0.3.0
+version: 0.3.1
 
 environment:
   sdk: ^3.7.0
