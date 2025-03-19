@@ -1,6 +1,6 @@
 [Setup]
 AppName=Vertree
-AppVersion=0.3.1
+AppVersion=0.4.0
 AppPublisher=Vertree
 AppPublisherURL=https://vertree.w0fv1.dev
 DefaultDirName={commonpf}\Vertree
@@ -40,9 +40,10 @@ end;
 
 procedure DeleteRegistryKeys();
 begin
-  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Backup');
-  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\VerTree Monitor');
-  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\View VerTree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\备份文件 VerTree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\快速备份文件 VerTree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\监控文件变动 VerTree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\查看文件版本树 VerTree');
 
   if RegValueExists(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree') then
     RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree');

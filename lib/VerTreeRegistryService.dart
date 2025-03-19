@@ -6,6 +6,8 @@ import 'package:path/path.dart' as path;
 
 class VerTreeRegistryService {
   static const String backupMenuName = "备份文件 VerTree";
+
+  static const String expressBackupMenuName = "快速备份文件 VerTree";
   static const String monitorMenuName = "监控文件变动 VerTree";
   static const String viewTreeMenuName = "查看文件版本树 VerTree"; // 新增菜单项名称
   static const String appName = "VerTree"; // 应用名称
@@ -25,6 +27,10 @@ class VerTreeRegistryService {
 
   static bool checkViewTreeKeyExists() {
     return RegistryHelper.checkRegistryMenuExists(viewTreeMenuName);
+  }
+
+  static bool checkExpressBackupKeyExists() {
+    return RegistryHelper.checkRegistryMenuExists(expressBackupMenuName);
   }
 
   static bool addVerTreeBackupContextMenu() {
@@ -48,6 +54,13 @@ class VerTreeRegistryService {
     return RegistryHelper.addContextMenuOption(viewTreeMenuName, '"$exePath" --viewtree "%1"', iconPath: iconPath);
   }
 
+  static bool addVerTreeExpressBackupContextMenu() {
+    final exePath = Platform.resolvedExecutable;
+    final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'express-save.ico');
+
+    return RegistryHelper.addContextMenuOption(expressBackupMenuName, '"$exePath" --express-backup "%1"', iconPath: iconPath);
+  }
+
   // 移除右键菜单项
   static bool removeVerTreeBackupContextMenu() {
     return RegistryHelper.removeContextMenuOption(backupMenuName);
@@ -59,6 +72,10 @@ class VerTreeRegistryService {
 
   static bool removeVerTreeViewContextMenu() {
     return RegistryHelper.removeContextMenuOption(viewTreeMenuName);
+  }
+
+  static bool removeVerTreeExpressBackupContextMenu() {
+    return RegistryHelper.removeContextMenuOption(expressBackupMenuName);
   }
 
   // 开机自启相关
