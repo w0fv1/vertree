@@ -101,6 +101,8 @@ void processArgs(List<String> args) {
 
   if (action == "--backup") {
     backup(path);
+  } else if (action == "--express-backup") {
+    expressBackup(path);
   } else if (action == "--monit") {
     monit(path);
   } else if (action == "--viewtree") {
@@ -191,6 +193,22 @@ class _MainPageState extends State<MainPage> with WindowListener {
       windowManager.minimize(); // 取消关闭并最小化
     }
   }
+}
+
+
+void expressBackup(String path) {
+  logger.info(path);
+  FileNode fileNode = FileNode(path);
+
+  // 调用 safeBackup，同时传入用户输入的 label（可能为 null）
+  fileNode.safeBackup().then((Result<FileNode, String> result) async {
+    if (result.isErr) {
+      showWindowsNotification("Vertree 备份文件失败", result.msg);
+      return;
+    }
+    FileNode backup = result.unwrap();
+    showWindowsNotificationWithFile("Vertree 已备份文件", "点击我打开新文件", backup.mate.fullPath);
+  });
 }
 
 void backup(String path) {

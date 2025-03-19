@@ -17,6 +17,7 @@ class SettingPage extends StatefulWidget {
 
 class _SettingPageState extends State<SettingPage> {
   late bool backupFile = VerTreeRegistryService.checkBackupKeyExists();
+  late bool expressBackupFile = VerTreeRegistryService.checkExpressBackupKeyExists();
   late bool monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
   late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
   late bool autoStart = VerTreeRegistryService.isAutoStartEnabled();
@@ -124,6 +125,24 @@ class _SettingPageState extends State<SettingPage> {
     });
   }
 
+  Future<void> _toggleExpressBackupFile(bool? value) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    bool success;
+    if (value) {
+      success = VerTreeRegistryService.addVerTreeExpressBackupContextMenu();
+      await showWindowsNotification("Vertree", "已添加 '快速备份该文件' 到右键菜单");
+    } else {
+      success = VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
+      await showWindowsNotification("Vertree", "已从右键菜单移除 '快速备份该文件' 功能按钮");
+    }
+    setState(() {
+      if (success) expressBackupFile = value;
+      isLoading = false;
+    });
+  }
+
   /// 打开网址
   void _openUrl(String url) async {
     final Uri uri = Uri.parse(url);
@@ -146,7 +165,7 @@ class _SettingPageState extends State<SettingPage> {
           ),
           body: Center(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: const BoxConstraints(maxWidth: 460),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,25 +181,23 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(
-                    title: const Text("将“备份当前文件版本”增加到右键菜单"),
+                    title: const Text("将“备份该文件”增加到右键菜单"),
                     value: backupFile,
                     onChanged: _toggleBackupFile,
                   ),
+                  SwitchListTile(title: Text("将“快速备份该文件”增加到右键菜单"), value: expressBackupFile, onChanged: _toggleExpressBackupFile),
+
                   SwitchListTile(
                     title: const Text("将“监控该文件”增加到右键菜单"),
                     value: monitorFile,
                     onChanged: _toggleMonitorFile,
                   ),
                   SwitchListTile(
-                    title: const Text("将“浏览文件版本树”增加到右键菜单"),
+                    title: const Text("将“浏览该文件版本树”增加到右键菜单"),
                     value: viewTreeFile,
                     onChanged: _toggleViewTreeFile,
                   ),
-                  SwitchListTile(
-                    title: const Text("开机自启 Vertree（推荐）"),
-                    value: autoStart,
-                    onChanged: _toggleAutoStart,
-                  ),
+                  SwitchListTile(title: const Text("开机自启 Vertree（推荐）"), value: autoStart, onChanged: _toggleAutoStart),
                   const SizedBox(height: 16),
 
                   // 新增按钮：选择文件并指定打开方式
