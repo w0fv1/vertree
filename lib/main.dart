@@ -244,12 +244,7 @@ void backup(String path) {
                 },
                 child: const Text("取消备份", style: TextStyle(color: Colors.red)),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(null); // 无备注，直接备份
-                },
-                child: const Text("无备注，直接备份"),
-              ),
+
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(input); // 用户输入备注
