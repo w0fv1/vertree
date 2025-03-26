@@ -17,9 +17,13 @@ class RegistryHelper {
   }
 
   /// 检查注册表项是否存在
-  static bool checkRegistryMenuExists(String menuName) {
-    return checkRegistryKeyExists(
-        RegistryHive.classesRoot, r'*\shell\' + menuName);
+  static bool checkRegistryMenuExistsByMenuName(String menuName) {
+    return checkRegistryKeyExists(RegistryHive.classesRoot, r'*\shell\' + menuName);
+  }
+
+  /// 通过注册表键名检查右键菜单项是否存在
+  static bool checkRegistryMenuExistsByKey(String keyName) {
+    return checkRegistryKeyExists(RegistryHive.classesRoot, r'*\shell\' + keyName);
   }
 
   /// 添加或更新注册表项
@@ -49,24 +53,28 @@ class RegistryHelper {
   }
 
   /// 增加右键菜单项功能按钮（适用于选中文件），支持自定义图标
-  static bool addContextMenuOption(String menuName, String command, {String? iconPath}) {
+  static bool addContextMenuOption(String keyName, String muiVerb, String command, {String? iconPath}) {
     try {
-      String registryPath = r'*\shell\' + menuName;
+      String registryPath = r'*\shell\' + keyName;
       String commandPath = '$registryPath\\command';
 
       logger.info('尝试创建右键菜单: registryPath="$registryPath", commandPath="$commandPath"');
 
       // 打开或创建 registryPath
-      final shellKey = Registry.openPath(RegistryHive.classesRoot,
-          path: r'*\shell', desiredAccessRights: AccessRights.allAccess);
+      final shellKey = Registry.openPath(
+        RegistryHive.classesRoot,
+        path: r'*\shell',
+        desiredAccessRights: AccessRights.allAccess,
+      );
 
-      final menuKey = shellKey.createKey(menuName);
-      menuKey.createValue(RegistryValue.string('', menuName));
+      final menuKey = shellKey.createKey(keyName);
+      // 使用 MUIVerb 来设置显示名称
+      menuKey.createValue(RegistryValue.string('MUIVerb', muiVerb));
 
       // 如果提供了 iconPath，则添加图标
       if (iconPath != null && iconPath.isNotEmpty) {
         menuKey.createValue(RegistryValue.string('Icon', iconPath));
-        logger.info('已为 "$menuName" 设置图标: $iconPath');
+        logger.info('已为 "$keyName" 设置图标: $iconPath');
       }
 
       menuKey.close();
@@ -75,8 +83,11 @@ class RegistryHelper {
       logger.info('成功创建 registryPath: $registryPath');
 
       // 打开或创建 commandPath
-      final menuCommandKey = Registry.openPath(RegistryHive.classesRoot,
-          path: registryPath, desiredAccessRights: AccessRights.allAccess);
+      final menuCommandKey = Registry.openPath(
+        RegistryHive.classesRoot,
+        path: registryPath,
+        desiredAccessRights: AccessRights.allAccess,
+      );
       final commandKey = menuCommandKey.createKey('command');
       commandKey.createValue(RegistryValue.string('', command));
       commandKey.close();
@@ -91,14 +102,16 @@ class RegistryHelper {
     }
   }
 
-
-  static bool removeContextMenuOption(String menuName) {
+  static bool removeContextMenuOptionByMenuName(String menuName) {
     try {
       String registryPath = r'*\shell\' + menuName;
 
       // 直接打开完整路径
       final key = Registry.openPath(
-          RegistryHive.classesRoot, path: r'*\shell', desiredAccessRights: AccessRights.allAccess);
+        RegistryHive.classesRoot,
+        path: r'*\shell',
+        desiredAccessRights: AccessRights.allAccess,
+      );
 
       // 递归删除整个键
       key.deleteKey(menuName, recursive: true);
@@ -112,8 +125,27 @@ class RegistryHelper {
     }
   }
 
+  static bool removeContextMenuOptionByKey(String keyName) {
+    try {
+      final parentKey = Registry.openPath(
+        RegistryHive.classesRoot,
+        path: r'*\shell',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+
+      parentKey.deleteKey(keyName, recursive: true);
+      parentKey.close();
+
+      logger.info('成功通过键名 "$keyName" 删除右键菜单项');
+      return true;
+    } catch (e) {
+      logger.error('通过键名 "$keyName" 删除右键菜单项失败: $e');
+      return false;
+    }
+  }
+
   /// 启用开机自启
-  static bool enableAutoStart(String runRegistryPath,String appName,String appPath) {
+  static bool enableAutoStart(String runRegistryPath, String appName, String appPath) {
     try {
       final key = Registry.openPath(
         RegistryHive.currentUser,
@@ -131,7 +163,7 @@ class RegistryHelper {
   }
 
   /// 禁用开机自启
-  static bool disableAutoStart(String runRegistryPath,String appName) {
+  static bool disableAutoStart(String runRegistryPath, String appName) {
     try {
       final key = Registry.openPath(
         RegistryHive.currentUser,
@@ -149,7 +181,7 @@ class RegistryHelper {
   }
 
   /// 检查应用是否已设置为开机自启
-  static bool isAutoStartEnabled(String runRegistryPath,String appName) {
+  static bool isAutoStartEnabled(String runRegistryPath, String appName) {
     try {
       final key = Registry.openPath(
         RegistryHive.currentUser,
@@ -164,5 +196,4 @@ class RegistryHelper {
       return false;
     }
   }
-
 }

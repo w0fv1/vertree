@@ -1,12 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:vertree/I18nLang.dart';
 import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
+
 import 'package:window_manager/window_manager.dart';
 
 class BrandPage extends StatefulWidget {
@@ -25,13 +27,13 @@ class _BrandPageState extends State<BrandPage> {
           children: [
             Container(
               width: 20,
-              height: 20, // 4:3 aspect ratio (400x300)
+              height: 20,
               decoration: BoxDecoration(
                 image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
               ),
             ),
             SizedBox(width: 8),
-            Text("Vertree"),
+            Text(appLocale.getText(AppLocale.brand_title)),
           ],
         ),
         showMaximize: false,
@@ -45,16 +47,16 @@ class _BrandPageState extends State<BrandPage> {
             children: [
               Container(
                 width: 240,
-                height: 180, // 4:3 aspect ratio (400x300)
+                height: 180,
                 decoration: BoxDecoration(
                   image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
                 ),
               ),
               SizedBox(height: 16),
-              Text("Vertree维树", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(appLocale.getText(AppLocale.brand_title), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text(
-                "Vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！",
+                appLocale.getText(AppLocale.brand_slogan),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
@@ -64,21 +66,21 @@ class _BrandPageState extends State<BrandPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   IconButton(
-                    tooltip: "监控页",
+                    tooltip: appLocale.getText(AppLocale.brand_monitorPage),
                     onPressed: () async {
                       go(MonitPage());
                     },
                     icon: Icon(Icons.monitor_heart_rounded),
                   ),
                   IconButton(
-                    tooltip: "设置页",
+                    tooltip: appLocale.getText(AppLocale.brand_settingPage),
                     onPressed: () async {
                       go(SettingPage());
                     },
                     icon: Icon(Icons.settings_rounded),
                   ),
                   IconButton(
-                    tooltip: "完全退出维树",
+                    tooltip: appLocale.getText(AppLocale.brand_exit),
                     onPressed: () async {
                       exit(0);
                     },
@@ -96,6 +98,8 @@ class _BrandPageState extends State<BrandPage> {
   Future<void> setup(BuildContext context) async {
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
     if (isSetupDone) {
+      VerTreeRegistryService.clearObsoleteRegistry();
+
       if (VerTreeRegistryService.checkBackupKeyExists()) {
         VerTreeRegistryService.addVerTreeBackupContextMenu();
       }
@@ -108,21 +112,20 @@ class _BrandPageState extends State<BrandPage> {
       return;
     }
 
-    // Show confirmation dialog after UI is ready
     bool? userConsent = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text("初始化设置"),
-          content: const Text("是否允许Vertree添加右键菜单和开机启动？"),
+          title: Text(appLocale.getText(AppLocale.brand_initTitle)),
+          content: Text(appLocale.getText(AppLocale.brand_initContent)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
-              child: const Text("取消"),
+              child: Text(appLocale.getText(AppLocale.brand_cancel)),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
-              child: const Text("确定"),
+              child: Text(appLocale.getText(AppLocale.brand_confirm)),
             ),
           ],
         );
@@ -130,17 +133,16 @@ class _BrandPageState extends State<BrandPage> {
     );
 
     if (userConsent == true) {
-      // Perform setup actions
       VerTreeRegistryService.addVerTreeBackupContextMenu();
-
       VerTreeRegistryService.addVerTreeMonitorContextMenu();
-
       VerTreeRegistryService.addVerTreeViewContextMenu();
       VerTreeRegistryService.enableAutoStart();
 
-      await showWindowsNotification("Vertree初始设置已完成！", "开始使用吧！");
+      await showWindowsNotification(
+        appLocale.getText(AppLocale.brand_initDoneTitle),
+        appLocale.getText(AppLocale.brand_initDoneBody),
+      );
 
-      // Mark setup as done
       configer.set<bool>('isSetupDone', true);
     }
   }
@@ -150,6 +152,5 @@ class _BrandPageState extends State<BrandPage> {
     windowManager.restore();
     super.initState();
     Future.delayed(Duration(seconds: 1), () => setup(context));
-    //
   }
 }

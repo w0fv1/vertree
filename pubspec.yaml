@@ -13,7 +13,6 @@ dependencies:
   uuid: ^4.5.1
   bitsdojo_window: ^0.1.6
   flutter_background_service: ^5.1.0
-  intl: ^0.20.2
   tray_manager:
     git:
       url: https://github.com/w0fv1/tray_manager.git
@@ -32,6 +31,7 @@ dependencies:
   url_launcher: ^6.3.1
   fluttertoast: ^8.2.12
   toastification: ^3.0.1
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +39,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 flutter:
   uses-material-design: true
+  generate: true  # ✅ 添加这一行
   assets:
     - assets/
     - assets/img/logo/
