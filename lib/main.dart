@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
 import 'package:toastification/toastification.dart';
+import 'package:vertree/I18nLang.dart';
 import 'package:vertree/MonitService.dart';
-import 'package:vertree/VerTreeRegistryService.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
 import 'package:vertree/component/Notifier.dart';
@@ -20,6 +21,8 @@ final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitService monitService;
 Configer configer = Configer();
+
+final AppLocale appLocale = AppLocale();
 
 void main(List<String> args) async {
   await logger.init();
@@ -41,9 +44,8 @@ void main(List<String> args) async {
       },
       bringWindowToFront: false,
     );
-    await initLocalNotifier(); // 确保通知系统已初始化
+    await initLocalNotifier();
 
-    // 隐藏窗口
     windowManager.waitUntilReadyToShow(
       const WindowOptions(
         size: Size(600, 600),
@@ -56,25 +58,29 @@ void main(List<String> args) async {
         bool isSetupDone = configer.get<bool>('isSetupDone', false);
 
         if (launch2Tray && isSetupDone) {
-          await showWindowsNotificationWithTask("Vertree最小化运行中", "树状文件版本管理🌲（点我打开）", () {
-            go(BrandPage());
-          });
+          await showWindowsNotificationWithTask(
+            appLocale.getText(AppLocale.app_trayNotificationTitle),
+            appLocale.getText(AppLocale.app_trayNotificationContent),
+            () {
+              go(BrandPage());
+            },
+          );
           windowManager.hide();
         }
 
         Future.delayed(Duration(milliseconds: 2500), () async {
-          // await windowManager.hide(); // 启动时隐藏窗口
-
           monitService.startAll().then((_) async {
             if (monitService.runningTaskCount == 0) {
               logger.info("Vertree没有需要监控的文件");
               return;
             }
-            await showWindowsNotificationWithTask("Vertree开始监控 ${monitService.runningTaskCount} 个文件", "点击查看监控任务", () {
-              go(MonitPage());
-            });
-
-            return;
+            await showWindowsNotificationWithTask(
+              appLocale.getText(AppLocale.app_monitStartedTitle),
+              appLocale.getText(AppLocale.app_monitStartedContent),
+              () {
+                go(MonitPage());
+              },
+            );
           });
         });
       },
@@ -83,7 +89,7 @@ void main(List<String> args) async {
     logger.info("Current app path: $appPath");
 
     Tray().init();
-    runApp(const MainPage()); // 运行设置页面
+    runApp(const MainPage());
     processArgs(args);
   } catch (e) {
     logger.error('Vertree启动失败: $e');
@@ -134,7 +140,6 @@ class _MainPageState extends State<MainPage> with WindowListener {
     return ToastificationWrapper(
       child: MaterialApp(
         navigatorKey: navigatorKey,
-
         title: 'Vertree维树',
         theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), fontFamily: 'Microsoft YaHei'),
         home: page,
@@ -145,15 +150,10 @@ class _MainPageState extends State<MainPage> with WindowListener {
   void goPage(Widget page) async {
     logger.info("goPage");
 
-    await windowManager.show(); // 显示窗口
+    await windowManager.show();
     await windowManager.focus();
 
-    logger.info("goPage");
-    Future.delayed(Duration(milliseconds: 500), () {
-      logger.info("setState");
-      setState(() {
-        this.page = BrandPage();
-      });
+    Future.delayed(Duration(milliseconds: 100), () {
       setState(() {
         this.page = Container();
         this.page = page;
@@ -167,20 +167,20 @@ class _MainPageState extends State<MainPage> with WindowListener {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("确认退出"),
-          content: Text("确定要退出应用吗？"),
+          title: Text(appLocale.getText(AppLocale.app_confirmExitTitle)),
+          content: Text(appLocale.getText(AppLocale.app_confirmExitContent)),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(false); // 取消关闭
+                Navigator.of(context).pop(false);
               },
-              child: Text("最小化"),
+              child: Text(appLocale.getText(AppLocale.app_minimize)),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(true); // 允许关闭
+                Navigator.of(context).pop(true);
               },
-              child: Text("退出"),
+              child: Text(appLocale.getText(AppLocale.app_exit)),
             ),
           ],
         );
@@ -188,26 +188,28 @@ class _MainPageState extends State<MainPage> with WindowListener {
     );
 
     if (confirmExit == true) {
-      await windowManager.destroy(); // 允许应用关闭
+      await windowManager.destroy();
     } else {
-      windowManager.minimize(); // 取消关闭并最小化
+      windowManager.minimize();
     }
   }
 }
-
 
 void expressBackup(String path) {
   logger.info(path);
   FileNode fileNode = FileNode(path);
 
-  // 调用 safeBackup，同时传入用户输入的 label（可能为 null）
   fileNode.safeBackup().then((Result<FileNode, String> result) async {
     if (result.isErr) {
-      showWindowsNotification("Vertree 备份文件失败", result.msg);
+      showWindowsNotification(appLocale.getText(AppLocale.app_backupFailed), result.msg);
       return;
     }
     FileNode backup = result.unwrap();
-    showWindowsNotificationWithFile("Vertree 已备份文件", "点击我打开新文件", backup.mate.fullPath);
+    showWindowsNotificationWithFile(
+      appLocale.getText(AppLocale.app_backupSuccessTitle),
+      appLocale.getText(AppLocale.app_backupSuccessContent),
+      backup.mate.fullPath,
+    );
   });
 }
 
@@ -215,12 +217,10 @@ void backup(String path) {
   logger.info(path);
   FileNode fileNode = FileNode(path);
 
-  // 先延迟一段时间，确保 UI 已经渲染并且 navigatorKey.currentContext 有效
   Future.delayed(const Duration(milliseconds: 500), () async {
-    await windowManager.show(); // 显示窗口
-    await windowManager.focus(); // 让窗口获取焦点
+    await windowManager.show();
+    await windowManager.focus();
 
-    // 弹出输入备注对话框
     String? label;
 
     try {
@@ -229,10 +229,10 @@ void backup(String path) {
         builder: (context) {
           String input = "";
           return AlertDialog(
-            title: Text("请输入备份 ${fileNode.mate.name} 的备注/原因（可选）"),
+            title: Text(appLocale.getText(AppLocale.app_enterLabelTitle).tr([fileNode.mate.name])),
             content: TextField(
               autofocus: true,
-              decoration: const InputDecoration(hintText: "备注信息（可选）"),
+              decoration: InputDecoration(hintText: appLocale.getText(AppLocale.app_enterLabelHint)),
               onChanged: (value) {
                 input = value;
               },
@@ -240,51 +240,60 @@ void backup(String path) {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop('\$CANCEL_BACKUP'); // 取消备份
+                  Navigator.of(context).pop('\$CANCEL_BACKUP');
                 },
-                child: const Text("取消备份", style: TextStyle(color: Colors.red)),
+                child: Text(appLocale.getText(AppLocale.app_cancelBackup), style: TextStyle(color: Colors.red)),
               ),
-
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(input); // 用户输入备注
+                  Navigator.of(context).pop(input);
                 },
-                child: const Text("确定"),
+                child: Text(appLocale.getText(AppLocale.app_confirm)),
               ),
             ],
           );
         },
       );
-      // 处理用户取消的情况
       if (label == '\$CANCEL_BACKUP') {
-        showWindowsNotification("Vertree 备份已取消", "用户取消了备份操作");
+        showWindowsNotification(
+          appLocale.getText(AppLocale.app_cancelNotificationTitle),
+          appLocale.getText(AppLocale.app_cancelNotificationContent),
+        );
         logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
         return;
       }
     } catch (e) {
       logger.error("创建询问label失败：${e}");
-      showToast("创建询问label失败：${e}");
+      showToast(appLocale.getText(AppLocale.app_labelDialogError) + e.toString());
     }
 
-    // 调用 safeBackup，同时传入用户输入的 label（可能为 null）
     fileNode.safeBackup(label).then((Result<FileNode, String> result) async {
       if (result.isErr) {
-        showWindowsNotification("Vertree 备份文件失败", result.msg);
+        showWindowsNotification(appLocale.getText(AppLocale.app_backupFailed), result.msg);
         return;
       }
       FileNode backup = result.unwrap();
-      showWindowsNotificationWithFile("Vertree 已备份文件", "点击我打开新文件", backup.mate.fullPath);
+      showWindowsNotificationWithFile(
+        appLocale.getText(AppLocale.app_backupSuccessTitle),
+        appLocale.getText(AppLocale.app_backupSuccessContent),
+        backup.mate.fullPath,
+      );
 
-      // 备份成功后，询问是否开启对新版本的监控
       bool? enableMonit = await showDialog<bool>(
         context: navigatorKey.currentState!.overlay!.context,
         builder: (context) {
           return AlertDialog(
-            title: const Text("开启监控？"),
-            content: const Text("是否对备份的新版本进行监控？"),
+            title: Text(appLocale.getText(AppLocale.app_enableMonitTitle)),
+            content: Text(appLocale.getText(AppLocale.app_enableMonitContent)),
             actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("否")),
-              TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text("是")),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(appLocale.getText(AppLocale.app_no)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(appLocale.getText(AppLocale.app_yes)),
+              ),
             ],
           );
         },
@@ -302,12 +311,16 @@ void monit(String path) {
   logger.info(path);
   monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
     if (fileMonitTaskResult.isErr) {
-      showWindowsNotification("Vertree监控失败，", fileMonitTaskResult.msg);
+      showWindowsNotification(appLocale.getText(AppLocale.app_monitFailedTitle), fileMonitTaskResult.msg);
       return;
     }
     FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
     if (fileMonitTask.backupDirPath != null) {
-      showWindowsNotificationWithFolder("Vertree已开始监控文件", "点击我打开备份目录", fileMonitTask.backupDirPath!);
+      showWindowsNotificationWithFolder(
+        appLocale.getText(AppLocale.app_monitSuccessTitle),
+        appLocale.getText(AppLocale.app_monitSuccessContent),
+        fileMonitTask.backupDirPath!,
+      );
     }
   });
 }

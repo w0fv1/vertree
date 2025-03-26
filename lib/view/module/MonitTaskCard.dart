@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:vertree/I18nLang.dart';
 import 'package:vertree/MonitService.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 
+
 class MonitTaskCard extends StatefulWidget {
   final FileMonitTask task;
   final Function(FileMonitTask task) removeTask;
+
   const MonitTaskCard({Key? key, required this.task, required this.removeTask}) : super(key: key);
 
   @override
@@ -20,7 +23,7 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
   void initState() {
     super.initState();
   }
-  /// 内置切换监控状态
+
   Future<void> _toggleTask() async {
     final result = await monitService.toggleFileMonitTaskStatus(task);
     result.when(
@@ -28,15 +31,16 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
         setState(() {
           task = updatedTask;
         });
-        showToast("${task.file.path}的监控已经${updatedTask.isRunning?"开启":"关闭"}");
+        final status = updatedTask.isRunning ? "开启" : "关闭"; // 这里只是标记文字，建议也可做成i18n key
+        showToast(appLocale.getText(AppLocale.monitcard_monitorStatus).tr([task.file.path, status]));
       },
       err: (_, msg) {
-        showToast(msg);
-        setState(() {}); // 保持原状态不变
+        showToast(msg); // 错误消息保留原样
+        setState(() {});
       },
     );
   }
-  /// 内置打开文件夹逻辑
+
   void _openBackupFolder() {
     if (task.backupDirPath != null) {
       FileUtils.openFolder(task.backupDirPath!);
@@ -56,31 +60,27 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(task.filePath,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(task.filePath, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 4),
                   if (task.backupDirPath != null)
-                    Text("备份文件夹：${task.backupDirPath!}",
-                        style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      appLocale.getText(AppLocale.monitcard_backupFolder).tr([task.backupDirPath!]),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                 ],
               ),
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Transform.scale(
-                  scale: 0.6,
-                  child: Switch(value: task.isRunning, onChanged: (_) => _toggleTask()),
+                Transform.scale(scale: 0.6, child: Switch(value: task.isRunning, onChanged: (_) => _toggleTask())),
+                IconButton(
+                  onPressed: () {
+                    widget.removeTask(task);
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded),
                 ),
-                IconButton(
-                    onPressed: (){
-                      widget.removeTask(task);
-                    },
-                    icon: const Icon(Icons.delete_outline_rounded)),
-                IconButton(
-                    onPressed: _openBackupFolder,
-                    icon: const Icon(Icons.open_in_new_rounded,size: 22,)),
+                IconButton(onPressed: _openBackupFolder, icon: const Icon(Icons.open_in_new_rounded, size: 22)),
               ],
             ),
           ],

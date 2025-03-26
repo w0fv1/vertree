@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:vertree/I18nLang.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
@@ -7,7 +9,7 @@ import 'package:vertree/view/component/tree/CanvasComponent.dart';
 import 'package:vertree/view/component/tree/EdgePainter.dart';
 import 'package:vertree/view/component/tree/Canvas.dart';
 import 'package:vertree/view/component/tree/CanvasManager.dart';
-import 'package:vertree/view/component/tree/FileLeaf.dart';
+import 'package:vertree/view/module/FileLeaf.dart';
 
 class FileTree extends StatefulWidget {
   const FileTree({super.key, required this.rootNode, required this.height, required this.width, this.focusNode});
@@ -78,22 +80,31 @@ class _FileTreeState extends State<FileTree> {
       builder: (context) {
         String label = "";
         return AlertDialog(
-          title: const Text("请输入备注"),
+          title: Text(appLocale.getText(AppLocale.filetree_inputLabelTitle)),
           content: TextField(
             autofocus: true,
-            decoration: const InputDecoration(hintText: "请输入备注（可选）"),
+            decoration: InputDecoration(
+              hintText: appLocale.getText(AppLocale.filetree_inputLabelHint),
+            ),
             onChanged: (value) {
               label = value;
             },
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text("取消")),
-            TextButton(onPressed: () => Navigator.of(context).pop(label), child: const Text("确认")),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: Text(appLocale.getText(AppLocale.filetree_inputCancel)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(label),
+              child: Text(appLocale.getText(AppLocale.filetree_inputConfirm)),
+            ),
           ],
         );
       },
     );
   }
+
 
   /// sprout 方法：更新数据模型后刷新整个树，同时展示 loading 效果 500ms
   void sprout(FileNode parentNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) async {
