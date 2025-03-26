@@ -40,6 +40,9 @@ class AppLocale {
   Lang lang = Lang.ZH_CN;
 
   void changeLang(Lang newLang) {
+    if(newLang.name == lang.name){
+      return;
+    }
     lang = newLang;
     configer.set<String>('locale', newLang.name); // ✅ 已经保存到 config
 
@@ -159,6 +162,7 @@ class AppLocale {
   static const String setting_title = 'settingTitle';
   static const String setting_titleBar = 'settingTitleBar';
   static const String setting_language = 'settingLanguage';
+  static const String setting_contextMenuGroup = 'settingContextMenuGroup';
   static const String setting_addBackupMenu = 'settingAddBackupMenu';
   static const String setting_addExpressBackupMenu = 'settingAddExpressBackupMenu';
   static const String setting_addMonitorMenu = 'settingAddMonitorMenu';
@@ -285,6 +289,7 @@ class AppLocale {
     setting_title: "Settings",
     setting_titleBar: "Vertree Settings",
     setting_language: "Language",
+    setting_contextMenuGroup: "Context Menu Options",
     setting_addBackupMenu: "Add 'Backup this file' to context menu",
     setting_addExpressBackupMenu: "Add 'Express backup this file' to context menu",
     setting_addMonitorMenu: "Add 'Monitor this file' to context menu",
@@ -410,6 +415,7 @@ class AppLocale {
     setting_title: "设置",
     setting_language: '语言',
     setting_titleBar: "Vertree 设置",
+    setting_contextMenuGroup: "右键菜单选项",
     setting_addBackupMenu: "将“备份该文件”增加到右键菜单",
     setting_addExpressBackupMenu: "将“快速备份该文件”增加到右键菜单",
     setting_addMonitorMenu: "将“监控该文件”增加到右键菜单",
@@ -535,6 +541,7 @@ class AppLocale {
     setting_title: "設定",
     setting_language: '言語',
     setting_titleBar: "Vertree 設定",
+    setting_contextMenuGroup: "右クリックメニューのオプション",
     setting_addBackupMenu: "「このファイルをバックアップ」を右クリックメニューに追加",
     setting_addExpressBackupMenu: "「このファイルを即時バックアップ」を右クリックメニューに追加",
     setting_addMonitorMenu: "「このファイルを監視」を右クリックメニューに追加",

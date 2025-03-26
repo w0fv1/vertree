@@ -164,80 +164,101 @@ class _SettingPageState extends State<SettingPage> {
         ),
         body: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 460, maxHeight: 500),
+            constraints: const BoxConstraints(maxWidth: 500, maxHeight: 500),
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      const Icon(Icons.settings, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        appLocale.getText(AppLocale.setting_title),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  // Row(
+                  //   children: [
+                  //     const SizedBox(width: 10),
+                  //     const Icon(Icons.settings, size: 24),
+                  //     const SizedBox(width: 8),
+                  //     Text(
+                  //       appLocale.getText(AppLocale.setting_title),
+                  //       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  //     ),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: 16),
 
                   Padding(
-                    padding: const EdgeInsets.only(left: 8.0, bottom: 16),
+                    padding: const EdgeInsets.only(left: 14.0),
                     child: Row(
                       children: [
                         const Icon(Icons.language),
                         const SizedBox(width: 8),
                         Text("${appLocale.getText(AppLocale.setting_language)}: "),
                         const SizedBox(width: 8),
+                        Spacer(),
                         DropdownButton<Lang>(
                           value: appLocale.lang,
                           onChanged: (Lang? newLang) {
                             if (newLang != null) {
+                              setState(() => isLoading = true);
+
                               setState(() {
                                 appLocale.changeLang(newLang);
+                              });
+
+                              Future.delayed(const Duration(milliseconds: 200), () {
+                                setState(() {
+                                  isLoading = false;
+                                });
                               });
                             }
                           },
                           items:
                               appLocale.supportedLangs.map((Lang lang) {
-                                return DropdownMenuItem<Lang>(value: lang, child: Text(lang.label));
+                                return DropdownMenuItem<Lang>(value: lang, child: Text("    "+lang.label+"    "));
                               }).toList(),
                         ),
+                        const SizedBox(width: 20),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
 
-                  SwitchListTile(
-                    title: Text(appLocale.getText(AppLocale.setting_addBackupMenu)),
-                    value: backupFile,
-                    onChanged: _toggleBackupFile,
+                  ExpansionTile(
+                    leading: Icon(Icons.build,size: 20,),
+                    title: Text(appLocale.getText(AppLocale.setting_contextMenuGroup)), // 示例：设置上下文菜单
+                    children: [
+                      SwitchListTile(
+                        title: Text(appLocale.getText(AppLocale.setting_addBackupMenu)),
+                        value: backupFile,
+                        onChanged: _toggleBackupFile,
+                      ),
+                      SwitchListTile(
+                        title: Text(appLocale.getText(AppLocale.setting_addExpressBackupMenu)),
+                        value: expressBackupFile,
+                        onChanged: _toggleExpressBackupFile,
+                      ),
+                      SwitchListTile(
+                        title: Text(appLocale.getText(AppLocale.setting_addMonitorMenu)),
+                        value: monitorFile,
+                        onChanged: _toggleMonitorFile,
+                      ),
+                      SwitchListTile(
+                        title: Text(appLocale.getText(AppLocale.setting_addViewtreeMenu)),
+                        value: viewTreeFile,
+                        onChanged: _toggleViewTreeFile,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 16),
                   SwitchListTile(
-                    title: Text(appLocale.getText(AppLocale.setting_addExpressBackupMenu)),
-                    value: expressBackupFile,
-                    onChanged: _toggleExpressBackupFile,
-                  ),
-                  SwitchListTile(
-                    title: Text(appLocale.getText(AppLocale.setting_addMonitorMenu)),
-                    value: monitorFile,
-                    onChanged: _toggleMonitorFile,
-                  ),
-                  SwitchListTile(
-                    title: Text(appLocale.getText(AppLocale.setting_addViewtreeMenu)),
-                    value: viewTreeFile,
-                    onChanged: _toggleViewTreeFile,
-                  ),
-                  SwitchListTile(
+                    secondary: const Icon(Icons.power_settings_new , size: 22), // 可替换为任意合适的图标
+
                     title: Text(appLocale.getText(AppLocale.setting_enableAutostart)),
                     value: autoStart,
                     onChanged: _toggleAutoStart,
                   ),
+
                   const SizedBox(height: 16),
                   ListTile(
-                    leading: const Icon(Icons.open_in_new, size: 18),
+                    leading: const Icon(Icons.open_in_new, size: 20),
                     title: Text(appLocale.getText(AppLocale.setting_openConfig)),
                     onTap: () => FileUtils.openFile(configer.configFilePath),
                   ),
