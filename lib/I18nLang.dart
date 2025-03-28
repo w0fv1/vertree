@@ -12,7 +12,7 @@ extension StringTranslate on String {
       return result;
     }
     for (final arg in args) {
-      result = result.replaceFirst('%s', arg);
+      result = result.replaceFirst('%a', arg);
     }
     return result;
   }
@@ -310,10 +310,10 @@ class AppLocale {
     setting_notifyRemoveExpress: "Removed 'Express backup this file' from context menu",
 
     vertree_title: "Vertree",
-    vertree_fileTreeTitle: "%s.%s File Version Tree",
+    vertree_fileTreeTitle: "%a.%a File Version Tree",
 
-    monitcard_monitorStatus: "Monitoring of %s has been %s",
-    monitcard_backupFolder: "Backup Folder: %s",
+    monitcard_monitorStatus: "Monitoring of %a has been %a",
+    monitcard_backupFolder: "Backup Folder: %a",
 
     filetree_inputLabelTitle: "Enter a label",
     filetree_inputLabelHint: "Enter a label (optional)",
@@ -322,15 +322,15 @@ class AppLocale {
 
     fileleaf_noLabel: "No label",
     fileleaf_lastModified: "Last modified",
-    fileleaf_openTitle: "Open file %s.%s?",
-    fileleaf_openContent: "You are about to open \"%s.%s\" version %s",
+    fileleaf_openTitle: "Open file %a.%a?",
+    fileleaf_openContent: "You are about to open \"%a.%a\" version %a",
     fileleaf_cancel: "Cancel",
     fileleaf_confirm: "Confirm",
     fileleaf_menuBackup: "Backup version",
     fileleaf_menuMonit: "Monitor changes",
     fileleaf_menuProperty: "Properties",
     fileleaf_monitTitle: "Confirm file monitoring",
-    fileleaf_monitContent: "Start monitoring file \"%s.%s\"?",
+    fileleaf_monitContent: "Start monitoring file \"%a.%a\"?",
     fileleaf_notifyFailed: "Vertree monitoring failed,",
     fileleaf_notifySuccess: "Vertree is now monitoring file",
     fileleaf_notifyHint: "Click me to open backup folder",
@@ -436,10 +436,10 @@ class AppLocale {
     setting_notifyRemoveExpress: "已从右键菜单移除 '快速备份该文件' 功能按钮",
 
     vertree_title: "Vertree维树",
-    vertree_fileTreeTitle: "%s.%s 文本版本树",
+    vertree_fileTreeTitle: "%a.%a 文本版本树",
 
-    monitcard_monitorStatus: "%s的监控已经%s",
-    monitcard_backupFolder: "备份文件夹：%s",
+    monitcard_monitorStatus: "%a的监控已经%a",
+    monitcard_backupFolder: "备份文件夹：%a",
 
     filetree_inputLabelTitle: "请输入备注",
     filetree_inputLabelHint: "请输入备注（可选）",
@@ -448,15 +448,15 @@ class AppLocale {
 
     fileleaf_noLabel: "无备注",
     fileleaf_lastModified: "最后修改",
-    fileleaf_openTitle: "打开文件 %s.%s ?",
-    fileleaf_openContent: "即将打开 \"%s.%s\" %s 版",
+    fileleaf_openTitle: "打开文件 %a.%a ?",
+    fileleaf_openContent: "即将打开 \"%a.%a\" %a 版",
     fileleaf_cancel: "取消",
     fileleaf_confirm: "确认",
     fileleaf_menuBackup: "备份版本",
     fileleaf_menuMonit: "监控变更",
     fileleaf_menuProperty: "属性",
     fileleaf_monitTitle: "确认文件监控",
-    fileleaf_monitContent: "确定要开始监控文件 \"%s.%s\" 吗？",
+    fileleaf_monitContent: "确定要开始监控文件 \"%a.%a\" 吗？",
     fileleaf_notifyFailed: "Vertree监控失败，",
     fileleaf_notifySuccess: "Vertree已开始监控文件",
     fileleaf_notifyHint: "点击我打开备份目录",
@@ -562,10 +562,10 @@ class AppLocale {
     setting_notifyRemoveExpress: "「このファイルを即時バックアップ」が右クリックメニューから削除されました",
 
     vertree_title: "Vertreeバージョンツリー",
-    vertree_fileTreeTitle: "%s.%s ファイルバージョンツリー",
+    vertree_fileTreeTitle: "%a.%a ファイルバージョンツリー",
 
-    monitcard_monitorStatus: "%sの監視は%sされました",
-    monitcard_backupFolder: "バックアップフォルダ：%s",
+    monitcard_monitorStatus: "%aの監視は%aされました",
+    monitcard_backupFolder: "バックアップフォルダ：%a",
 
     filetree_inputLabelTitle: "ラベルを入力してください",
     filetree_inputLabelHint: "ラベルを入力してください（任意）",
@@ -574,15 +574,15 @@ class AppLocale {
 
     fileleaf_noLabel: "備考なし",
     fileleaf_lastModified: "最終更新",
-    fileleaf_openTitle: "ファイル %s.%s を開きますか？",
-    fileleaf_openContent: "「%s.%s」バージョン %s を開こうとしています",
+    fileleaf_openTitle: "ファイル %a.%a を開きますか？",
+    fileleaf_openContent: "「%a.%a」バージョン %a を開こうとしています",
     fileleaf_cancel: "キャンセル",
     fileleaf_confirm: "確認",
     fileleaf_menuBackup: "バックアップバージョン",
     fileleaf_menuMonit: "変更を監視",
     fileleaf_menuProperty: "プロパティ",
     fileleaf_monitTitle: "ファイル監視の確認",
-    fileleaf_monitContent: "ファイル「%s.%s」の監視を開始しますか？",
+    fileleaf_monitContent: "ファイル「%a.%a」の監視を開始しますか？",
     fileleaf_notifyFailed: "Vertreeの監視に失敗しました、",
     fileleaf_notifySuccess: "Vertreeがファイルの監視を開始しました",
     fileleaf_notifyHint: "クリックしてバックアップフォルダを開く",
