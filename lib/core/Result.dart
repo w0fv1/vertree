@@ -2,16 +2,16 @@ class Result<T, E> {
   final String msg;
   final T? value;
   final E? error;
+  final bool isErr;
 
-  Result.ok(this.value, [this.msg = "ok"]) : error = null;
+  Result.ok(this.value, [this.msg = "ok"]) : error = null, isErr = false;
 
-  Result.err([this.error, this.msg = "err"]) : value = null;
+  Result.err([this.error, String? msg]) : msg = msg ?? error.toString(), value = null, isErr = true;
 
   /// 只有错误消息，而不关心具体错误类型
-  Result.eMsg([this.msg = "err"]) : error = null, value = null;
+  Result.eMsg([this.msg = "err"]) : error = null, value = null, isErr = true;
 
-  bool get isOk => msg == 'ok';
-  bool get isErr => msg == 'err';
+  bool get isOk => !isErr;
 
   T unwrap() {
     if (isOk) return value as T;
@@ -42,10 +42,7 @@ class Result<T, E> {
   }
 
   /// 类似模式匹配，但返回void，更适合做副作用操作
-  void when({
-    required void Function(T value) ok,
-    required void Function(E? error, String msg) err,
-  }) {
+  void when({required void Function(T value) ok, required void Function(E? error, String msg) err}) {
     if (isOk) {
       // 如果是ok分支，value不为null
       ok(value as T);
