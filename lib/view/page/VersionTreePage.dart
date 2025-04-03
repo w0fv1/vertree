@@ -29,7 +29,13 @@ class _FileTreePageState extends State<FileTreePage> {
   void initState() {
     focusNode = FileNode(path);
 
-    windowManager.maximize();
+    var windowsStatus = configer.get("windowsStatus", "maximize");
+
+    if (windowsStatus == "maximize") {
+      windowManager.maximize();
+    } else {
+      windowManager.restore();
+    }
 
     super.initState();
 
@@ -69,6 +75,18 @@ class _FileTreePageState extends State<FileTreePage> {
             ),
           ],
         ),
+        onMinimize: () {
+          print('Window minimized');
+        },
+        onMaximize: () {
+          configer.set("windowsStatus", "maximize");
+        },
+        onRestore: () {
+          configer.set("windowsStatus", "restore");
+        },
+        onClose: () {
+          print('Window closed');
+        },
       ),
       body: LoadingWidget(
         isLoading: isLoading,
