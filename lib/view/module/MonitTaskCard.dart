@@ -33,7 +33,7 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
           task = updatedTask;
         });
         final status = updatedTask.isRunning ? "开启" : "关闭"; // 这里只是标记文字，建议也可做成i18n key
-        showToast(appLocale.getText(AppLocale.monitcard_monitorStatus).tr([task.file.path, status]));
+        showToast(appLocale.getText(LocaleKey.monitcard_monitorStatus).tr([task.file.path, status]));
       },
       err: (_, msg) {
         showToast(msg); // 错误消息保留原样
@@ -54,17 +54,17 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text(appLocale.getText(AppLocale.monitcard_cleanDialogTitle)),
-            content: Text(appLocale.getText(AppLocale.monitcard_cleanDialogContent).tr([task.backupDirPath!])),
+            title: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogTitle)),
+            content: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogContent).tr([task.backupDirPath!])),
             actions: <Widget>[
               TextButton(
-                child: Text(appLocale.getText(AppLocale.monitcard_cleanDialogCancel)),
+                child: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogCancel)),
                 onPressed: () {
                   Navigator.of(context).pop(false); // 返回 false，表示取消
                 },
               ),
               TextButton(
-                child: Text(appLocale.getText(AppLocale.monitcard_cleanDialogConfirm)),
+                child: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogConfirm)),
                 onPressed: () {
                   Navigator.of(context).pop(true); // 返回 true，表示确认
                 },
@@ -83,9 +83,9 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                 file.deleteSync();
               }
             }
-            showToast(appLocale.getText(AppLocale.monitcard_cleanSuccess).tr([task.backupDirPath!]));
+            showToast(appLocale.getText(LocaleKey.monitcard_cleanSuccess).tr([task.backupDirPath!]));
           } catch (e) {
-            showToast(appLocale.getText(AppLocale.monitcard_cleanFail).tr([task.backupDirPath!, e.toString()]));
+            showToast(appLocale.getText(LocaleKey.monitcard_cleanFail).tr([task.backupDirPath!, e.toString()]));
             logger.error('删除备份文件夹中的文件时发生错误: $e');
           }
         }
@@ -107,7 +107,7 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
             const SizedBox(height: 4),
             if (task.backupDirPath != null)
               Text(
-                appLocale.getText(AppLocale.monitcard_backupFolder).tr([task.backupDirPath!]),
+                appLocale.getText(LocaleKey.monitcard_backupFolder).tr([task.backupDirPath!]),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             Row(
@@ -115,14 +115,14 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
               children: [
                 Spacer(),
                 Tooltip(
-                  message: appLocale.getText(AppLocale.monitcard_pause),
+                  message: appLocale.getText(LocaleKey.monitcard_pause),
                   child: Transform.scale(
                     scale: 0.7,
                     child: Switch(value: task.isRunning, onChanged: (_) => _toggleTask()),
                   ),
                 ),
                 Tooltip(
-                  message: appLocale.getText(AppLocale.monitcard_delete),
+                  message: appLocale.getText(LocaleKey.monitcard_delete),
                   child: IconButton(
                     onPressed: () {
                       widget.removeTask(task);
@@ -131,14 +131,14 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                   ),
                 ),
                 Tooltip(
-                  message: appLocale.getText(AppLocale.monitcard_clean),
+                  message: appLocale.getText(LocaleKey.monitcard_clean),
                   child: IconButton(
                     onPressed: _cleanBackupFolder,
                     icon: const Icon(Icons.cleaning_services_rounded, size: 22),
                   ),
                 ),
                 Tooltip(
-                  message: appLocale.getText(AppLocale.monitcard_openBackupFolder),
+                  message: appLocale.getText(LocaleKey.monitcard_openBackupFolder),
                   child: IconButton(
                     onPressed: _openBackupFolder,
                     icon: const Icon(Icons.open_in_new_rounded, size: 22),

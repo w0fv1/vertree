@@ -80,11 +80,11 @@ class _FileTreeState extends State<FileTree> {
       builder: (context) {
         String label = "";
         return AlertDialog(
-          title: Text(appLocale.getText(AppLocale.filetree_inputLabelTitle)),
+          title: Text(appLocale.getText(LocaleKey.filetree_inputLabelTitle)),
           content: TextField(
             autofocus: true,
             decoration: InputDecoration(
-              hintText: appLocale.getText(AppLocale.filetree_inputLabelHint),
+              hintText: appLocale.getText(LocaleKey.filetree_inputLabelHint),
             ),
             onChanged: (value) {
               label = value;
@@ -93,11 +93,11 @@ class _FileTreeState extends State<FileTree> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(null),
-              child: Text(appLocale.getText(AppLocale.filetree_inputCancel)),
+              child: Text(appLocale.getText(LocaleKey.filetree_inputCancel)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(label),
-              child: Text(appLocale.getText(AppLocale.filetree_inputConfirm)),
+              child: Text(appLocale.getText(LocaleKey.filetree_inputConfirm)),
             ),
           ],
         );

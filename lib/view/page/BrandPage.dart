@@ -33,7 +33,7 @@ class _BrandPageState extends State<BrandPage> {
               ),
             ),
             SizedBox(width: 8),
-            Text(appLocale.getText(AppLocale.brand_title)),
+            Text(appLocale.getText(LocaleKey.brand_title)),
           ],
         ),
         showMaximize: false,
@@ -53,10 +53,10 @@ class _BrandPageState extends State<BrandPage> {
                 ),
               ),
               SizedBox(height: 16),
-              Text(appLocale.getText(AppLocale.brand_title), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(appLocale.getText(LocaleKey.brand_title), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text(
-                appLocale.getText(AppLocale.brand_slogan),
+                appLocale.getText(LocaleKey.brand_slogan),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
@@ -66,21 +66,21 @@ class _BrandPageState extends State<BrandPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   IconButton(
-                    tooltip: appLocale.getText(AppLocale.brand_monitorPage),
+                    tooltip: appLocale.getText(LocaleKey.brand_monitorPage),
                     onPressed: () async {
                       go(MonitPage());
                     },
                     icon: Icon(Icons.monitor_heart_rounded),
                   ),
                   IconButton(
-                    tooltip: appLocale.getText(AppLocale.brand_settingPage),
+                    tooltip: appLocale.getText(LocaleKey.brand_settingPage),
                     onPressed: () async {
                       go(SettingPage());
                     },
                     icon: Icon(Icons.settings_rounded),
                   ),
                   IconButton(
-                    tooltip: appLocale.getText(AppLocale.brand_exit),
+                    tooltip: appLocale.getText(LocaleKey.brand_exit),
                     onPressed: () async {
                       exit(0);
                     },
@@ -116,16 +116,16 @@ class _BrandPageState extends State<BrandPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text(appLocale.getText(AppLocale.brand_initTitle)),
-          content: Text(appLocale.getText(AppLocale.brand_initContent)),
+          title: Text(appLocale.getText(LocaleKey.brand_initTitle)),
+          content: Text(appLocale.getText(LocaleKey.brand_initContent)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
-              child: Text(appLocale.getText(AppLocale.brand_cancel)),
+              child: Text(appLocale.getText(LocaleKey.brand_cancel)),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
-              child: Text(appLocale.getText(AppLocale.brand_confirm)),
+              child: Text(appLocale.getText(LocaleKey.brand_confirm)),
             ),
           ],
         );
@@ -139,8 +139,8 @@ class _BrandPageState extends State<BrandPage> {
       VerTreeRegistryService.enableAutoStart();
 
       await showWindowsNotification(
-        appLocale.getText(AppLocale.brand_initDoneTitle),
-        appLocale.getText(AppLocale.brand_initDoneBody),
+        appLocale.getText(LocaleKey.brand_initDoneTitle),
+        appLocale.getText(LocaleKey.brand_initDoneBody),
       );
 
       configer.set<bool>('isSetupDone', true);

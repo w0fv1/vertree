@@ -62,7 +62,7 @@ class _FileTreePageState extends State<FileTreePage> {
             ),
             const SizedBox(width: 8),
             Text(
-              appLocale.getText(AppLocale.vertree_fileTreeTitle).tr([
+              appLocale.getText(LocaleKey.vertree_fileTreeTitle).tr([
                 rootNode?.mate.name ?? "",
                 rootNode?.mate.extension ?? "",
               ]),
