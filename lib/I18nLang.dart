@@ -93,7 +93,7 @@ class AppLocale {
         break;
     }
 
-    return langMap[key] ?? '$key not found';
+    return langMap[key] ?? ZH_CN[key] ?? '$key not found';
   }
 
   static const String registry_backupKeyName = "RegistryVerTreeBackup";
