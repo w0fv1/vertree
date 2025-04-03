@@ -40,7 +40,7 @@ class AppLocale {
   Lang lang = Lang.ZH_CN;
 
   void changeLang(Lang newLang) {
-    if(newLang.name == lang.name){
+    if (newLang.name == lang.name) {
       return;
     }
     lang = newLang;
@@ -153,11 +153,13 @@ class AppLocale {
   static const String monit_addSuccess = 'monitAddSuccess';
   static const String monit_addFail = 'monitAddFail';
   static const String monit_fileNotSelected = 'monitFileNotSelected';
-  static const String monit_confirmDeleteTitle = 'monitConfirmDeleteTitle';
-  static const String monit_confirmDeleteContent = 'monitConfirmDeleteContent';
+  static const String monit_deleteDialogTitle = 'monitConfirmDeleteTitle';
+  static const String monit_deleteDialogContent = 'monitConfirmDeleteContent';
   static const String monit_cancel = 'monitCancel';
   static const String monit_delete = 'monitDelete';
   static const String monit_deleteSuccess = 'monitDeleteSuccess';
+  static const String monit_searchHint = "monitSearchHint";
+  static const String monit_noResults = "monitNoResults";
 
   static const String setting_title = 'settingTitle';
   static const String setting_titleBar = 'settingTitleBar';
@@ -188,6 +190,18 @@ class AppLocale {
 
   static const String monitcard_monitorStatus = 'monitCardMonitorStatus';
   static const String monitcard_backupFolder = 'monitCardBackupFolder';
+  static const String monitcard_openBackupFolder = 'monitCardOpenBackupFolder';
+  static const String monitcard_delete = 'monitCardDelete';
+  static const String monitcard_pause = 'monitcardPause';
+  static const String monitcard_clean = 'monitcardClean';
+
+  static const String monitcard_cleanSuccess = 'monitcardCleanSuccess';
+  static const String monitcard_cleanFail = 'monitcardCleanFail';
+
+  static const String monitcard_cleanDialogTitle = 'monitcardCleanDialogTitle';
+  static const String monitcard_cleanDialogContent = 'monitcardCleanDialogContent';
+  static const String monitcard_cleanDialogCancel = 'monitcardCleanDialogCancel';
+  static const String monitcard_cleanDialogConfirm = 'monitcardCleanDialogConfirm';
 
   static const String filetree_inputLabelTitle = 'filetreeInputLabelTitle';
   static const String filetree_inputLabelHint = 'filetreeInputLabelHint';
@@ -221,7 +235,6 @@ class AppLocale {
   static const String fileleaf_propertyCreated = 'fileleafPropertyCreated';
   static const String fileleaf_propertyModified = 'fileleafPropertyModified';
   static const String fileleaf_propertyClose = 'fileleafPropertyClose';
-
 
   static const Map<String, String> EN = {
     registry_backupKeyName: "Backup Files VerTree",
@@ -280,8 +293,8 @@ class AppLocale {
     monit_addSuccess: 'Successfully added monitor task: %a',
     monit_addFail: 'Failed to add task: %a',
     monit_fileNotSelected: 'No file selected',
-    monit_confirmDeleteTitle: 'Confirm Delete',
-    monit_confirmDeleteContent: 'Are you sure you want to delete the monitor task: %a?',
+    monit_deleteDialogTitle: 'Confirm Delete',
+    monit_deleteDialogContent: 'Are you sure you want to delete the monitor task: %a?',
     monit_cancel: 'Cancel',
     monit_delete: 'Delete',
     monit_deleteSuccess: 'Deleted monitor task: %a',
@@ -406,11 +419,13 @@ class AppLocale {
     monit_addSuccess: '成功添加监控任务: %a',
     monit_addFail: '添加失败: %a',
     monit_fileNotSelected: '未选择文件',
-    monit_confirmDeleteTitle: '确认删除',
-    monit_confirmDeleteContent: '确定要删除监控任务: %a 吗？',
+    monit_deleteDialogTitle: '确认删除',
+    monit_deleteDialogContent: '确定要删除监控任务: %a 吗？此操作会一并删除相应的备份文件夹和所有备份内容！',
     monit_cancel: '取消',
     monit_delete: '删除',
     monit_deleteSuccess: '已删除监控任务: %a',
+    monit_searchHint: "按关键字筛选...",
+    monit_noResults: "未找到匹配搜索的任务",
 
     setting_title: "设置",
     setting_language: '语言',
@@ -440,6 +455,17 @@ class AppLocale {
 
     monitcard_monitorStatus: "%a的监控已经%a",
     monitcard_backupFolder: "备份文件夹：%a",
+
+    monitcard_openBackupFolder: "打开备份文件夹",
+    monitcard_delete: "删除监控任务",
+    monitcard_pause: "暂停",
+    monitcard_clean: "清理备份文件夹",
+    monitcard_cleanSuccess: "清理备份文件夹 %a 成功",
+    monitcard_cleanFail: "清理备份文件夹 %a 失败",
+    monitcard_cleanDialogTitle: "确认清理备份文件夹",
+    monitcard_cleanDialogContent: "确定要清理备份文件夹 %a 中的所有文件吗？此操作不可撤销。",
+    monitcard_cleanDialogCancel: "取消",
+    monitcard_cleanDialogConfirm: "确认",
 
     filetree_inputLabelTitle: "请输入备注",
     filetree_inputLabelHint: "请输入备注（可选）",
@@ -532,8 +558,8 @@ class AppLocale {
     monit_addSuccess: '監視タスクを追加しました: %a',
     monit_addFail: 'タスクの追加に失敗しました: %a',
     monit_fileNotSelected: 'ファイルが選択されていません',
-    monit_confirmDeleteTitle: '削除の確認',
-    monit_confirmDeleteContent: '監視タスクを削除しますか: %a？',
+    monit_deleteDialogTitle: '削除の確認',
+    monit_deleteDialogContent: '監視タスクを削除しますか: %a？',
     monit_cancel: 'キャンセル',
     monit_delete: '削除',
     monit_deleteSuccess: '監視タスクを削除しました: %a',
