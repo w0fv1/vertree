@@ -4,7 +4,6 @@ import 'package:toastification/toastification.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'dart:io';
 import 'package:vertree/main.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 /// 初始化本地通知
 Future<void> initLocalNotifier() async {
@@ -85,25 +84,7 @@ Future<void> showWindowsNotificationWithTask(
   await notification.show();
 }
 
-void showInfoToast(String message) {
-  Fluttertoast.showToast(
-    msg: message,
-    toastLength: Toast.LENGTH_SHORT,
-    gravity: ToastGravity.CENTER,
-    fontSize: 16.0,
-  );
-}
 
-void showErrorToast(String message) {
-  Fluttertoast.showToast(
-    msg: message,
-    toastLength: Toast.LENGTH_SHORT,
-    gravity: ToastGravity.CENTER,
-    backgroundColor: Colors.red,
-    textColor: Colors.white,
-    fontSize: 16.0,
-  );
-}
 
 void showToast(String message) {
   toastification.show(
@@ -112,6 +93,5 @@ void showToast(String message) {
     style: ToastificationStyle.simple,
     showProgressBar: false,
     alignment: Alignment.bottomCenter, // 设置在底部中央显示
-
   );
 }

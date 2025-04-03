@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:vertree/I18nLang.dart';
+import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
+import 'package:vertree/core/Result.dart';
 import 'package:vertree/core/TreeBuilder.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/component/Loading.dart';
 import 'package:vertree/view/module/FileTree.dart';
 import 'package:window_manager/window_manager.dart';
-
 
 class FileTreePage extends StatefulWidget {
   const FileTreePage({super.key, required this.path});
@@ -31,10 +32,16 @@ class _FileTreePageState extends State<FileTreePage> {
     windowManager.maximize();
 
     super.initState();
-    Future.wait([buildTree(path), Future.delayed(Duration(milliseconds: 500))]).then((results) {
-      final fileNodeResult = results[0];
+
+    Future.wait([buildTree(path), Future.delayed(Duration(milliseconds: 200))]).then((results) {
+      Result<FileNode, void> buildTreeResult = results[0];
+      if (buildTreeResult.isErr) {
+        showToast(buildTreeResult.msg);
+        isLoading = false;
+        return;
+      }
       setState(() {
-        rootNode = fileNodeResult.unwrap();
+        rootNode = buildTreeResult.unwrap();
         isLoading = false;
       });
     });
