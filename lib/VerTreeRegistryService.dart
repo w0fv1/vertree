@@ -7,6 +7,12 @@ import 'component/WindowsRegistryHelper.dart';
 import 'package:path/path.dart' as path;
 
 class VerTreeRegistryService {
+
+  static const String registry_backupKeyName = "RegistryVerTreeBackup";
+  static const String registry_expressBackupKeyName = "RegistryVerTreeExpressBackup";
+  static const String registry_monitorKeyName = "RegistryVerTreeMonitor";
+  static const String registry_viewTreeKeyName = "RegistryVerTreeViewTree";
+
   static const String appName = "VerTree"; // 应用名称
 
   static const String runRegistryPath = r'Software\Microsoft\Windows\CurrentVersion\Run';
@@ -15,22 +21,22 @@ class VerTreeRegistryService {
 
   static void reAddContextMenu() {
     if (checkBackupKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(AppLocale.registry_backupKeyName);
+      RegistryHelper.removeContextMenuOptionByKey(registry_backupKeyName);
       addVerTreeBackupContextMenu();
     }
 
     if (checkMonitorKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(AppLocale.registry_monitorKeyName);
+      RegistryHelper.removeContextMenuOptionByKey(registry_monitorKeyName);
       addVerTreeMonitorContextMenu();
     }
 
     if (checkViewTreeKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(AppLocale.registry_viewTreeKeyName);
+      RegistryHelper.removeContextMenuOptionByKey(registry_viewTreeKeyName);
       addVerTreeViewContextMenu();
     }
 
     if (checkExpressBackupKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(AppLocale.registry_expressBackupKeyName);
+      RegistryHelper.removeContextMenuOptionByKey(registry_expressBackupKeyName);
       addVerTreeExpressBackupContextMenu();
     }
   }
@@ -42,8 +48,8 @@ class VerTreeRegistryService {
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'save.ico');
 
     return RegistryHelper.addContextMenuOption(
-      AppLocale.registry_backupKeyName,
-      appLocale.getText(AppLocale.registry_backupKeyName),
+      registry_backupKeyName,
+      appLocale.getText(LocaleKey.registry_backupKeyName),
       '"$exePath" --backup "%1"',
       iconPath: iconPath,
     );
@@ -54,8 +60,8 @@ class VerTreeRegistryService {
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'icon', 'monit.ico');
 
     return RegistryHelper.addContextMenuOption(
-      AppLocale.registry_monitorKeyName,
-      appLocale.getText(AppLocale.registry_monitorKeyName),
+      registry_monitorKeyName,
+      appLocale.getText(LocaleKey.registry_monitorKeyName),
       '"$exePath" --monit "%1"',
       iconPath: iconPath,
     );
@@ -66,8 +72,8 @@ class VerTreeRegistryService {
     final iconPath = path.join(FileUtils.appDirPath(), 'data', 'flutter_assets', 'assets', 'img', 'logo', 'logo.ico');
 
     return RegistryHelper.addContextMenuOption(
-      AppLocale.registry_viewTreeKeyName,
-      appLocale.getText(AppLocale.registry_viewTreeKeyName),
+      registry_viewTreeKeyName,
+      appLocale.getText(LocaleKey.registry_viewTreeKeyName),
       '"$exePath" --viewtree "%1"',
       iconPath: iconPath,
     );
@@ -86,43 +92,43 @@ class VerTreeRegistryService {
     );
 
     return RegistryHelper.addContextMenuOption(
-      AppLocale.registry_expressBackupKeyName,
-      appLocale.getText(AppLocale.registry_expressBackupKeyName),
+      registry_expressBackupKeyName,
+      appLocale.getText(LocaleKey.registry_expressBackupKeyName),
       '"$exePath" --express-backup "%1"',
       iconPath: iconPath,
     );
   }
 
   static bool removeVerTreeExpressBackupContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_expressBackupKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_expressBackupKeyName);
   }
 
   static bool removeVerTreeViewContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_viewTreeKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_viewTreeKeyName);
   }
 
   static bool removeVerTreeMonitorContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_monitorKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName);
   }
 
   static bool removeVerTreeBackupContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_backupKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_backupKeyName);
   }
 
   static bool checkBackupKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_backupKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_backupKeyName);
   }
 
   static bool checkExpressBackupKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_expressBackupKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_expressBackupKeyName);
   }
 
   static bool checkMonitorKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_monitorKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName);
   }
 
   static bool checkViewTreeKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(AppLocale.registry_viewTreeKeyName);
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_viewTreeKeyName);
   }
 
   // 开机自启相关

@@ -103,10 +103,10 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
   String _getTooltipMessage() {
     String label = fileNode.mate.label?.isNotEmpty == true
         ? fileNode.mate.label!
-        : appLocale.getText(AppLocale.fileleaf_noLabel);
+        : appLocale.getText(LocaleKey.fileleaf_noLabel);
     String lastModified = fileNode.mate.lastModifiedTime.toLocal().toString().split('.')[0];
-    return "${appLocale.getText(AppLocale.fileleaf_propertyLabel)}: $label\n"
-        "${appLocale.getText(AppLocale.fileleaf_lastModified)}: $lastModified";
+    return "${appLocale.getText(LocaleKey.fileleaf_propertyLabel)}: $label\n"
+        "${appLocale.getText(LocaleKey.fileleaf_lastModified)}: $lastModified";
   }
 
   /// 显示打开文件的确认对话框
@@ -116,21 +116,21 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(appLocale.getText(AppLocale.fileleaf_openTitle)
+          title: Text(appLocale.getText(LocaleKey.fileleaf_openTitle)
               .tr([fileNode.mate.name, fileNode.mate.extension])),
-          content: Text(appLocale.getText(AppLocale.fileleaf_openContent)
+          content: Text(appLocale.getText(LocaleKey.fileleaf_openContent)
               .tr([fileNode.mate.name, fileNode.mate.extension, fileNode.mate.version.toString()])),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(appLocale.getText(AppLocale.fileleaf_cancel)),
+              child: Text(appLocale.getText(LocaleKey.fileleaf_cancel)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 FileUtils.openFile(fileNode.mate.fullPath);
               },
-              child: Text(appLocale.getText(AppLocale.fileleaf_confirm)),
+              child: Text(appLocale.getText(LocaleKey.fileleaf_confirm)),
             ),
           ],
         );
@@ -146,15 +146,15 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       items: [
         PopupMenuItem(
           value: 'backup',
-          child: Text(appLocale.getText(AppLocale.fileleaf_menuBackup)),
+          child: Text(appLocale.getText(LocaleKey.fileleaf_menuBackup)),
         ),
         PopupMenuItem(
           value: 'monit',
-          child: Text(appLocale.getText(AppLocale.fileleaf_menuMonit)),
+          child: Text(appLocale.getText(LocaleKey.fileleaf_menuMonit)),
         ),
         PopupMenuItem(
           value: 'property',
-          child: Text(appLocale.getText(AppLocale.fileleaf_menuProperty)),
+          child: Text(appLocale.getText(LocaleKey.fileleaf_menuProperty)),
         ),
       ],
     );
@@ -166,13 +166,13 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text(appLocale.getText(AppLocale.fileleaf_monitTitle)),
-            content: Text(appLocale.getText(AppLocale.fileleaf_monitContent)
+            title: Text(appLocale.getText(LocaleKey.fileleaf_monitTitle)),
+            content: Text(appLocale.getText(LocaleKey.fileleaf_monitContent)
                 .tr([fileNode.mate.name, fileNode.mate.extension])),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text(appLocale.getText(AppLocale.fileleaf_cancel)),
+                child: Text(appLocale.getText(LocaleKey.fileleaf_cancel)),
               ),
               TextButton(
                 onPressed: () {
@@ -180,7 +180,7 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
                   monitService.addFileMonitTask(fileNode.mate.fullPath).then((result) {
                     if (result.isErr) {
                       showWindowsNotification(
-                        appLocale.getText(AppLocale.fileleaf_notifyFailed),
+                        appLocale.getText(LocaleKey.fileleaf_notifyFailed),
                         result.msg,
                       );
                       return;
@@ -188,14 +188,14 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
                     final task = result.unwrap();
                     if (task.backupDirPath != null) {
                       showWindowsNotificationWithFolder(
-                        appLocale.getText(AppLocale.fileleaf_notifySuccess),
-                        appLocale.getText(AppLocale.fileleaf_notifyHint),
+                        appLocale.getText(LocaleKey.fileleaf_notifySuccess),
+                        appLocale.getText(LocaleKey.fileleaf_notifyHint),
                         task.backupDirPath!,
                       );
                     }
                   });
                 },
-                child: Text(appLocale.getText(AppLocale.fileleaf_confirm)),
+                child: Text(appLocale.getText(LocaleKey.fileleaf_confirm)),
               ),
             ],
           );
@@ -239,7 +239,7 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(appLocale.getText(AppLocale.fileleaf_propertyTitle)),
+      title: Text(appLocale.getText(LocaleKey.fileleaf_propertyTitle)),
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
@@ -248,15 +248,15 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
             columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
             children: [
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyFullname))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyFullname))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.fullName)),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyName))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyName))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.name)),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyLabel))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyLabel))),
                 Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: isEditingLabel
@@ -265,7 +265,7 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
                       child: TextField(
                         controller: _labelController,
                         decoration: InputDecoration(
-                          hintText: appLocale.getText(AppLocale.fileleaf_propertyInputLabel),
+                          hintText: appLocale.getText(LocaleKey.fileleaf_propertyInputLabel),
                         ),
                       ),
                     ),
@@ -296,27 +296,27 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
                 ),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyVersion))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyVersion))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.version.toString())),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyExt))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyExt))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.extension)),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyPath))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyPath))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.fullPath)),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertySize))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertySize))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text("${widget.meta.fileSize} bytes")),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyCreated))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyCreated))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.creationTime.toString())),
               ]),
               TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(AppLocale.fileleaf_propertyModified))),
+                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyModified))),
                 Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.lastModifiedTime.toString())),
               ]),
             ],
@@ -326,7 +326,7 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(appLocale.getText(AppLocale.fileleaf_propertyClose)),
+          child: Text(appLocale.getText(LocaleKey.fileleaf_propertyClose)),
         ),
       ],
     );

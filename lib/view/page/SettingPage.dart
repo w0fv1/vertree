@@ -39,10 +39,10 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyAddBackup));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddBackup));
     } else {
       success = VerTreeRegistryService.removeVerTreeBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyRemoveBackup));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveBackup));
     }
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
@@ -61,10 +61,10 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeMonitorContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyAddMonitor));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddMonitor));
     } else {
       success = VerTreeRegistryService.removeVerTreeMonitorContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyRemoveMonitor));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveMonitor));
     }
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
@@ -83,10 +83,10 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeViewContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyAddView));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddView));
     } else {
       success = VerTreeRegistryService.removeVerTreeViewContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyRemoveView));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveView));
     }
 
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -106,10 +106,10 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.enableAutoStart();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyEnableAutostart));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyEnableAutostart));
     } else {
       success = VerTreeRegistryService.disableAutoStart();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyDisableAutostart));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyDisableAutostart));
     }
 
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -129,10 +129,10 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeExpressBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyAddExpress));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddExpress));
     } else {
       success = VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(AppLocale.setting_notifyRemoveExpress));
+      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveExpress));
     }
     setState(() {
       if (success) expressBackupFile = value;
@@ -157,7 +157,7 @@ class _SettingPageState extends State<SettingPage> {
             children: [
               Icon(Icons.settings_rounded, size: 20),
               SizedBox(width: 8),
-              Text(appLocale.getText(AppLocale.setting_titleBar)),
+              Text(appLocale.getText(LocaleKey.setting_titleBar)),
             ],
           ),
           showMaximize: false,
@@ -177,7 +177,7 @@ class _SettingPageState extends State<SettingPage> {
                   //     const Icon(Icons.settings, size: 24),
                   //     const SizedBox(width: 8),
                   //     Text(
-                  //       appLocale.getText(AppLocale.setting_title),
+                  //       appLocale.getText(LocaleKey.setting_title),
                   //       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   //     ),
                   //   ],
@@ -190,7 +190,7 @@ class _SettingPageState extends State<SettingPage> {
                       children: [
                         const Icon(Icons.language),
                         const SizedBox(width: 8),
-                        Text("${appLocale.getText(AppLocale.setting_language)}: "),
+                        Text("${appLocale.getText(LocaleKey.setting_language)}: "),
                         const SizedBox(width: 8),
                         Spacer(),
                         DropdownButton<Lang>(
@@ -223,25 +223,25 @@ class _SettingPageState extends State<SettingPage> {
 
                   ExpansionTile(
                     leading: Icon(Icons.build,size: 20,),
-                    title: Text(appLocale.getText(AppLocale.setting_contextMenuGroup)), // 示例：设置上下文菜单
+                    title: Text(appLocale.getText(LocaleKey.setting_contextMenuGroup)), // 示例：设置上下文菜单
                     children: [
                       SwitchListTile(
-                        title: Text(appLocale.getText(AppLocale.setting_addBackupMenu)),
+                        title: Text(appLocale.getText(LocaleKey.setting_addBackupMenu)),
                         value: backupFile,
                         onChanged: _toggleBackupFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(AppLocale.setting_addExpressBackupMenu)),
+                        title: Text(appLocale.getText(LocaleKey.setting_addExpressBackupMenu)),
                         value: expressBackupFile,
                         onChanged: _toggleExpressBackupFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(AppLocale.setting_addMonitorMenu)),
+                        title: Text(appLocale.getText(LocaleKey.setting_addMonitorMenu)),
                         value: monitorFile,
                         onChanged: _toggleMonitorFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(AppLocale.setting_addViewtreeMenu)),
+                        title: Text(appLocale.getText(LocaleKey.setting_addViewtreeMenu)),
                         value: viewTreeFile,
                         onChanged: _toggleViewTreeFile,
                       ),
@@ -251,7 +251,7 @@ class _SettingPageState extends State<SettingPage> {
                   SwitchListTile(
                     secondary: const Icon(Icons.power_settings_new , size: 22), // 可替换为任意合适的图标
 
-                    title: Text(appLocale.getText(AppLocale.setting_enableAutostart)),
+                    title: Text(appLocale.getText(LocaleKey.setting_enableAutostart)),
                     value: autoStart,
                     onChanged: _toggleAutoStart,
                   ),
@@ -259,7 +259,7 @@ class _SettingPageState extends State<SettingPage> {
                   const SizedBox(height: 16),
                   ListTile(
                     leading: const Icon(Icons.open_in_new, size: 20),
-                    title: Text(appLocale.getText(AppLocale.setting_openConfig)),
+                    title: Text(appLocale.getText(LocaleKey.setting_openConfig)),
                     onTap: () => FileUtils.openFile(configer.configFilePath),
                   ),
                   const SizedBox(height: 16),
@@ -270,13 +270,13 @@ class _SettingPageState extends State<SettingPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.language),
-                          tooltip: appLocale.getText(AppLocale.setting_visitWebsite),
+                          tooltip: appLocale.getText(LocaleKey.setting_visitWebsite),
                           onPressed: () => _openUrl("https://w0fv1.github.io/vertree/"),
                         ),
                         const SizedBox(width: 16),
                         IconButton(
                           icon: const Icon(Icons.code),
-                          tooltip: appLocale.getText(AppLocale.setting_openGithub),
+                          tooltip: appLocale.getText(LocaleKey.setting_openGithub),
                           onPressed: () => _openUrl("https://github.com/w0fv1/vertree"),
                         ),
                       ],

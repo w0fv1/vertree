@@ -59,8 +59,8 @@ void main(List<String> args) async {
 
         if (launch2Tray && isSetupDone) {
           await showWindowsNotificationWithTask(
-            appLocale.getText(AppLocale.app_trayNotificationTitle),
-            appLocale.getText(AppLocale.app_trayNotificationContent),
+            appLocale.getText(LocaleKey.app_trayNotificationTitle),
+            appLocale.getText(LocaleKey.app_trayNotificationContent),
             () {
               go(BrandPage());
             },
@@ -75,8 +75,8 @@ void main(List<String> args) async {
               return;
             }
             await showWindowsNotificationWithTask(
-              appLocale.getText(AppLocale.app_monitStartedTitle),
-              appLocale.getText(AppLocale.app_monitStartedContent),
+              appLocale.getText(LocaleKey.app_monitStartedTitle),
+              appLocale.getText(LocaleKey.app_monitStartedContent),
               () {
                 go(MonitPage());
               },
@@ -167,20 +167,20 @@ class _MainPageState extends State<MainPage> with WindowListener {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(appLocale.getText(AppLocale.app_confirmExitTitle)),
-          content: Text(appLocale.getText(AppLocale.app_confirmExitContent)),
+          title: Text(appLocale.getText(LocaleKey.app_confirmExitTitle)),
+          content: Text(appLocale.getText(LocaleKey.app_confirmExitContent)),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(false);
               },
-              child: Text(appLocale.getText(AppLocale.app_minimize)),
+              child: Text(appLocale.getText(LocaleKey.app_minimize)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(true);
               },
-              child: Text(appLocale.getText(AppLocale.app_exit)),
+              child: Text(appLocale.getText(LocaleKey.app_exit)),
             ),
           ],
         );
@@ -201,13 +201,13 @@ void expressBackup(String path) {
 
   fileNode.safeBackup().then((Result<FileNode, String> result) async {
     if (result.isErr) {
-      showWindowsNotification(appLocale.getText(AppLocale.app_backupFailed), result.msg);
+      showWindowsNotification(appLocale.getText(LocaleKey.app_backupFailed), result.msg);
       return;
     }
     FileNode backup = result.unwrap();
     showWindowsNotificationWithFile(
-      appLocale.getText(AppLocale.app_backupSuccessTitle),
-      appLocale.getText(AppLocale.app_backupSuccessContent),
+      appLocale.getText(LocaleKey.app_backupSuccessTitle),
+      appLocale.getText(LocaleKey.app_backupSuccessContent),
       backup.mate.fullPath,
     );
   });
@@ -229,10 +229,10 @@ void backup(String path) {
         builder: (context) {
           String input = "";
           return AlertDialog(
-            title: Text(appLocale.getText(AppLocale.app_enterLabelTitle).tr([fileNode.mate.name])),
+            title: Text(appLocale.getText(LocaleKey.app_enterLabelTitle).tr([fileNode.mate.name])),
             content: TextField(
               autofocus: true,
-              decoration: InputDecoration(hintText: appLocale.getText(AppLocale.app_enterLabelHint)),
+              decoration: InputDecoration(hintText: appLocale.getText(LocaleKey.app_enterLabelHint)),
               onChanged: (value) {
                 input = value;
               },
@@ -242,13 +242,13 @@ void backup(String path) {
                 onPressed: () {
                   Navigator.of(context).pop('\$CANCEL_BACKUP');
                 },
-                child: Text(appLocale.getText(AppLocale.app_cancelBackup), style: TextStyle(color: Colors.red)),
+                child: Text(appLocale.getText(LocaleKey.app_cancelBackup), style: TextStyle(color: Colors.red)),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(input);
                 },
-                child: Text(appLocale.getText(AppLocale.app_confirm)),
+                child: Text(appLocale.getText(LocaleKey.app_confirm)),
               ),
             ],
           );
@@ -256,26 +256,26 @@ void backup(String path) {
       );
       if (label == '\$CANCEL_BACKUP') {
         showWindowsNotification(
-          appLocale.getText(AppLocale.app_cancelNotificationTitle),
-          appLocale.getText(AppLocale.app_cancelNotificationContent),
+          appLocale.getText(LocaleKey.app_cancelNotificationTitle),
+          appLocale.getText(LocaleKey.app_cancelNotificationContent),
         );
         logger.info("用户取消了文件 ${fileNode.mate.fullPath} 的备份");
         return;
       }
     } catch (e) {
       logger.error("创建询问label失败：${e}");
-      showToast(appLocale.getText(AppLocale.app_labelDialogError) + e.toString());
+      showToast(appLocale.getText(LocaleKey.app_labelDialogError) + e.toString());
     }
 
     fileNode.safeBackup(label).then((Result<FileNode, String> result) async {
       if (result.isErr) {
-        showWindowsNotification(appLocale.getText(AppLocale.app_backupFailed), result.msg);
+        showWindowsNotification(appLocale.getText(LocaleKey.app_backupFailed), result.msg);
         return;
       }
       FileNode backup = result.unwrap();
       showWindowsNotificationWithFile(
-        appLocale.getText(AppLocale.app_backupSuccessTitle),
-        appLocale.getText(AppLocale.app_backupSuccessContent),
+        appLocale.getText(LocaleKey.app_backupSuccessTitle),
+        appLocale.getText(LocaleKey.app_backupSuccessContent),
         backup.mate.fullPath,
       );
 
@@ -283,16 +283,16 @@ void backup(String path) {
         context: navigatorKey.currentState!.overlay!.context,
         builder: (context) {
           return AlertDialog(
-            title: Text(appLocale.getText(AppLocale.app_enableMonitTitle)),
-            content: Text(appLocale.getText(AppLocale.app_enableMonitContent)),
+            title: Text(appLocale.getText(LocaleKey.app_enableMonitTitle)),
+            content: Text(appLocale.getText(LocaleKey.app_enableMonitContent)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(appLocale.getText(AppLocale.app_no)),
+                child: Text(appLocale.getText(LocaleKey.app_no)),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(appLocale.getText(AppLocale.app_yes)),
+                child: Text(appLocale.getText(LocaleKey.app_yes)),
               ),
             ],
           );
@@ -311,14 +311,14 @@ void monit(String path) {
   logger.info(path);
   monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
     if (fileMonitTaskResult.isErr) {
-      showWindowsNotification(appLocale.getText(AppLocale.app_monitFailedTitle), fileMonitTaskResult.msg);
+      showWindowsNotification(appLocale.getText(LocaleKey.app_monitFailedTitle), fileMonitTaskResult.msg);
       return;
     }
     FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
     if (fileMonitTask.backupDirPath != null) {
       showWindowsNotificationWithFolder(
-        appLocale.getText(AppLocale.app_monitSuccessTitle),
-        appLocale.getText(AppLocale.app_monitSuccessContent),
+        appLocale.getText(LocaleKey.app_monitSuccessTitle),
+        appLocale.getText(LocaleKey.app_monitSuccessContent),
         fileMonitTask.backupDirPath!,
       );
     }
