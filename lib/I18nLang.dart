@@ -5,6 +5,7 @@ import 'package:vertree/VerTreeRegistryService.dart'; // Assuming this exists
 // If 'configer' is global, this import might be okay.
 // Otherwise, AppLocale might need access via constructor or DI.
 import 'main.dart';
+
 extension StringTranslate on String {
   String tr([List<String>? args]) {
     String result = this;
@@ -18,6 +19,7 @@ extension StringTranslate on String {
     return result;
   }
 }
+
 // --- Enum for Languages (Keep as is) ---
 enum Lang {
   ZH_CN("简体中文"),
@@ -113,8 +115,12 @@ enum LocaleKey {
   setting_addExpressBackupMenu,
   setting_addMonitorMenu,
   setting_addViewtreeMenu,
+  setting_monitGroup,
+  setting_monitRate,
+  setting_monitMaxSize,
   setting_enableAutostart,
   setting_openConfig,
+  setting_openLogs,
   setting_visitWebsite,
   setting_openGithub,
   setting_notifyAddBackup,
@@ -184,6 +190,7 @@ enum LocaleKey {
 // --- AppLocale Class ---
 class AppLocale {
   Lang lang = Lang.ZH_CN;
+
   AppLocale() {
     _initializeLocale();
   }
@@ -243,7 +250,7 @@ class AppLocale {
         langMap = _JA;
         break;
       case Lang.OTHER:
-      // Fallback logic: Use Chinese as default if 'OTHER' is somehow selected
+        // Fallback logic: Use Chinese as default if 'OTHER' is somehow selected
         langMap = _ZH_CN;
         break;
     }
@@ -362,7 +369,8 @@ class AppLocale {
     LocaleKey.monitcard_cleanSuccess: "Successfully cleaned backup folder %a",
     LocaleKey.monitcard_cleanFail: "Failed to clean backup folder %a",
     LocaleKey.monitcard_cleanDialogTitle: "Confirm Clean Backup Folder",
-    LocaleKey.monitcard_cleanDialogContent: "Are you sure you want to clean all files in backup folder %a? This action cannot be undone.",
+    LocaleKey.monitcard_cleanDialogContent:
+        "Are you sure you want to clean all files in backup folder %a? This action cannot be undone.",
     LocaleKey.monitcard_cleanDialogCancel: "Cancel",
     LocaleKey.monitcard_cleanDialogConfirm: "Confirm",
 
@@ -474,13 +482,20 @@ class AppLocale {
     LocaleKey.setting_title: "设置",
     LocaleKey.setting_language: '语言',
     LocaleKey.setting_titleBar: "Vertree 设置",
-    LocaleKey.setting_contextMenuGroup: "右键菜单选项",
+    LocaleKey.setting_contextMenuGroup: "右键菜单选项设置",
     LocaleKey.setting_addBackupMenu: "将“备份该文件”增加到右键菜单",
     LocaleKey.setting_addExpressBackupMenu: "将“快速备份该文件”增加到右键菜单",
     LocaleKey.setting_addMonitorMenu: "将“监控该文件”增加到右键菜单",
     LocaleKey.setting_addViewtreeMenu: "将“浏览该文件版本树”增加到右键菜单",
+
+    LocaleKey.setting_monitGroup: "监控文件设置",
+    LocaleKey.setting_monitRate: "备份文件时间间隔（单位分钟）",
+    LocaleKey.setting_monitMaxSize: "备份文件最多数量（会滚动删除旧文件）",
+
     LocaleKey.setting_enableAutostart: "开机自启 Vertree（推荐）",
     LocaleKey.setting_openConfig: "打开 config.json",
+    LocaleKey.setting_openLogs: "打开日志文件夹",
+
     LocaleKey.setting_visitWebsite: "访问官方网站",
     LocaleKey.setting_openGithub: "查看 GitHub 仓库",
     LocaleKey.setting_notifyAddBackup: "已添加 '备份当前文件版本' 到右键菜单",
@@ -602,7 +617,8 @@ class AppLocale {
     LocaleKey.monit_addFail: 'タスクの追加に失敗しました: %a',
     LocaleKey.monit_fileNotSelected: 'ファイルが選択されていません',
     LocaleKey.monit_deleteDialogTitle: '削除の確認',
-    LocaleKey.monit_deleteDialogContent: '監視タスク %a を削除しますか？対応するバックアップフォルダとすべてのバックアップ内容も削除されます！', // Updated JA translation
+    LocaleKey.monit_deleteDialogContent: '監視タスク %a を削除しますか？対応するバックアップフォルダとすべてのバックアップ内容も削除されます！',
+    // Updated JA translation
     LocaleKey.monit_cancel: 'キャンセル',
     LocaleKey.monit_delete: '削除',
     LocaleKey.monit_deleteSuccess: '監視タスクを削除しました: %a',
@@ -641,11 +657,13 @@ class AppLocale {
     LocaleKey.vertree_title: "Vertreeバージョンツリー",
     LocaleKey.vertree_fileTreeTitle: "%a.%a ファイルバージョンツリー",
 
-    LocaleKey.monitcard_monitorStatus: "%aの監視は%aされました", // Needs context for %a (e.g., 開始/停止 - started/stopped)
+    LocaleKey.monitcard_monitorStatus: "%aの監視は%aされました",
+    // Needs context for %a (e.g., 開始/停止 - started/stopped)
     LocaleKey.monitcard_backupFolder: "バックアップフォルダ：%a",
     LocaleKey.monitcard_openBackupFolder: "バックアップフォルダを開く",
     LocaleKey.monitcard_delete: "監視タスクを削除",
-    LocaleKey.monitcard_pause: "一時停止", // Assuming '一時停止'/'再開' toggle text
+    LocaleKey.monitcard_pause: "一時停止",
+    // Assuming '一時停止'/'再開' toggle text
     LocaleKey.monitcard_clean: "バックアップフォルダをクリーンアップ",
     LocaleKey.monitcard_cleanSuccess: "バックアップフォルダ %a のクリーンアップに成功しました",
     LocaleKey.monitcard_cleanFail: "バックアップフォルダ %a のクリーンアップに失敗しました",

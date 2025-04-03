@@ -171,19 +171,6 @@ class _SettingPageState extends State<SettingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Row(
-                  //   children: [
-                  //     const SizedBox(width: 10),
-                  //     const Icon(Icons.settings, size: 24),
-                  //     const SizedBox(width: 8),
-                  //     Text(
-                  //       appLocale.getText(LocaleKey.setting_title),
-                  //       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  //     ),
-                  //   ],
-                  // ),
-                  // const SizedBox(height: 16),
-
                   Padding(
                     padding: const EdgeInsets.only(left: 14.0),
                     child: Row(
@@ -211,9 +198,9 @@ class _SettingPageState extends State<SettingPage> {
                             }
                           },
                           items:
-                              appLocale.supportedLangs.map((Lang lang) {
-                                return DropdownMenuItem<Lang>(value: lang, child: Text("    "+lang.label+"    "));
-                              }).toList(),
+                          appLocale.supportedLangs.map((Lang lang) {
+                            return DropdownMenuItem<Lang>(value: lang, child: Text("    " + lang.label + "    "));
+                          }).toList(),
                         ),
                         const SizedBox(width: 20),
                       ],
@@ -222,8 +209,8 @@ class _SettingPageState extends State<SettingPage> {
                   const SizedBox(height: 16),
 
                   ExpansionTile(
-                    leading: Icon(Icons.build,size: 20,),
-                    title: Text(appLocale.getText(LocaleKey.setting_contextMenuGroup)), // 示例：设置上下文菜单
+                    leading: Icon(Icons.build, size: 20,),
+                    title: Text(appLocale.getText(LocaleKey.setting_contextMenuGroup)),
                     children: [
                       SwitchListTile(
                         title: Text(appLocale.getText(LocaleKey.setting_addBackupMenu)),
@@ -245,23 +232,80 @@ class _SettingPageState extends State<SettingPage> {
                         value: viewTreeFile,
                         onChanged: _toggleViewTreeFile,
                       ),
+                      const SizedBox(height: 16),
+
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ExpansionTile(
+                    leading: Icon(Icons.monitor_heart_rounded, size: 20),
+                    title: Text(appLocale.getText(LocaleKey.setting_monitGroup)),
+                    children: [
+                      ListTile(
+                        title: Text(appLocale.getText(LocaleKey.setting_monitRate)),
+                        trailing: SizedBox(
+                          width: 60, // 固定输入框宽度
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(text: configer.get("monitorRate", 1).toString()),
+                            onChanged: (value) {
+                              setState(() {
+                                var monitorRate = int.tryParse(value) ?? configer.get("monitorRate", 1).toString();
+                                configer.set("monitorRate", monitorRate);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: Text(appLocale.getText(LocaleKey.setting_monitMaxSize)),
+                        trailing: SizedBox(
+                          width: 60, // 固定输入框宽度
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(text: configer.get("monitorMaxSize", 9999).toString()),
+                            onChanged: (value) {
+                              setState(() {
+                                var monitorMaxSize = int.tryParse(value) ?? configer.get("monitorMaxSize", 9999).toString();
+                                configer.set("monitorMaxSize", monitorMaxSize);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                     ],
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(
-                    secondary: const Icon(Icons.power_settings_new , size: 22), // 可替换为任意合适的图标
-
+                    secondary: const Icon(Icons.power_settings_new, size: 22),
                     title: Text(appLocale.getText(LocaleKey.setting_enableAutostart)),
                     value: autoStart,
                     onChanged: _toggleAutoStart,
                   ),
 
                   const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.open_in_new, size: 20),
-                    title: Text(appLocale.getText(LocaleKey.setting_openConfig)),
-                    onTap: () => FileUtils.openFile(configer.configFilePath),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ListTile(
+                          leading: const Icon(Icons.open_in_new, size: 20),
+                          title: Text(appLocale.getText(LocaleKey.setting_openConfig)),
+                          onTap: () => FileUtils.openFile(configer.configFilePath),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListTile(
+                          leading: const Icon(Icons.open_in_new, size: 20),
+                          title: Text(appLocale.getText(LocaleKey.setting_openLogs)),
+                          onTap: () => FileUtils.openFolder(logger.logDirPath),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 16),
+
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.only(left: 8.0),
