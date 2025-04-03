@@ -31,14 +31,28 @@ class _MonitPageState extends State<MonitPage> {
 
   @override
   void initState() {
-    super.initState();
-    windowManager.restore();
     // Load initial tasks
     _allMonitTasks = List.from(monitService.monitFileTasks); // Make a copy
     _filteredMonitTasks = List.from(_allMonitTasks); // Initially show all
+    sortTasks();
+
+    super.initState();
+    windowManager.restore();
 
     // Listen to search input changes
     _searchController.addListener(_onSearchChanged);
+  }
+
+  void sortTasks() {
+    _filteredMonitTasks.sort((a, b) {
+      if (a.isRunning && !b.isRunning) {
+        return -1; // a is running, b is not, so a comes first
+      } else if (!a.isRunning && b.isRunning) {
+        return 1; // b is running, a is not, so b comes first
+      } else {
+        return 0; // Both have the same running status, maintain original order (or sort by another criteria if needed)
+      }
+    });
   }
 
   @override
@@ -84,6 +98,7 @@ class _MonitPageState extends State<MonitPage> {
             _allMonitTasks.add(task);
             // Re-apply the filter to update the displayed list
             _filterTasks();
+            sortTasks();
           });
           if (mounted) {
             showToast(appLocale.getText(LocaleKey.monit_addSuccess).tr([task.filePath]));
@@ -296,6 +311,7 @@ class _MonitPageState extends State<MonitPage> {
                       ),
                     )
                     : ListView.builder(
+                  key: UniqueKey(),
                       itemCount: _filteredMonitTasks.length,
                       itemBuilder: (context, index) {
                         final task = _filteredMonitTasks[index];

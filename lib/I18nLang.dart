@@ -151,7 +151,8 @@ enum LocaleKey {
   monitcard_cleanDialogContent,
   monitcard_cleanDialogCancel,
   monitcard_cleanDialogConfirm,
-
+  monitcard_statusRunning,
+  monitcard_statusStopped,
   // File Tree Keys
   filetree_inputLabelTitle,
   filetree_inputLabelHint,
@@ -256,7 +257,7 @@ class AppLocale {
     }
 
     // Provide fallbacks: Current Lang -> Chinese -> English -> Key Name
-    return langMap[key] ?? _ZH_CN[key] ?? _EN[key] ?? '${key.name}_not_found';
+    return langMap[key] ?? _ZH_CN[key] ?? _EN[key] ?? key.name;
   }
 
   // --- REMOVED: Static const String keys are now in the LocaleKey enum ---
@@ -524,6 +525,8 @@ class AppLocale {
     LocaleKey.monitcard_cleanDialogContent: "确定要清理备份文件夹 %a 中的所有文件吗？此操作不可撤销。",
     LocaleKey.monitcard_cleanDialogCancel: "取消",
     LocaleKey.monitcard_cleanDialogConfirm: "确认",
+    LocaleKey.monitcard_statusRunning: "监控中..",
+    LocaleKey.monitcard_statusStopped: "已暂停",
 
     LocaleKey.filetree_inputLabelTitle: "请输入备注",
     LocaleKey.filetree_inputLabelHint: "请输入备注（可选）",
