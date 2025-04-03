@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'package:vertree/I18nLang.dart';
 import 'package:vertree/MonitService.dart';
-import 'package:vertree/component/FileUtils.dart';
-import 'package:vertree/main.dart';
+import 'package:vertree/component/FileUtils.dart'; // Assuming this exists and is needed
+import 'package:vertree/component/Notifier.dart'; // Assuming showToast is here
+import 'package:vertree/main.dart'; // Assuming monitService and appLocale are here
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/module/MonitTaskCard.dart';
 import 'package:window_manager/window_manager.dart';
@@ -18,19 +19,59 @@ class MonitPage extends StatefulWidget {
 }
 
 class _MonitPageState extends State<MonitPage> {
-  List<FileMonitTask> monitTasks = [];
+  // Original list of all tasks
+  List<FileMonitTask> _allMonitTasks = [];
+
+  // List of tasks currently displayed (filtered)
+  List<FileMonitTask> _filteredMonitTasks = [];
+
+  // Controller for the search text field
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
-    windowManager.restore();
-    monitTasks.addAll(monitService.monitFileTasks);
     super.initState();
+    windowManager.restore();
+    // Load initial tasks
+    _allMonitTasks = List.from(monitService.monitFileTasks); // Make a copy
+    _filteredMonitTasks = List.from(_allMonitTasks); // Initially show all
+
+    // Listen to search input changes
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Called when search text changes
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _filterTasks();
+    });
+  }
+
+  // Filters the tasks based on the search query
+  void _filterTasks() {
+    if (_searchQuery.isEmpty) {
+      // If search is empty, show all tasks
+      _filteredMonitTasks = List.from(_allMonitTasks);
+    } else {
+      // Otherwise, filter by filePath containing the query (case-insensitive)
+      _filteredMonitTasks =
+          _allMonitTasks.where((task) => task.filePath.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    }
+    // No need to call setState here as it's called within _onSearchChanged
+    // or after add/remove operations that also call setState.
   }
 
   Future<void> _addNewTask() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-    );
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
 
     if (result != null && result.files.single.path != null) {
       String selectedFilePath = result.files.single.path!;
@@ -39,22 +80,31 @@ class _MonitPageState extends State<MonitPage> {
       taskResult.when(
         ok: (task) {
           setState(() {
-            monitTasks.add(task);
+            // Add to the original list
+            _allMonitTasks.add(task);
+            // Re-apply the filter to update the displayed list
+            _filterTasks();
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(appLocale.getText(AppLocale.monit_addSuccess).tr([task.filePath]))),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(appLocale.getText(AppLocale.monit_addSuccess).tr([task.filePath]))));
+          }
         },
         err: (error, msg) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(appLocale.getText(AppLocale.monit_addFail).tr([msg]))),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(appLocale.getText(AppLocale.monit_addFail).tr([msg]))));
+          }
         },
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(appLocale.getText(AppLocale.monit_fileNotSelected))),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(appLocale.getText(AppLocale.monit_fileNotSelected))));
+      }
     }
   }
 
@@ -63,8 +113,8 @@ class _MonitPageState extends State<MonitPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(appLocale.getText(AppLocale.monit_confirmDeleteTitle)),
-          content: Text(appLocale.getText(AppLocale.monit_confirmDeleteContent).tr([task.filePath])),
+          title: Text(appLocale.getText(AppLocale.monit_deleteDialogTitle)),
+          content: Text(appLocale.getText(AppLocale.monit_deleteDialogContent).tr([task.filePath])),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -86,11 +136,26 @@ class _MonitPageState extends State<MonitPage> {
     if (confirmDelete == true) {
       await monitService.removeFileMonitTask(task.filePath);
       setState(() {
-        monitTasks.remove(task);
+        // Remove from the original list
+        _allMonitTasks.removeWhere((t) => t.filePath == task.filePath);
+        // Re-apply the filter to update the displayed list
+        _filterTasks();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(appLocale.getText(AppLocale.monit_deleteSuccess).tr([task.filePath]))),
-      );
+      showToast(appLocale.getText(AppLocale.monit_deleteSuccess).tr([task.filePath]));
+      // Safely delete directory if it exists
+      try {
+        final backupDir = Directory(task.backupDirPath!);
+        if (await backupDir.exists()) {
+          await backupDir.delete(recursive: true);
+        }
+      } catch (e) {
+        // Handle potential errors during deletion (e.g., permissions)
+        print("Error deleting backup directory ${task.backupDirPath}: $e");
+        // Optionally show a message to the user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting backup: ${e.toString()}")));
+        }
+      }
     }
   }
 
@@ -107,33 +172,66 @@ class _MonitPageState extends State<MonitPage> {
         ),
         showMaximize: false,
       ),
-      body: monitTasks.isEmpty
-          ? Center(child: Text(appLocale.getText(AppLocale.monit_empty)))
-          : ListView.builder(
-        itemCount: monitTasks.length,
-        itemBuilder: (context, index) {
-          final task = monitTasks[index];
-          return Dismissible(
-            key: ValueKey(task.filePath),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: Colors.redAccent,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Icon(Icons.delete, color: Colors.white),
+      body: Column(
+        // Use Column to stack Search Bar and List
+        children: [
+          // --- Search Bar ---
+          Padding(
+            padding: const EdgeInsets.only(left: 18.0, right: 18.0, top: 8, bottom: 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: appLocale.getText(AppLocale.monit_searchHint),
+                // Add a locale string for hint
+                hintText: appLocale.getText(AppLocale.monit_searchHint),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 12.0),
+                  child: const Icon(Icons.search),
+                ),
+                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(25.0))),
+                // Add a clear button
+                suffixIcon:
+                    _searchQuery.isNotEmpty
+                        ? Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              // _onSearchChanged will be triggered by the controller listener
+                            },
+                          ),
+                        )
+                        : null,
+              ),
             ),
-            onDismissed: (direction) => _removeTask(task),
-            child: MonitTaskCard(
-              task: task,
-              removeTask: _removeTask,
-            ),
-          );
-        },
+          ),
+          // --- Task List ---
+          Expanded(
+            // Make the ListView take remaining space
+            child:
+                _filteredMonitTasks.isEmpty
+                    ? Center(
+                      child: Text(
+                        _searchQuery.isEmpty
+                            ? appLocale.getText(AppLocale.monit_empty) // No tasks at all
+                            : appLocale.getText(
+                              AppLocale.monit_noResults,
+                            ), // No tasks match search - Add this locale string
+                      ),
+                    )
+                    : ListView.builder(
+                      itemCount: _filteredMonitTasks.length,
+                      itemBuilder: (context, index) {
+                        // Build the list using the filtered tasks
+                        final task = _filteredMonitTasks[index];
+                        return MonitTaskCard(task: task, removeTask: _removeTask);
+                      },
+                    ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addNewTask,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: FloatingActionButton(onPressed: _addNewTask, child: const Icon(Icons.add)),
     );
   }
 }
