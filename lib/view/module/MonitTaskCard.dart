@@ -110,9 +110,27 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                 appLocale.getText(LocaleKey.monitcard_backupFolder).tr([task.backupDirPath!]),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
+            const SizedBox(height: 6),
             Row(
               mainAxisSize: MainAxisSize.max,
               children: [
+                // 在这里增加任务的状态
+                Icon(
+                  Icons.circle,
+                  color: task.isRunning ? Colors.green.shade700 : Colors.grey ,
+                  size: 14,
+                ),
+                SizedBox(width: 4,),
+                Text(
+                  task.isRunning
+                      ? appLocale.getText(LocaleKey.monitcard_statusRunning)
+                      : appLocale.getText(LocaleKey.monitcard_statusStopped),
+                  style: TextStyle(
+                    color: task.isRunning ? Colors.green.shade500 : Colors.grey ,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12
+                  ),
+                ),
                 Spacer(),
                 Tooltip(
                   message: appLocale.getText(LocaleKey.monitcard_pause),
