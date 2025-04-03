@@ -7,12 +7,14 @@ enum LogLevel { debug, info, error }
 class AppLogger {
   late File _logFile;
   LogLevel _currentLevel;
-
+  late String logDirPath;
   AppLogger(this._currentLevel);
 
   Future<void> init() async {
     final directory = await getApplicationSupportDirectory();
     final logDir = Directory('${directory.path}/logs');
+    this.logDirPath = logDir.path;
+
     if (!await logDir.exists()) {
       await logDir.create(recursive: true);
     }
@@ -46,7 +48,7 @@ class AppLogger {
       if (file is File) {
         final stat = await file.stat();
         final diff = now.difference(stat.modified);
-        if (diff.inDays > 30) {
+        if (diff.inDays > 10) {
           await file.delete();
         }
       }

@@ -62,17 +62,46 @@ class Monitor {
 
     logger.info("Started monitoring: $filePath");
   }
+  bool _isHandlingFileChange = false; // 添加一个布尔标志
 
   void _handleFileChange(File file, Directory backupDir) {
-    final now = DateTime.now();
-    logger.info("handleFileChange ${file.path}");
-    if (_lastBackupTime == null || now.difference(_lastBackupTime!).inMinutes >= 1) {
-      logger.info("backupFile ${file.path}");
+    if (_isHandlingFileChange) {
+      logger.info("handleFileChange 调用被拒绝，因为之前的调用仍在运行");
+      return;
+    }
+    _isHandlingFileChange = true;
 
-      _backupFile(file, backupDir);
-      _lastBackupTime = now;
-    }else{
-      logger.info("_lastBackupTime ${_lastBackupTime?.toIso8601String()}");
+    try {
+      final now = DateTime.now();
+      logger.info("handleFileChange ${file.path}");
+      if (_lastBackupTime == null || now.difference(_lastBackupTime!).inMinutes >= configer.get("monitorRate", 1)) {
+        logger.info("backupFile ${file.path}");
+
+        _backupFile(file, backupDir);
+        _lastBackupTime = now;
+        _cleanupOldBackups(backupDir);
+      } else {
+        logger.info("_lastBackupTime ${_lastBackupTime?.toIso8601String()}");
+      }
+    } finally {
+      _isHandlingFileChange = false; // 确保在任何情况下都重置标志
+    }
+  }
+
+  void _cleanupOldBackups(Directory backupDir) {
+    final maxBackups = configer.get("monitorMaxSize",9999 );
+    final files = backupDir.listSync().whereType<File>().toList();
+    if (files.length > maxBackups) {
+      files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
+      final filesToDelete = files.take(files.length - maxBackups);
+      for (final fileToDelete in filesToDelete) {
+        try {
+          fileToDelete.deleteSync();
+          logger.info("Deleted old backup: ${fileToDelete.path}");
+        } catch (e) {
+          logger.error("Error deleting old backup: $e");
+        }
+      }
     }
   }
 
