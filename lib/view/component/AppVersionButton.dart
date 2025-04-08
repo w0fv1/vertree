@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vertree/I18nLang.dart';
+import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/main.dart';
 
 class AppVersionDisplay extends StatefulWidget {
   final String appVersion;
@@ -27,17 +30,23 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 500), () async {
-      final hasNewVersion = await widget.checkNewVersion();
-      if (hasNewVersion) {
-        widget.getNewVersionDownloadUrl().then((onValue) {
-          if (onValue == null || onValue.isEmpty) {
-            return;
-          }
-          setState(() {
-            _hasNewVersion = true;
+      try {
+        final hasNewVersion = await widget.checkNewVersion();
+        if (hasNewVersion) {
+          widget.getNewVersionDownloadUrl().then((onValue) {
+            if (onValue == null || onValue.isEmpty) {
+              return;
+            }
+
+
+            setState(() {
+              _hasNewVersion = true;
+            });
+            _newVersionDownloadUrl = onValue;
           });
-          _newVersionDownloadUrl = onValue;
-        });
+        }
+      } catch (e) {
+
       }
     });
   }
