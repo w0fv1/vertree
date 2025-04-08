@@ -7,6 +7,7 @@ import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
+import 'package:vertree/view/component/AppVersionButton.dart';
 import 'package:vertree/view/component/Loading.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -198,9 +199,9 @@ class _SettingPageState extends State<SettingPage> {
                             }
                           },
                           items:
-                          appLocale.supportedLangs.map((Lang lang) {
-                            return DropdownMenuItem<Lang>(value: lang, child: Text("    " + lang.label + "    "));
-                          }).toList(),
+                              appLocale.supportedLangs.map((Lang lang) {
+                                return DropdownMenuItem<Lang>(value: lang, child: Text("    " + lang.label + "    "));
+                              }).toList(),
                         ),
                         const SizedBox(width: 20),
                       ],
@@ -209,7 +210,7 @@ class _SettingPageState extends State<SettingPage> {
                   const SizedBox(height: 16),
 
                   ExpansionTile(
-                    leading: Icon(Icons.build, size: 20,),
+                    leading: Icon(Icons.build, size: 20),
                     title: Text(appLocale.getText(LocaleKey.setting_contextMenuGroup)),
                     children: [
                       SwitchListTile(
@@ -233,7 +234,6 @@ class _SettingPageState extends State<SettingPage> {
                         onChanged: _toggleViewTreeFile,
                       ),
                       const SizedBox(height: 16),
-
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -266,7 +266,8 @@ class _SettingPageState extends State<SettingPage> {
                             controller: TextEditingController(text: configer.get("monitorMaxSize", 9999).toString()),
                             onChanged: (value) {
                               setState(() {
-                                var monitorMaxSize = int.tryParse(value) ?? configer.get("monitorMaxSize", 9999).toString();
+                                var monitorMaxSize =
+                                    int.tryParse(value) ?? configer.get("monitorMaxSize", 9999).toString();
                                 configer.set("monitorMaxSize", monitorMaxSize);
                               });
                             },
@@ -274,7 +275,6 @@ class _SettingPageState extends State<SettingPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -322,6 +322,13 @@ class _SettingPageState extends State<SettingPage> {
                           icon: const Icon(Icons.code),
                           tooltip: appLocale.getText(LocaleKey.setting_openGithub),
                           onPressed: () => _openUrl("https://github.com/w0fv1/vertree"),
+                        ),
+                        const SizedBox(width: 16),
+                        AppVersionDisplay(
+                          appVersion: appVersionInfo.currentVersion,
+                          defaultLink: "https://github.com/w0fv1/vertree/releases",
+                          checkNewVersion: appVersionInfo.checkUpdate,
+                          getNewVersionDownloadUrl: appVersionInfo.getLatestReleaseUrl,
                         ),
                       ],
                     ),

@@ -17,12 +17,20 @@ import 'package:vertree/view/page/VersionTreePage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 
+import 'AppVersionInfo.dart';
+
 final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitService monitService;
 Configer configer = Configer();
 
 final AppLocale appLocale = AppLocale();
+
+final appVersionInfo = AppVersionInfo(
+  currentVersion: "V0.7.0", // 替换为你的实际当前版本
+  releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
+);
+
 
 void main(List<String> args) async {
   await logger.init();

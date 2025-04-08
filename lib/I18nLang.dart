@@ -449,6 +449,9 @@ class AppLocale {
     LocaleKey.app_monitSuccessTitle: "Vertree已开始监控文件",
     LocaleKey.app_monitSuccessContent: "点击我打开备份目录",
 
+
+
+
     LocaleKey.brand_title: 'Vertree维树',
     LocaleKey.brand_slogan: 'Vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！',
     LocaleKey.brand_monitorPage: '监控页',
