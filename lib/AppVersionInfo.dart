@@ -1,5 +1,7 @@
 import 'dart:convert'; // 用于 JSON 解码和编码
-import 'package:http/http.dart' as http; // 用于发起 HTTP 请求
+import 'package:http/http.dart' as http;
+
+import 'main.dart'; // 用于发起 HTTP 请求
 
 /// 应用版本检查器类
 ///
@@ -65,24 +67,24 @@ class AppVersionInfo {
   /// 返回包含发布信息的 Map，如果请求失败或解析失败则返回 null。
   Future<Map<String, dynamic>?> _fetchLatestReleaseInfo() async {
     try {
-      print('正在从 $releaseApiUrl 获取最新版本信息...');
+      logger.info('正在从 $releaseApiUrl 获取最新版本信息...');
       final response = await http.get(Uri.parse(releaseApiUrl));
 
       if (response.statusCode == 200) {
         // 请求成功，解析 JSON 数据
-        print('成功获取到 API 响应。');
-        // print('响应体: ${response.body}'); // Debug: 打印原始响应体
+        logger.info('成功获取到 API 响应。');
+        // logger.info('响应体: ${response.body}'); // Debug: 打印原始响应体
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         // 请求失败
-        print('获取最新版本信息失败，HTTP 状态码: ${response.statusCode}');
-        print('响应体: ${response.body}'); // 打印错误响应体可能有助于诊断
+        logger.info('获取最新版本信息失败，HTTP 状态码: ${response.statusCode}');
+        logger.info('响应体: ${response.body}'); // 打印错误响应体可能有助于诊断
         return null;
       }
     } catch (e, stackTrace) {
       // 捕获网络或其他异常
-      print('获取最新版本信息时发生异常: $e');
-      print('堆栈跟踪: $stackTrace'); // 打印堆栈信息，便于调试
+      logger.error('获取最新版本信息时发生异常: $e');
+      logger.error('堆栈跟踪: $stackTrace'); // 打印堆栈信息，便于调试
       return null;
     }
   }
@@ -97,7 +99,7 @@ class AppVersionInfo {
   Future<bool> checkUpdate() async {
     final releaseInfo = await _fetchLatestReleaseInfo();
     if (releaseInfo == null) {
-      print("未能获取最新版本信息，无法检查更新。");
+      logger.info("未能获取最新版本信息，无法检查更新。");
       return false; // 获取信息失败
     }
 
@@ -105,25 +107,25 @@ class AppVersionInfo {
     final latestVersionTag = releaseInfo['tag_name'];
 
     if (latestVersionTag is String && latestVersionTag.isNotEmpty) {
-      print('获取到的最新版本标签: $latestVersionTag');
+      logger.info('获取到的最新版本标签: $latestVersionTag');
       // 使用静态方法比较版本号
       int comparisonResult = AppVersionInfo.compareVersions(currentVersion, latestVersionTag);
 
       // comparisonResult < 0 表示 latestVersionTag 更新
       if (comparisonResult < 0) {
-        print('发现新版本！($latestVersionTag > $currentVersion)');
+        logger.info('发现新版本！($latestVersionTag > $currentVersion)');
         return true;
       } else if (comparisonResult == 0) {
-        print('当前版本 ($currentVersion) 已是最新。');
+        logger.info('当前版本 ($currentVersion) 已是最新。');
         return false;
       } else {
         // comparisonResult > 0 表示 currentVersion 比 latestVersionTag 还新
-        print('当前版本 ($currentVersion) 比 GitHub 最新版本 ($latestVersionTag) 还新？检查 API URL 或版本号规则。');
+        logger.info('当前版本 ($currentVersion) 比 GitHub 最新版本 ($latestVersionTag) 还新？检查 API URL 或版本号规则。');
         return false;
       }
     } else {
-      print('未能从 API 响应中找到有效的 "tag_name"。');
-      print('API 响应相关部分: ${releaseInfo['tag_name']}'); // 打印 tag_name 值以供调试
+      logger.error('未能从 API 响应中找到有效的 "tag_name"。');
+      logger.error('API 响应相关部分: ${releaseInfo['tag_name']}'); // 打印 tag_name 值以供调试
       return false; // tag_name 无效
     }
   }
@@ -135,7 +137,7 @@ class AppVersionInfo {
   Future<String?> getLatestVersionTag() async {
     final releaseInfo = await _fetchLatestReleaseInfo();
     if (releaseInfo == null) {
-      print("未能获取最新版本信息，无法获取版本标签。");
+      logger.info("未能获取最新版本信息，无法获取版本标签。");
       return null;
     }
 
@@ -144,7 +146,7 @@ class AppVersionInfo {
     if (latestVersionTag is String && latestVersionTag.isNotEmpty) {
       return latestVersionTag;
     } else {
-      print('未能从 API 响应中找到有效的 "tag_name"。');
+      logger.error('未能从 API 响应中找到有效的 "tag_name"。');
       return null;
     }
   }
@@ -156,7 +158,7 @@ class AppVersionInfo {
   Future<String?> getLatestReleaseUrl() async {
     final releaseInfo = await _fetchLatestReleaseInfo();
     if (releaseInfo == null) {
-      print("未能获取最新版本信息，无法获取发布页面 URL。");
+      logger.info("未能获取最新版本信息，无法获取发布页面 URL。");
       return null; // 获取信息失败
     }
 
@@ -167,7 +169,7 @@ class AppVersionInfo {
     if (htmlUrl is String && htmlUrl.isNotEmpty) {
       return htmlUrl;
     } else {
-      print('未能从 API 响应中找到有效的 "html_url"。');
+      logger.error('未能从 API 响应中找到有效的 "html_url"。');
       return null; // html_url 无效
     }
   }

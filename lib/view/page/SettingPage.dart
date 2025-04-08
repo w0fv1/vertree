@@ -327,7 +327,16 @@ class _SettingPageState extends State<SettingPage> {
                         AppVersionDisplay(
                           appVersion: appVersionInfo.currentVersion,
                           defaultLink: "https://github.com/w0fv1/vertree/releases",
-                          checkNewVersion: appVersionInfo.checkUpdate,
+                          checkNewVersion: () async {
+                            bool hasNewVersion = await appVersionInfo.checkUpdate();
+                            var newVersionTag = await appVersionInfo.getLatestVersionTag();
+                            if (hasNewVersion && newVersionTag != null && newVersionTag.isNotEmpty) {
+                              showToast(
+                                appLocale.getText(LocaleKey.setting_hasNewVertion).tr([newVersionTag ?? ""]),
+                              );
+                            }
+                            return hasNewVersion;
+                          },
                           getNewVersionDownloadUrl: appVersionInfo.getLatestReleaseUrl,
                         ),
                       ],

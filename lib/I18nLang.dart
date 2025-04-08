@@ -133,7 +133,7 @@ enum LocaleKey {
   setting_notifyDisableAutostart,
   setting_notifyAddExpress,
   setting_notifyRemoveExpress,
-
+  setting_hasNewVertion,
   // VerTree Page Keys
   vertree_title,
   vertree_fileTreeTitle,
@@ -512,6 +512,7 @@ class AppLocale {
     LocaleKey.setting_notifyDisableAutostart: "已禁用开机自启",
     LocaleKey.setting_notifyAddExpress: "已添加 '快速备份该文件' 到右键菜单",
     LocaleKey.setting_notifyRemoveExpress: "已从右键菜单移除 '快速备份该文件' 功能按钮",
+    LocaleKey.setting_hasNewVertion: "有新版本：%a",
 
     LocaleKey.vertree_title: "Vertree维树",
     LocaleKey.vertree_fileTreeTitle: "%a.%a 文本版本树",
