@@ -7,7 +7,7 @@ import 'package:vertree/view/page/BrandPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
 import 'package:window_manager/window_manager.dart';
 
-class Tray with TrayListener {
+class TrayManager with TrayListener {
   ValueNotifier<bool> shouldForegroundOnContextMenu = ValueNotifier(false);
 
   void init() {

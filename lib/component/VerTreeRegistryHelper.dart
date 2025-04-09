@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:vertree/I18nLang.dart';
+import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/main.dart';
 
-import 'component/WindowsRegistryHelper.dart';
+import '../utils/WindowsRegistryUtil.dart';
 import 'package:path/path.dart' as path;
 
 class VerTreeRegistryService {

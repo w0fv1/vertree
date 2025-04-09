@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:vertree/I18nLang.dart';
-import 'package:vertree/VerTreeRegistryService.dart';
+import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/component/VerTreeRegistryHelper.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';

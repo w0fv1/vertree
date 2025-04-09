@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:vertree/I18nLang.dart';
-import 'package:vertree/MonitService.dart';
+import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';

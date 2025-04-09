@@ -1,10 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'package:url_launcher/url_launcher.dart';
-import 'package:vertree/I18nLang.dart';
-import 'package:vertree/VerTreeRegistryService.dart';
+import 'package:vertree/component/AppVersionInfo.dart';
+import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/component/VerTreeRegistryHelper.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/component/AppVersionButton.dart';
@@ -328,8 +332,18 @@ class _SettingPageState extends State<SettingPage> {
                           appVersion: appVersionInfo.currentVersion,
                           defaultLink: "https://github.com/w0fv1/vertree/releases",
                           checkNewVersion: () async {
-                            bool hasNewVersion = await appVersionInfo.checkUpdate();
-                            var newVersionTag = await appVersionInfo.getLatestVersionTag();
+                            Result<UpdateInfo, String> checkUpdateResult =  await appVersionInfo.checkUpdate();
+
+                            if(checkUpdateResult.isErr){
+                              logger.error(checkUpdateResult.msg);
+                              return false;
+                            }
+
+
+                            bool hasNewVersion = checkUpdateResult.unwrap().hasUpdate;
+
+                            var newVersionTag = checkUpdateResult.unwrap().latestVersionTag;
+
                             if (hasNewVersion && newVersionTag != null && newVersionTag.isNotEmpty) {
                               showToast(
                                 appLocale.getText(LocaleKey.setting_hasNewVertion).tr([newVersionTag ?? ""]),
@@ -337,7 +351,14 @@ class _SettingPageState extends State<SettingPage> {
                             }
                             return hasNewVersion;
                           },
-                          getNewVersionDownloadUrl: appVersionInfo.getLatestReleaseUrl,
+                          getNewVersionDownloadUrl: () async {
+                            Result<String?, String> checkUpdateResult =  await appVersionInfo.getLatestReleaseUrl();
+                            if(checkUpdateResult.isErr){
+                              logger.info(checkUpdateResult.msg);
+                              return "https://github.com/w0fv1/vertree/releases";
+                            }
+                            return checkUpdateResult.unwrap();
+                          },
                         ),
                       ],
                     ),

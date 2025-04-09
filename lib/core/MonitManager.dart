@@ -6,7 +6,7 @@ import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
 import 'package:path/path.dart' as p;
 
-class MonitService {
+class MonitManager {
   /// 由 MonitService 持有的任务列表
   List<FileMonitTask> monitFileTasks = [];
 
@@ -15,7 +15,7 @@ class MonitService {
     return monitFileTasks.where((task) => task.isRunning).length;
   }
 
-  MonitService() {
+  MonitManager() {
     // 从 configer 中获取存储的任务信息（JSON），再转换为对象列表
     final filesJson = configer.get<List<dynamic>>("monitFiles", <dynamic>[]);
     monitFileTasks = filesJson.map((e) => FileMonitTask.fromJson(e)).toList();

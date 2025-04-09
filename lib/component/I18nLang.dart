@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:vertree/VerTreeRegistryService.dart'; // Assuming this exists
+import 'package:vertree/component/VerTreeRegistryHelper.dart'; // Assuming this exists
 // Assuming 'main.dart' defines 'configer' or provides access to it
 // If 'configer' is global, this import might be okay.
 // Otherwise, AppLocale might need access via constructor or DI.
-import 'main.dart';
+import '../main.dart';
 
 extension StringTranslate on String {
   String tr([List<String>? args]) {
@@ -134,6 +134,7 @@ enum LocaleKey {
   setting_notifyAddExpress,
   setting_notifyRemoveExpress,
   setting_hasNewVertion,
+
   // VerTree Page Keys
   vertree_title,
   vertree_fileTreeTitle,
