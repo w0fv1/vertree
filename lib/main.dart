@@ -27,10 +27,9 @@ Configer configer = Configer();
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.7.0", // 替换为你的实际当前版本
+  currentVersion: "V0.7.1", // 替换为你的实际当前版本
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
-
 
 void main(List<String> args) async {
   await logger.init();
@@ -106,21 +105,52 @@ void main(List<String> args) async {
 }
 
 void processArgs(List<String> args) {
-  if (args.length < 3) {
-    windowManager.hide();
-    return;
-  }
-  String action = args[1];
-  String path = args.last;
+  try {
+    late String action;
+    late String path;
 
-  if (action == "--backup") {
-    backup(path);
-  } else if (action == "--express-backup") {
-    expressBackup(path);
-  } else if (action == "--monit") {
-    monit(path);
-  } else if (action == "--viewtree") {
-    viewtree(path);
+    if (args.length == 3) {
+      action = args[1];
+      path = args.last;
+    } else if (args.length == 2) {
+      logger.error("传入参数似乎发生了问题，长度过短，临时兜底方案继续进行处理：$args");
+      action = args.first;
+      path = args.last;
+    } else {
+      logger.info("不需要处理的参数：$args");
+      windowManager.hide();
+      return;
+    }
+
+    // 增加action是否合法，path是否存在的检查
+    final allowedActions = ["--backup", "--express-backup", "--monit", "--viewtree"];
+    if (!allowedActions.contains(action)) {
+      logger.error("传入的 action 不合法: $action，允许的 action 为: $allowedActions");
+      return;
+    }
+    final entity = FileSystemEntity.typeSync(path);
+    if (entity == FileSystemEntityType.notFound) {
+      logger.error("传入的 path 不存在: $path");
+      showWindowsNotification("发生错误", "传入的 path 不存在: $path");
+      return;
+    }
+    if (entity == FileSystemEntityType.directory) {
+      logger.error("传入的 path 是一个文件夹，不对文件夹进行处理: $path");
+      return;
+    }
+
+    if (action == "--backup") {
+      backup(path);
+    } else if (action == "--express-backup") {
+      expressBackup(path);
+    } else if (action == "--monit") {
+      monit(path);
+    } else if (action == "--viewtree") {
+      viewtree(path);
+    }
+  } catch (e) {
+    logger.error('Vertree处理参数失败: $e');
+    return;
   }
 }
 
