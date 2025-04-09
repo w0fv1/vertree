@@ -140,9 +140,14 @@ class _SettingPageState extends State<SettingPage> {
       success = VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
       await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveExpress));
     }
-    setState(() {
-      if (success) expressBackupFile = value;
-      isLoading = false;
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      setState(() {
+        setState(() {
+          if (success) expressBackupFile = value;
+          isLoading = false;
+        });
+      });
     });
   }
 

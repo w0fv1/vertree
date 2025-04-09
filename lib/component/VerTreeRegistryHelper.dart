@@ -100,19 +100,19 @@ class VerTreeRegistryService {
   }
 
   static bool removeVerTreeExpressBackupContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_expressBackupKeyName);
+    return RegistryHelper.removeContextMenuOptionByKey(registry_expressBackupKeyName);
   }
 
   static bool removeVerTreeViewContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_viewTreeKeyName);
+    return RegistryHelper.removeContextMenuOptionByKey(registry_viewTreeKeyName);
   }
 
   static bool removeVerTreeMonitorContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName);
+    return RegistryHelper.removeContextMenuOptionByKey(registry_monitorKeyName);
   }
 
   static bool removeVerTreeBackupContextMenu() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_backupKeyName);
+    return RegistryHelper.removeContextMenuOptionByKey(registry_backupKeyName);
   }
 
   static bool checkBackupKeyExists() {
