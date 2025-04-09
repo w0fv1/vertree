@@ -122,6 +122,7 @@ enum LocaleKey {
   setting_openConfig,
   setting_openLogs,
   setting_visitWebsite,
+  setting_versionInfo,
   setting_openGithub,
   setting_notifyAddBackup,
   setting_notifyRemoveBackup,
@@ -450,9 +451,6 @@ class AppLocale {
     LocaleKey.app_monitSuccessTitle: "Vertree已开始监控文件",
     LocaleKey.app_monitSuccessContent: "点击我打开备份目录",
 
-
-
-
     LocaleKey.brand_title: 'Vertree维树',
     LocaleKey.brand_slogan: 'Vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！',
     LocaleKey.brand_monitorPage: '监控页',
@@ -502,6 +500,7 @@ class AppLocale {
     LocaleKey.setting_openLogs: "打开日志文件夹",
 
     LocaleKey.setting_visitWebsite: "访问官方网站",
+    LocaleKey.setting_versionInfo: "版本信息",
     LocaleKey.setting_openGithub: "查看 GitHub 仓库",
     LocaleKey.setting_notifyAddBackup: "已添加 '备份当前文件版本' 到右键菜单",
     LocaleKey.setting_notifyRemoveBackup: "已从右键菜单移除 '备份当前文件版本' 功能按钮",

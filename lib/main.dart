@@ -27,7 +27,7 @@ Configer configer = Configer();
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.7.0", // 替换为你的实际当前版本
+  currentVersion: "V0.5.0", // 替换为你的实际当前版本
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
 
