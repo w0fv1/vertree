@@ -3,25 +3,25 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:toastification/toastification.dart';
-import 'package:vertree/I18nLang.dart';
-import 'package:vertree/MonitService.dart';
+import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
-import 'package:vertree/tray.dart';
+import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/view/page/BrandPage.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/VersionTreePage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 
-import 'AppVersionInfo.dart';
+import 'component/AppVersionInfo.dart';
 
 final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
-late MonitService monitService;
+late MonitManager monitService;
 Configer configer = Configer();
 
 final AppLocale appLocale = AppLocale();
@@ -36,7 +36,7 @@ void main(List<String> args) async {
   await logger.init();
   await configer.init();
 
-  monitService = MonitService();
+  monitService = MonitManager();
   logger.info("启动参数: $args");
 
   try {
@@ -96,7 +96,7 @@ void main(List<String> args) async {
     String appPath = Platform.resolvedExecutable;
     logger.info("Current app path: $appPath");
 
-    Tray().init();
+    TrayManager().init();
     runApp(const MainPage());
     processArgs(args);
   } catch (e) {

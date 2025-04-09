@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vertree/I18nLang.dart';
+import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
