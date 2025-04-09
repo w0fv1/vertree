@@ -38,16 +38,13 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
               return;
             }
 
-
             setState(() {
               _hasNewVersion = true;
             });
             _newVersionDownloadUrl = onValue;
           });
         }
-      } catch (e) {
-
-      }
+      } catch (e) {}
     });
   }
 
@@ -69,16 +66,18 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
       child: Stack(
         clipBehavior: Clip.none, // 允许子widget超出Stack的范围
         children: [
-          Text('${widget.appVersion}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              const Icon(Icons.update_rounded, size: 23),
+              SizedBox(width: 6),
+              Text('${widget.appVersion}', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
           if (_hasNewVersion)
             Positioned(
-              top: -8, // 调整垂直位置
-              right: -10, // 调整水平位置
-              child: const Icon(
-                Icons.fiber_new_outlined,
-                size: 16.0,
-                color: Colors.blue, // 可以自定义颜色
-              ),
+              top: -14, // 调整垂直位置
+              right: -20, // 调整水平位置
+              child: const Icon(Icons.fiber_new_outlined, size: 28.0, color: Colors.deepOrange),
             ),
         ],
       ),
