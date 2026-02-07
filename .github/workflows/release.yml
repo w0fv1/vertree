@@ -1,0 +1,94 @@
+name: Build (Windows) and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "Build mode"
+        required: true
+        default: "Release"
+        type: choice
+        options:
+          - Release
+          - Profile
+          - Debug
+  push:
+    tags:
+      - "V*"
+      - "v*"
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from pubspec.yaml
+        id: pubspec
+        shell: pwsh
+        run: |
+          $pubspec = Join-Path $env:GITHUB_WORKSPACE "pubspec.yaml"
+          $line = Select-String -Path $pubspec -Pattern '^\s*version:\s*(.+?)\s*$' | Select-Object -First 1
+          if (-not $line) { throw "pubspec.yaml missing 'version:'" }
+          $raw = $line.Matches[0].Groups[1].Value
+          $version = $raw.Trim().Trim("'").Trim('"')
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "pubspec version=$version"
+
+      - name: Verify tag matches pubspec (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $tagTrim = $tag
+          if ($tagTrim.StartsWith('V') -or $tagTrim.StartsWith('v')) { $tagTrim = $tagTrim.Substring(1) }
+          $version = "${{ steps.pubspec.outputs.version }}"
+          if ($tagTrim -ne $version) {
+            throw "Tag '$tag' (trim '$tagTrim') does not match pubspec.yaml version '$version'"
+          }
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        shell: pwsh
+        run: flutter pub get
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Windows installer (EXE)
+        shell: pwsh
+        run: |
+          $mode = "${{ github.event.inputs.build_mode }}"
+          if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
+          pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -BuildMode $mode
+
+      - name: Upload build artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertree-windows-${{ steps.pubspec.outputs.version }}
+          path: |
+            windows/Vertree_Setup.exe
+            windows/Vertree_Setup.zip
+
+      - name: Create GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          prerelease: ${{ contains(steps.pubspec.outputs.version, '-') }}
+          files: |
+            windows/Vertree_Setup.exe
+            windows/Vertree_Setup.zip

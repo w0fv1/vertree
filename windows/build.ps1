@@ -2,22 +2,75 @@ param(
     [ValidateSet("Debug","Profile","Release")]
     [string]$BuildMode = "Release",
     [switch]$Sparse,
-    [switch]$SparseRefresh
+    [switch]$SparseRefresh,
+    [string]$Flutter = "",
+    [string]$ISCC = ""
 )
 
 # 设置 Inno Setup 编译器路径（请确认你的 Inno Setup 安装位置）
 $innoSetupCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-$flutter = "C:\flutter\bin\flutter.bat"
+$flutterDefault = "C:\flutter\bin\flutter.bat"
+
+function Resolve-ToolPath([string]$preferred, [string]$fallbackPath, [string]$commandName) {
+    if (-not [string]::IsNullOrWhiteSpace($preferred)) {
+        return $preferred
+    }
+    $cmd = Get-Command $commandName -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $commandName
+    }
+    if (-not [string]::IsNullOrWhiteSpace($fallbackPath) -and (Test-Path $fallbackPath)) {
+        return $fallbackPath
+    }
+    return ""
+}
+
+function Get-PubspecVersion([string]$projectRoot) {
+    $pubspec = Join-Path $projectRoot "pubspec.yaml"
+    if (-not (Test-Path $pubspec)) {
+        throw "pubspec.yaml not found at $pubspec"
+    }
+    $line = Select-String -Path $pubspec -Pattern '^\s*version:\s*(.+?)\s*$' | Select-Object -First 1
+    if (-not $line) {
+        throw "pubspec.yaml missing 'version:'"
+    }
+    $raw = $line.Matches[0].Groups[1].Value
+    return $raw.Trim().Trim("'").Trim('"')
+}
+
+function Get-VersionInfoVersion([string]$pubspecVersion) {
+    $base = $pubspecVersion.Split('-')[0]
+    $parts = $base.Split('.')
+    if ($parts.Length -eq 3) {
+        return ($base + ".0")
+    }
+    if ($parts.Length -eq 4) {
+        return $base
+    }
+    # Fallback for unexpected schemas
+    return "0.0.0.0"
+}
 
 # 当前脚本目录
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$currentDir = Get-Location
 
 # 回到项目根目录执行 flutter build windows
 $projectRoot = Resolve-Path (Join-Path $scriptDir "..")
 Set-Location $projectRoot
 
+$flutterCmd = Resolve-ToolPath -preferred $Flutter -fallbackPath $flutterDefault -commandName "flutter"
+if ([string]::IsNullOrWhiteSpace($flutterCmd)) {
+    throw "Flutter not found. Provide -Flutter <path> or ensure 'flutter' is in PATH."
+}
+
+$pubspecVersion = Get-PubspecVersion -projectRoot $projectRoot
+$versionInfoVersion = Get-VersionInfoVersion -pubspecVersion $pubspecVersion
+Write-Host "pubspec.yaml version=$pubspecVersion"
+Write-Host "VersionInfoVersion=$versionInfoVersion"
+
 Write-Host "正在执行 flutter build windows ($BuildMode)..."
-& $flutter build windows --$($BuildMode.ToLower())
+& $flutterCmd build windows --$($BuildMode.ToLower())
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Flutter编译失败，请检查错误日志。"
@@ -66,11 +119,20 @@ if (Test-Path $contextMenuDll) {
 }
 
 if (-not (Test-Path $innoSetupCompiler)) {
-    Write-Warning "未找到 Inno Setup 编译器: $innoSetupCompiler，跳过安装包打包。"
+    $isccCmd = Resolve-ToolPath -preferred $ISCC -fallbackPath "" -commandName "ISCC"
+    if ([string]::IsNullOrWhiteSpace($isccCmd)) {
+        Write-Warning "未找到 Inno Setup 编译器: $innoSetupCompiler，跳过安装包打包。"
+        $innoSetupCompiler = ""
+    } else {
+        $innoSetupCompiler = $isccCmd
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($innoSetupCompiler)) {
 } else {
 # 编译安装程序
 Write-Host "正在使用Inno Setup进行打包..."
-& $innoSetupCompiler /DBuildMode=$BuildMode $issFile
+& $innoSetupCompiler /DBuildMode=$BuildMode /DAppVersion=$pubspecVersion /DAppVersionInfoVersion=$versionInfoVersion $issFile
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "打包成功！开始压缩为Zip..."

@@ -1,8 +1,14 @@
 [Setup]
 AppId={{E3E58F5C-9E78-4A10-9F2B-76F968B8034C}}
 AppName=Vertree
-AppVersion=0.7.1
-AppVerName=Vertree 0.7.1
+#ifndef AppVersion
+#define AppVersion "0.0.0"
+#endif
+#ifndef AppVersionInfoVersion
+#define AppVersionInfoVersion "0.0.0.0"
+#endif
+AppVersion={#AppVersion}
+AppVerName=Vertree {#AppVersion}
 AppPublisher=Vertree
 AppPublisherURL=https://vertree.w0fv1.dev
 AppSupportURL=https://vertree.w0fv1.dev
@@ -18,7 +24,7 @@ OutputBaseFilename=Vertree_Setup
 SetupIconFile="..\build\windows\x64\runner\{#BuildMode}\data\flutter_assets\assets\img\logo\logo.ico"
 UninstallDisplayIcon={app}\vertree.exe
 UninstallDisplayName=Vertree
-VersionInfoVersion=0.7.1.0
+VersionInfoVersion={#AppVersionInfoVersion}
 VersionInfoProductName=Vertree
 VersionInfoCompany=Vertree
 VersionInfoDescription=Vertree Installer
