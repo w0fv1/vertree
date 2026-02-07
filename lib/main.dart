@@ -65,6 +65,7 @@ void main(List<String> args) async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
+    await windowManager.setPreventClose(true);
 
     await WindowsSingleInstance.ensureSingleInstance(
       args,
@@ -232,7 +233,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await windowManager.setOpacity(0);
-      await windowManager.setSkipTaskbar(false);
+      await windowManager.setSkipTaskbar(true);
       await windowManager.show();
       await windowManager.focus();
       await fadeInWindow();
@@ -241,35 +242,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
 
   @override
   void onWindowClose() async {
-    bool? confirmExit = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(appLocale.getText(LocaleKey.app_confirmExitTitle)),
-          content: Text(appLocale.getText(LocaleKey.app_confirmExitContent)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: Text(appLocale.getText(LocaleKey.app_minimize)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: Text(appLocale.getText(LocaleKey.app_exit)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmExit == true) {
-      await windowManager.destroy();
-    } else {
-      windowManager.minimize();
-    }
+    await windowManager.hide();
   }
 }
 
