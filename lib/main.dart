@@ -87,11 +87,11 @@ void main(List<String> args) async {
       ),
       () async {
         await windowManager.setOpacity(0);
-        await windowManager.setSkipTaskbar(true);
         bool launch2Tray = configer.get("launch2Tray", true);
         bool isSetupDone = configer.get<bool>('isSetupDone', false);
 
         if (launch2Tray && isSetupDone) {
+          await windowManager.setSkipTaskbar(true);
           await showWindowsNotificationWithTask(
             appLocale.getText(LocaleKey.app_trayNotificationTitle),
             appLocale.getText(LocaleKey.app_trayNotificationContent),
@@ -99,8 +99,13 @@ void main(List<String> args) async {
               go(BrandPage());
             },
           );
+          windowManager.hide();
+        } else {
+          await windowManager.setSkipTaskbar(false);
+          await windowManager.show();
+          await windowManager.focus();
+          await fadeInWindow();
         }
-        windowManager.hide();
 
         Future.delayed(Duration(milliseconds: 2500), () async {
           monitService.startAll().then((_) async {
@@ -233,7 +238,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await windowManager.setOpacity(0);
-      await windowManager.setSkipTaskbar(true);
+      await windowManager.setSkipTaskbar(false);
       await windowManager.show();
       await windowManager.focus();
       await fadeInWindow();

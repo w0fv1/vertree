@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
+import 'package:vertree/utils/WindowsShellNotify.dart';
 import 'package:win32/win32.dart';
 import 'package:win32_registry/win32_registry.dart';
 
@@ -19,6 +20,9 @@ class ElevatedTaskRunner {
   static const String opEnableAutoStart = 'enable_autostart';
   static const String opDisableAutoStart = 'disable_autostart';
   static const String opApplySetup = 'apply_setup';
+  static const String opAddWin11Menu = 'add_win11_menu';
+  static const String opRemoveWin11Menu = 'remove_win11_menu';
+  static const String opRemoveLegacyMenus = 'remove_legacy_menus';
 
   static const String _classesShellPath = r'Software\Classes\*\shell';
 
@@ -155,6 +159,12 @@ class ElevatedTaskRunner {
         return _disableAutoStart(payload);
       case opApplySetup:
         return _applySetup(payload);
+      case opAddWin11Menu:
+        return _addWin11Menu(payload);
+      case opRemoveWin11Menu:
+        return _removeWin11Menu(payload);
+      case opRemoveLegacyMenus:
+        return _removeLegacyMenus(payload);
       default:
         return false;
     }
@@ -286,6 +296,7 @@ class ElevatedTaskRunner {
   static bool _applySetup(Map<String, dynamic> payload) {
     final contextMenus = payload['contextMenus'];
     final autostart = payload['autostart'];
+    final win11Menu = payload['win11Menu'];
     if (contextMenus is! List) {
       return false;
     }
@@ -326,7 +337,142 @@ class ElevatedTaskRunner {
       }
     }
 
+    if (win11Menu is Map) {
+      success = _addWin11Menu(win11Menu.cast<String, dynamic>()) && success;
+    }
+
     return success;
+  }
+
+  static bool _removeLegacyMenus(Map<String, dynamic> payload) {
+    final keys = payload['keys'];
+    if (keys is! List) {
+      return false;
+    }
+    bool success = true;
+    for (final entry in keys) {
+      if (entry is! String || entry.isEmpty) {
+        success = false;
+        continue;
+      }
+      success = _removeContextMenuByKey({'keyName': entry}) && success;
+    }
+    return success;
+  }
+
+  static bool _addWin11Menu(Map<String, dynamic> payload) {
+    final handlerName = _asNonEmptyString(payload['handlerName']);
+    final clsid = _asNonEmptyString(payload['clsid']);
+    final serverPath = _asNonEmptyString(payload['serverPath']);
+    if (handlerName == null || clsid == null || serverPath == null) {
+      return false;
+    }
+    try {
+      final approvedKey = Registry.openPath(
+        RegistryHive.localMachine,
+        path:
+            r'Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      approvedKey.createValue(RegistryValue.string(clsid, handlerName));
+      approvedKey.close();
+
+      final classesRoot = Registry.openPath(
+        RegistryHive.localMachine,
+        path: r'Software\Classes\CLSID',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      final clsidKey = classesRoot.createKey(clsid);
+      final serverKey = clsidKey.createKey('LocalServer32');
+      serverKey.createValue(RegistryValue.string('', '"$serverPath"'));
+      serverKey.close();
+      clsidKey.close();
+      classesRoot.close();
+
+      // Win11 context menu uses `ExplorerCommandHandler` verbs (not `ContextMenuHandlers`).
+      // Clean up obsolete handler registration from older versions.
+      try {
+        final legacyHandlerKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: r'Software\Classes\*\shellex\ContextMenuHandlers',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        legacyHandlerKey.deleteKey(handlerName, recursive: true);
+        legacyHandlerKey.close();
+      } catch (_) {}
+
+      final shellKey = Registry.openPath(
+        RegistryHive.localMachine,
+        path: r'Software\Classes\*\shell',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      final menuKey = shellKey.createKey(handlerName);
+      menuKey.createValue(RegistryValue.string('MUIVerb', handlerName));
+      menuKey.createValue(RegistryValue.string('ExplorerCommandHandler', clsid));
+      menuKey.close();
+      shellKey.close();
+
+      WindowsShellNotify.associationsChanged();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _removeWin11Menu(Map<String, dynamic> payload) {
+    final handlerName = _asNonEmptyString(payload['handlerName']);
+    final clsid = _asNonEmptyString(payload['clsid']);
+    if (handlerName == null || clsid == null) {
+      return false;
+    }
+    try {
+      try {
+        final approvedKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path:
+              r'Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        approvedKey.deleteValue(clsid);
+        approvedKey.close();
+      } catch (_) {}
+
+      try {
+        final shellKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: r'Software\Classes\*\shell',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        shellKey.deleteKey(handlerName, recursive: true);
+        shellKey.close();
+      } catch (_) {}
+
+      // Clean up obsolete legacy handler registration if present.
+      try {
+        final legacyHandlerKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: r'Software\Classes\*\shellex\ContextMenuHandlers',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        legacyHandlerKey.deleteKey(handlerName, recursive: true);
+        legacyHandlerKey.close();
+      } catch (_) {}
+
+      try {
+        final clsidKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: r'Software\Classes\CLSID',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        clsidKey.deleteKey(clsid, recursive: true);
+        clsidKey.close();
+      } catch (_) {}
+
+      WindowsShellNotify.associationsChanged();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static String? _asString(Object? value) {
