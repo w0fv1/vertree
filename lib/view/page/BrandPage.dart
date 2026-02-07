@@ -19,6 +19,15 @@ class BrandPage extends StatefulWidget {
 }
 
 class _BrandPageState extends State<BrandPage> {
+  static const String _expressMenuPromptedKey =
+      'expressBackupContextMenuPrompted';
+
+  Future<void> _restoreIfMaximized() async {
+    if (await windowManager.isMaximized()) {
+      await windowManager.restore();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +38,10 @@ class _BrandPageState extends State<BrandPage> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
+                image: DecorationImage(
+                  image: AssetImage("assets/img/logo/logo.png"),
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             SizedBox(width: 8),
@@ -49,11 +61,17 @@ class _BrandPageState extends State<BrandPage> {
                 width: 240,
                 height: 180,
                 decoration: BoxDecoration(
-                  image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
+                  image: DecorationImage(
+                    image: AssetImage("assets/img/logo/logo.png"),
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               SizedBox(height: 16),
-              Text(appLocale.getText(LocaleKey.brand_title), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                appLocale.getText(LocaleKey.brand_title),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 8),
               Text(
                 appLocale.getText(LocaleKey.brand_slogan),
@@ -98,16 +116,43 @@ class _BrandPageState extends State<BrandPage> {
   Future<void> setup(BuildContext context) async {
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
     if (isSetupDone) {
-      VerTreeRegistryService.clearObsoleteRegistry();
+      // 启动时不自动触发管理员授权；仅做必要的兼容/提示。
 
-      if (VerTreeRegistryService.checkBackupKeyExists()) {
-        VerTreeRegistryService.addVerTreeBackupContextMenu();
-      }
-      if (VerTreeRegistryService.checkMonitorKeyExists()) {
-        VerTreeRegistryService.addVerTreeMonitorContextMenu();
-      }
-      if (VerTreeRegistryService.checkViewTreeKeyExists()) {
-        VerTreeRegistryService.addVerTreeViewContextMenu();
+      final alreadyPrompted = configer.get<bool>(
+        _expressMenuPromptedKey,
+        false,
+      );
+      final expressExists =
+          VerTreeRegistryService.checkExpressBackupKeyExists();
+      if (!alreadyPrompted && !expressExists) {
+        configer.set<bool>(_expressMenuPromptedKey, true);
+
+        Future.delayed(const Duration(milliseconds: 300), () async {
+          if (!mounted) return;
+          final consent = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                title: const Text('启用“快速备份”右键菜单？'),
+                content: const Text('此操作会修改系统右键菜单，需管理员权限授权。'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('稍后'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text('启用'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (consent == true) {
+            VerTreeRegistryService.addVerTreeExpressBackupContextMenu();
+          }
+        });
       }
       return;
     }
@@ -120,11 +165,13 @@ class _BrandPageState extends State<BrandPage> {
           content: Text(appLocale.getText(LocaleKey.brand_initContent)),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
+              onPressed: () =>
+                  Navigator.of(dialogContext, rootNavigator: true).pop(false),
               child: Text(appLocale.getText(LocaleKey.brand_cancel)),
             ),
             TextButton(
-              onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
+              onPressed: () =>
+                  Navigator.of(dialogContext, rootNavigator: true).pop(true),
               child: Text(appLocale.getText(LocaleKey.brand_confirm)),
             ),
           ],
@@ -133,24 +180,25 @@ class _BrandPageState extends State<BrandPage> {
     );
 
     if (userConsent == true) {
-      VerTreeRegistryService.addVerTreeBackupContextMenu();
-      VerTreeRegistryService.addVerTreeMonitorContextMenu();
-      VerTreeRegistryService.addVerTreeViewContextMenu();
-      VerTreeRegistryService.enableAutoStart();
-
-      await showWindowsNotification(
-        appLocale.getText(LocaleKey.brand_initDoneTitle),
-        appLocale.getText(LocaleKey.brand_initDoneBody),
-      );
-
-      configer.set<bool>('isSetupDone', true);
+      final allSuccess = VerTreeRegistryService.applyInitialSetup();
+      if (allSuccess) {
+        await showWindowsNotification(
+          appLocale.getText(LocaleKey.brand_initDoneTitle),
+          appLocale.getText(LocaleKey.brand_initDoneBody),
+        );
+        configer.set<bool>('isSetupDone', true);
+      } else {
+        logger.error("初始化未全部成功，请在设置页面重试并完成授权");
+        await showWindowsNotification("Vertree", "初始化部分失败，请在设置页面重试并同意管理员授权。");
+        configer.set<bool>('isSetupDone', false);
+      }
     }
   }
 
   @override
   void initState() {
-    windowManager.restore();
     super.initState();
+    _restoreIfMaximized();
     Future.delayed(Duration(seconds: 1), () => setup(context));
   }
 }

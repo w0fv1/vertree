@@ -19,6 +19,12 @@ class MonitPage extends StatefulWidget {
 }
 
 class _MonitPageState extends State<MonitPage> {
+  Future<void> _restoreIfMaximized() async {
+    if (await windowManager.isMaximized()) {
+      await windowManager.restore();
+    }
+  }
+
   // Original list of all tasks
   List<FileMonitTask> _allMonitTasks = [];
 
@@ -37,7 +43,7 @@ class _MonitPageState extends State<MonitPage> {
     sortTasks();
 
     super.initState();
-    windowManager.restore();
+    _restoreIfMaximized();
 
     // Listen to search input changes
     _searchController.addListener(_onSearchChanged);
