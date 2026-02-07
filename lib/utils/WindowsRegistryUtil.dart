@@ -2,8 +2,13 @@ import 'package:vertree/main.dart';
 import 'package:win32/win32.dart';
 import 'package:win32_registry/win32_registry.dart';
 
+import 'WindowsShellNotify.dart';
+
 class RegistryHelper {
   static const String allUsersClassesShellPath = r'Software\Classes\*\shell';
+  static const String allUsersClassesRootPath = r'Software\Classes';
+  static const String approvedShellExtPath =
+      r'Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved';
   static const int _hrFileNotFound = 0x80070002;
   static const int _hrPathNotFound = 0x80070003;
   static const int _hrAccessDenied = 0x80070005;
@@ -274,6 +279,184 @@ class RegistryHelper {
         return false;
       }
       logger.error('检查开机自启状态失败: $e');
+      return false;
+    }
+  }
+
+  static bool addWin11ContextMenuHandler(
+    String handlerName,
+    String clsid,
+    String serverPath,
+  ) {
+    try {
+      // COM server registration (LocalServer32).
+      final approvedKey = Registry.openPath(
+        RegistryHive.localMachine,
+        path: approvedShellExtPath,
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      approvedKey.createValue(RegistryValue.string(clsid, handlerName));
+      approvedKey.close();
+
+      final clsidRoot = Registry.openPath(
+        RegistryHive.localMachine,
+        path: '$allUsersClassesRootPath\\CLSID',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      final clsidKey = clsidRoot.createKey(clsid);
+      final serverKey = clsidKey.createKey('LocalServer32');
+      serverKey.createValue(RegistryValue.string('', '"$serverPath"'));
+      serverKey.close();
+      clsidKey.close();
+      clsidRoot.close();
+
+      // Win11 context menu uses `ExplorerCommandHandler` verbs (not `ContextMenuHandlers`).
+      //
+      // We still clean up the obsolete registration in case it exists from previous versions.
+      try {
+        final legacyHandlerKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: '$allUsersClassesRootPath\\*\\shellex\\ContextMenuHandlers',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        legacyHandlerKey.deleteKey(handlerName, recursive: true);
+        legacyHandlerKey.close();
+      } catch (e) {
+        if (!_isKeyMissingError(e) && !_isAccessDeniedError(e)) {
+          logger.error('清理旧 Win11 handler 失败: $e');
+        }
+      }
+
+      final shellKey = Registry.openPath(
+        RegistryHive.localMachine,
+        path: '$allUsersClassesRootPath\\*\\shell',
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      final menuKey = shellKey.createKey(handlerName);
+      menuKey.createValue(RegistryValue.string('MUIVerb', handlerName));
+      menuKey.createValue(RegistryValue.string('ExplorerCommandHandler', clsid));
+      menuKey.close();
+      shellKey.close();
+
+      WindowsShellNotify.associationsChanged();
+      return true;
+    } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
+      logger.error('添加 Win11 右键菜单处理器失败: $e');
+      return false;
+    }
+  }
+
+  static bool removeWin11ContextMenuHandler(String handlerName, String clsid) {
+    try {
+      bool accessDenied = false;
+
+      try {
+        final approvedKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: approvedShellExtPath,
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        approvedKey.deleteValue(clsid);
+        approvedKey.close();
+      } catch (e) {
+        if (_isAccessDeniedError(e)) {
+          accessDenied = true;
+        } else if (!_isKeyMissingError(e)) {
+          logger.error('移除 Approved 项失败: $e');
+        }
+      }
+
+      try {
+        final shellKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: '$allUsersClassesRootPath\\*\\shell',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        shellKey.deleteKey(handlerName, recursive: true);
+        shellKey.close();
+      } catch (e) {
+        if (_isAccessDeniedError(e)) {
+          accessDenied = true;
+        } else if (!_isKeyMissingError(e)) {
+          logger.error('移除 Win11 shell verb 失败: $e');
+        }
+      }
+
+      // Clean up obsolete legacy handler registration if present.
+      try {
+        final legacyHandlerKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: '$allUsersClassesRootPath\\*\\shellex\\ContextMenuHandlers',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        legacyHandlerKey.deleteKey(handlerName, recursive: true);
+        legacyHandlerKey.close();
+      } catch (e) {
+        if (_isAccessDeniedError(e)) {
+          accessDenied = true;
+        } else if (!_isKeyMissingError(e)) {
+          logger.error('移除旧 Win11 handler 失败: $e');
+        }
+      }
+
+      try {
+        final clsidKey = Registry.openPath(
+          RegistryHive.localMachine,
+          path: '$allUsersClassesRootPath\\CLSID',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        clsidKey.deleteKey(clsid, recursive: true);
+        clsidKey.close();
+      } catch (e) {
+        if (_isAccessDeniedError(e)) {
+          accessDenied = true;
+        } else if (!_isKeyMissingError(e)) {
+          logger.error('移除 CLSID 注册失败: $e');
+        }
+      }
+
+      if (accessDenied) {
+        return false;
+      }
+
+      WindowsShellNotify.associationsChanged();
+      return true;
+    } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
+      logger.error('移除 Win11 右键菜单处理器失败: $e');
+      return false;
+    }
+  }
+
+  static bool checkWin11ContextMenuHandler(String handlerName, String clsid) {
+    try {
+      final key = Registry.openPath(
+        RegistryHive.localMachine,
+        path: '$allUsersClassesRootPath\\*\\shell\\$handlerName',
+        desiredAccessRights: AccessRights.readOnly,
+      );
+      final value = key.getValue('ExplorerCommandHandler');
+      key.close();
+      final commandHandler = switch (value) {
+        StringValue(:final value) => value,
+        UnexpandedStringValue(:final value) => value,
+        LinkValue(:final value) => value,
+        _ => null,
+      };
+      if (commandHandler != null) {
+        return commandHandler.toLowerCase() == clsid.toLowerCase();
+      }
+      return false;
+    } catch (e) {
+      if (_isKeyMissingError(e)) {
+        return false;
+      }
+      logger.error('检查 Win11 右键菜单处理器失败: $e');
       return false;
     }
   }

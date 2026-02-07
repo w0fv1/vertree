@@ -18,6 +18,9 @@ class VerTreeRegistryService {
 
   static const String runRegistryPath =
       r'Software\Microsoft\Windows\CurrentVersion\Run';
+  static const String win11HandlerName = 'Vertree';
+  static const String win11HandlerClsid =
+      '{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}';
 
   static String exePath = Platform.resolvedExecutable;
 
@@ -335,32 +338,7 @@ class VerTreeRegistryService {
   }
 
   static bool applyInitialSetup() {
-    final entries = [
-      _contextMenuPayload(
-        registry_backupKeyName,
-        appLocale.getText(LocaleKey.registry_backupKeyName),
-        '"$exePath" --backup "%1"',
-        _iconPath('save.ico'),
-      ),
-      _contextMenuPayload(
-        registry_monitorKeyName,
-        appLocale.getText(LocaleKey.registry_monitorKeyName),
-        '"$exePath" --monit "%1"',
-        _iconPath('monit.ico'),
-      ),
-      _contextMenuPayload(
-        registry_viewTreeKeyName,
-        appLocale.getText(LocaleKey.registry_viewTreeKeyName),
-        '"$exePath" --viewtree "%1"',
-        _iconPath('logo.ico', isLogo: true),
-      ),
-      _contextMenuPayload(
-        registry_expressBackupKeyName,
-        appLocale.getText(LocaleKey.registry_expressBackupKeyName),
-        '"$exePath" --express-backup "%1"',
-        _iconPath('express-save.ico'),
-      ),
-    ];
+    final entries = _legacyMenuEntries();
 
     bool success = true;
     for (final entry in entries) {
@@ -378,6 +356,15 @@ class VerTreeRegistryService {
         RegistryHelper.enableAutoStart(runRegistryPath, appName, exePath) &&
         success;
 
+    final helperPath = _contextMenuHelperPath();
+    success =
+        RegistryHelper.addWin11ContextMenuHandler(
+          win11HandlerName,
+          win11HandlerClsid,
+          helperPath,
+        ) &&
+        success;
+
     if (success) {
       return true;
     }
@@ -393,6 +380,11 @@ class VerTreeRegistryService {
           'appName': appName,
           'appPath': exePath,
         },
+        'win11Menu': {
+          'handlerName': win11HandlerName,
+          'clsid': win11HandlerClsid,
+          'serverPath': helperPath,
+        },
       },
     );
 
@@ -404,6 +396,99 @@ class VerTreeRegistryService {
       );
     }
     return elevatedSuccess;
+  }
+
+  static bool applyLegacyMenus(bool enable) {
+    final entries = _legacyMenuEntries();
+    bool success = true;
+
+    if (enable) {
+      for (final entry in entries) {
+        success =
+            RegistryHelper.addContextMenuOption(
+              entry['keyName']!,
+              entry['menuText']!,
+              entry['command']!,
+              iconPath: entry['iconPath'],
+            ) &&
+            success;
+      }
+      if (success) {
+        return true;
+      }
+      logger.info('旧版菜单普通权限失败，尝试一次性提权...');
+      final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
+        ElevatedTaskRunner.opApplySetup,
+        payload: {'contextMenus': entries},
+      );
+      if (!elevatedSuccess) {
+        logger.error(
+          '旧版菜单提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
+        );
+      }
+      return elevatedSuccess;
+    }
+
+    for (final entry in entries) {
+      success =
+          RegistryHelper.removeContextMenuOptionByKey(entry['keyName']!) &&
+          success;
+    }
+    if (success) {
+      return true;
+    }
+    logger.info('旧版菜单移除普通权限失败，尝试一次性提权...');
+    final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
+      ElevatedTaskRunner.opRemoveLegacyMenus,
+      payload: {'keys': entries.map((entry) => entry['keyName']).toList()},
+    );
+    if (!elevatedSuccess) {
+      logger.error(
+        '旧版菜单移除提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
+      );
+    }
+    return elevatedSuccess;
+  }
+
+  static bool addWin11ContextMenuHandler({bool allowElevation = true}) {
+    final helperPath = _contextMenuHelperPath();
+    bool success = RegistryHelper.addWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+      helperPath,
+    );
+    if (!success && allowElevation) {
+      success = ElevatedTaskRunner.runTaskSync(
+        ElevatedTaskRunner.opAddWin11Menu,
+        payload: {
+          'handlerName': win11HandlerName,
+          'clsid': win11HandlerClsid,
+          'serverPath': helperPath,
+        },
+      );
+    }
+    return success;
+  }
+
+  static bool removeWin11ContextMenuHandler({bool allowElevation = true}) {
+    bool success = RegistryHelper.removeWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+    );
+    if (!success && allowElevation) {
+      success = ElevatedTaskRunner.runTaskSync(
+        ElevatedTaskRunner.opRemoveWin11Menu,
+        payload: {'handlerName': win11HandlerName, 'clsid': win11HandlerClsid},
+      );
+    }
+    return success;
+  }
+
+  static bool checkWin11ContextMenuHandler() {
+    return RegistryHelper.checkWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+    );
   }
 
   static Map<String, String?> _contextMenuPayload(
@@ -430,6 +515,39 @@ class VerTreeRegistryService {
       isLogo ? 'logo' : 'icon',
       fileName,
     );
+  }
+
+  static String _contextMenuHelperPath() {
+    return path.join(FileUtils.appDirPath(), 'vertree_context_menu.exe');
+  }
+
+  static List<Map<String, String?>> _legacyMenuEntries() {
+    return [
+      _contextMenuPayload(
+        registry_backupKeyName,
+        appLocale.getText(LocaleKey.registry_backupKeyName),
+        '"$exePath" --backup "%1"',
+        _iconPath('save.ico'),
+      ),
+      _contextMenuPayload(
+        registry_monitorKeyName,
+        appLocale.getText(LocaleKey.registry_monitorKeyName),
+        '"$exePath" --monit "%1"',
+        _iconPath('monit.ico'),
+      ),
+      _contextMenuPayload(
+        registry_viewTreeKeyName,
+        appLocale.getText(LocaleKey.registry_viewTreeKeyName),
+        '"$exePath" --viewtree "%1"',
+        _iconPath('logo.ico', isLogo: true),
+      ),
+      _contextMenuPayload(
+        registry_expressBackupKeyName,
+        appLocale.getText(LocaleKey.registry_expressBackupKeyName),
+        '"$exePath" --express-backup "%1"',
+        _iconPath('express-save.ico'),
+      ),
+    ];
   }
 
   static const String backupMenuName = "备份文件 VerTree";

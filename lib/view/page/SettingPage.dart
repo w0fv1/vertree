@@ -31,10 +31,14 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   late bool backupFile = VerTreeRegistryService.checkBackupKeyExists();
-  late bool expressBackupFile = VerTreeRegistryService.checkExpressBackupKeyExists();
+  late bool expressBackupFile =
+      VerTreeRegistryService.checkExpressBackupKeyExists();
   late bool monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
   late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
   late bool autoStart = VerTreeRegistryService.isAutoStartEnabled();
+  late bool legacyMenuEnabled = _allLegacyMenusEnabled();
+  late bool win11MenuEnabled =
+      VerTreeRegistryService.checkWin11ContextMenuHandler();
 
   @override
   void initState() {
@@ -44,6 +48,52 @@ class _SettingPageState extends State<SettingPage> {
 
   bool isLoading = false;
 
+  bool _allLegacyMenusEnabled() {
+    return VerTreeRegistryService.checkBackupKeyExists() &&
+        VerTreeRegistryService.checkExpressBackupKeyExists() &&
+        VerTreeRegistryService.checkMonitorKeyExists() &&
+        VerTreeRegistryService.checkViewTreeKeyExists();
+  }
+
+  void _refreshLegacyMenuState() {
+    setState(() {
+      backupFile = VerTreeRegistryService.checkBackupKeyExists();
+      expressBackupFile = VerTreeRegistryService.checkExpressBackupKeyExists();
+      monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
+      viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
+      legacyMenuEnabled = _allLegacyMenusEnabled();
+      win11MenuEnabled = VerTreeRegistryService.checkWin11ContextMenuHandler();
+    });
+  }
+
+  Future<void> _toggleLegacyMenus(bool? value) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    VerTreeRegistryService.applyLegacyMenus(value);
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _refreshLegacyMenuState();
+      setState(() => isLoading = false);
+    });
+  }
+
+  Future<void> _toggleWin11Menu(bool? value) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    if (value) {
+      VerTreeRegistryService.addWin11ContextMenuHandler();
+    } else {
+      VerTreeRegistryService.removeWin11ContextMenuHandler();
+    }
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _refreshLegacyMenuState();
+      setState(() => isLoading = false);
+    });
+  }
+
   Future<void> _toggleBackupFile(bool? value) async {
     if (value == null) return;
     setState(() => isLoading = true);
@@ -51,10 +101,16 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddBackup));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyAddBackup),
+      );
     } else {
       success = VerTreeRegistryService.removeVerTreeBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveBackup));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyRemoveBackup),
+      );
     }
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
@@ -62,6 +118,7 @@ class _SettingPageState extends State<SettingPage> {
           backupFile = value;
         }
         isLoading = false;
+        legacyMenuEnabled = _allLegacyMenusEnabled();
       });
     });
   }
@@ -73,10 +130,16 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeMonitorContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddMonitor));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyAddMonitor),
+      );
     } else {
       success = VerTreeRegistryService.removeVerTreeMonitorContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveMonitor));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyRemoveMonitor),
+      );
     }
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
@@ -84,6 +147,7 @@ class _SettingPageState extends State<SettingPage> {
           monitorFile = value;
         }
         isLoading = false;
+        legacyMenuEnabled = _allLegacyMenusEnabled();
       });
     });
   }
@@ -95,10 +159,16 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeViewContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddView));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyAddView),
+      );
     } else {
       success = VerTreeRegistryService.removeVerTreeViewContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveView));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyRemoveView),
+      );
     }
 
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -107,6 +177,7 @@ class _SettingPageState extends State<SettingPage> {
           viewTreeFile = value;
         }
         isLoading = false;
+        legacyMenuEnabled = _allLegacyMenusEnabled();
       });
     });
   }
@@ -118,10 +189,16 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.enableAutoStart();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyEnableAutostart));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyEnableAutostart),
+      );
     } else {
       success = VerTreeRegistryService.disableAutoStart();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyDisableAutostart));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyDisableAutostart),
+      );
     }
 
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -141,10 +218,16 @@ class _SettingPageState extends State<SettingPage> {
     bool success;
     if (value) {
       success = VerTreeRegistryService.addVerTreeExpressBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyAddExpress));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyAddExpress),
+      );
     } else {
       success = VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
-      await showWindowsNotification("Vertree", appLocale.getText(LocaleKey.setting_notifyRemoveExpress));
+      await showWindowsNotification(
+        "Vertree",
+        appLocale.getText(LocaleKey.setting_notifyRemoveExpress),
+      );
     }
 
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -152,6 +235,7 @@ class _SettingPageState extends State<SettingPage> {
         setState(() {
           if (success) expressBackupFile = value;
           isLoading = false;
+          legacyMenuEnabled = _allLegacyMenusEnabled();
         });
       });
     });
@@ -194,7 +278,9 @@ class _SettingPageState extends State<SettingPage> {
                       children: [
                         const Icon(Icons.language),
                         const SizedBox(width: 8),
-                        Text("${appLocale.getText(LocaleKey.setting_language)}: "),
+                        Text(
+                          "${appLocale.getText(LocaleKey.setting_language)}: ",
+                        ),
                         const SizedBox(width: 8),
                         Spacer(),
                         DropdownButton<Lang>(
@@ -207,17 +293,22 @@ class _SettingPageState extends State<SettingPage> {
                                 appLocale.changeLang(newLang);
                               });
 
-                              Future.delayed(const Duration(milliseconds: 200), () {
-                                setState(() {
-                                  isLoading = false;
-                                });
-                              });
+                              Future.delayed(
+                                const Duration(milliseconds: 200),
+                                () {
+                                  setState(() {
+                                    isLoading = false;
+                                  });
+                                },
+                              );
                             }
                           },
-                          items:
-                              appLocale.supportedLangs.map((Lang lang) {
-                                return DropdownMenuItem<Lang>(value: lang, child: Text("    " + lang.label + "    "));
-                              }).toList(),
+                          items: appLocale.supportedLangs.map((Lang lang) {
+                            return DropdownMenuItem<Lang>(
+                              value: lang,
+                              child: Text("    " + lang.label + "    "),
+                            );
+                          }).toList(),
                         ),
                         const SizedBox(width: 20),
                       ],
@@ -225,27 +316,51 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                   const SizedBox(height: 16),
 
+                  SwitchListTile(
+                    secondary: const Icon(Icons.build, size: 20),
+                    title: const Text("右键菜单选项设置"),
+                    value: win11MenuEnabled,
+                    onChanged: _toggleWin11Menu,
+                  ),
+                  const SizedBox(height: 16),
                   ExpansionTile(
                     leading: Icon(Icons.build, size: 20),
-                    title: Text(appLocale.getText(LocaleKey.setting_contextMenuGroup)),
+                    title: Text(
+                      "${appLocale.getText(LocaleKey.setting_contextMenuGroup)}（旧版）",
+                    ),
                     children: [
                       SwitchListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_addBackupMenu)),
+                        title: const Text("右键菜单选项"),
+                        value: legacyMenuEnabled,
+                        onChanged: _toggleLegacyMenus,
+                      ),
+                      SwitchListTile(
+                        title: Text(
+                          appLocale.getText(LocaleKey.setting_addBackupMenu),
+                        ),
                         value: backupFile,
                         onChanged: _toggleBackupFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_addExpressBackupMenu)),
+                        title: Text(
+                          appLocale.getText(
+                            LocaleKey.setting_addExpressBackupMenu,
+                          ),
+                        ),
                         value: expressBackupFile,
                         onChanged: _toggleExpressBackupFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_addMonitorMenu)),
+                        title: Text(
+                          appLocale.getText(LocaleKey.setting_addMonitorMenu),
+                        ),
                         value: monitorFile,
                         onChanged: _toggleMonitorFile,
                       ),
                       SwitchListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_addViewtreeMenu)),
+                        title: Text(
+                          appLocale.getText(LocaleKey.setting_addViewtreeMenu),
+                        ),
                         value: viewTreeFile,
                         onChanged: _toggleViewTreeFile,
                       ),
@@ -255,18 +370,26 @@ class _SettingPageState extends State<SettingPage> {
                   const SizedBox(height: 16),
                   ExpansionTile(
                     leading: Icon(Icons.monitor_heart_rounded, size: 20),
-                    title: Text(appLocale.getText(LocaleKey.setting_monitGroup)),
+                    title: Text(
+                      appLocale.getText(LocaleKey.setting_monitGroup),
+                    ),
                     children: [
                       ListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_monitRate)),
+                        title: Text(
+                          appLocale.getText(LocaleKey.setting_monitRate),
+                        ),
                         trailing: SizedBox(
                           width: 60, // 固定输入框宽度
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            controller: TextEditingController(text: configer.get("monitorRate", 1).toString()),
+                            controller: TextEditingController(
+                              text: configer.get("monitorRate", 1).toString(),
+                            ),
                             onChanged: (value) {
                               setState(() {
-                                var monitorRate = int.tryParse(value) ?? configer.get("monitorRate", 1).toString();
+                                var monitorRate =
+                                    int.tryParse(value) ??
+                                    configer.get("monitorRate", 1).toString();
                                 configer.set("monitorRate", monitorRate);
                               });
                             },
@@ -274,16 +397,25 @@ class _SettingPageState extends State<SettingPage> {
                         ),
                       ),
                       ListTile(
-                        title: Text(appLocale.getText(LocaleKey.setting_monitMaxSize)),
+                        title: Text(
+                          appLocale.getText(LocaleKey.setting_monitMaxSize),
+                        ),
                         trailing: SizedBox(
                           width: 60, // 固定输入框宽度
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            controller: TextEditingController(text: configer.get("monitorMaxSize", 9999).toString()),
+                            controller: TextEditingController(
+                              text: configer
+                                  .get("monitorMaxSize", 9999)
+                                  .toString(),
+                            ),
                             onChanged: (value) {
                               setState(() {
                                 var monitorMaxSize =
-                                    int.tryParse(value) ?? configer.get("monitorMaxSize", 9999).toString();
+                                    int.tryParse(value) ??
+                                    configer
+                                        .get("monitorMaxSize", 9999)
+                                        .toString();
                                 configer.set("monitorMaxSize", monitorMaxSize);
                               });
                             },
@@ -296,7 +428,9 @@ class _SettingPageState extends State<SettingPage> {
                   const SizedBox(height: 16),
                   SwitchListTile(
                     secondary: const Icon(Icons.power_settings_new, size: 22),
-                    title: Text(appLocale.getText(LocaleKey.setting_enableAutostart)),
+                    title: Text(
+                      appLocale.getText(LocaleKey.setting_enableAutostart),
+                    ),
                     value: autoStart,
                     onChanged: _toggleAutoStart,
                   ),
@@ -307,14 +441,19 @@ class _SettingPageState extends State<SettingPage> {
                       Expanded(
                         child: ListTile(
                           leading: const Icon(Icons.open_in_new, size: 20),
-                          title: Text(appLocale.getText(LocaleKey.setting_openConfig)),
-                          onTap: () => FileUtils.openFile(configer.configFilePath),
+                          title: Text(
+                            appLocale.getText(LocaleKey.setting_openConfig),
+                          ),
+                          onTap: () =>
+                              FileUtils.openFile(configer.configFilePath),
                         ),
                       ),
                       Expanded(
                         child: ListTile(
                           leading: const Icon(Icons.open_in_new, size: 20),
-                          title: Text(appLocale.getText(LocaleKey.setting_openLogs)),
+                          title: Text(
+                            appLocale.getText(LocaleKey.setting_openLogs),
+                          ),
                           onTap: () => FileUtils.openFolder(logger.logDirPath),
                         ),
                       ),
@@ -330,45 +469,62 @@ class _SettingPageState extends State<SettingPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.language_rounded),
-                          tooltip: appLocale.getText(LocaleKey.setting_visitWebsite),
-                          onPressed: () => _openUrl("https://w0fv1.github.io/vertree/"),
+                          tooltip: appLocale.getText(
+                            LocaleKey.setting_visitWebsite,
+                          ),
+                          onPressed: () =>
+                              _openUrl("https://w0fv1.github.io/vertree/"),
                         ),
                         const SizedBox(width: 16),
                         IconButton(
                           icon: const Icon(MaterialCommunityIcons.github),
-                          tooltip: appLocale.getText(LocaleKey.setting_openGithub),
-                          onPressed: () => _openUrl("https://github.com/w0fv1/vertree"),
+                          tooltip: appLocale.getText(
+                            LocaleKey.setting_openGithub,
+                          ),
+                          onPressed: () =>
+                              _openUrl("https://github.com/w0fv1/vertree"),
                         ),
                         const SizedBox(width: 16),
                         Tooltip(
-                          message: appLocale.getText(LocaleKey.setting_versionInfo),
+                          message: appLocale.getText(
+                            LocaleKey.setting_versionInfo,
+                          ),
                           child: AppVersionDisplay(
-
                             appVersion: appVersionInfo.currentVersion,
-                            defaultLink: "https://github.com/w0fv1/vertree/releases",
+                            defaultLink:
+                                "https://github.com/w0fv1/vertree/releases",
                             checkNewVersion: () async {
-                              Result<UpdateInfo, String> checkUpdateResult =  await appVersionInfo.checkUpdate();
+                              Result<UpdateInfo, String> checkUpdateResult =
+                                  await appVersionInfo.checkUpdate();
 
-                              if(checkUpdateResult.isErr){
+                              if (checkUpdateResult.isErr) {
                                 logger.error(checkUpdateResult.msg);
                                 return false;
                               }
 
+                              bool hasNewVersion = checkUpdateResult
+                                  .unwrap()
+                                  .hasUpdate;
 
-                              bool hasNewVersion = checkUpdateResult.unwrap().hasUpdate;
+                              var newVersionTag = checkUpdateResult
+                                  .unwrap()
+                                  .latestVersionTag;
 
-                              var newVersionTag = checkUpdateResult.unwrap().latestVersionTag;
-
-                              if (hasNewVersion && newVersionTag != null && newVersionTag.isNotEmpty) {
+                              if (hasNewVersion &&
+                                  newVersionTag != null &&
+                                  newVersionTag.isNotEmpty) {
                                 showToast(
-                                  appLocale.getText(LocaleKey.setting_hasNewVertion).tr([newVersionTag ?? ""]),
+                                  appLocale
+                                      .getText(LocaleKey.setting_hasNewVertion)
+                                      .tr([newVersionTag ?? ""]),
                                 );
                               }
                               return hasNewVersion;
                             },
                             getNewVersionDownloadUrl: () async {
-                              Result<String?, String> checkUpdateResult =  await appVersionInfo.getLatestReleaseUrl();
-                              if(checkUpdateResult.isErr){
+                              Result<String?, String> checkUpdateResult =
+                                  await appVersionInfo.getLatestReleaseUrl();
+                              if (checkUpdateResult.isErr) {
                                 logger.info(checkUpdateResult.msg);
                                 return "https://github.com/w0fv1/vertree/releases";
                               }
