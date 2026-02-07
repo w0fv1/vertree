@@ -16,11 +16,30 @@ class AppVersionInfo {
   /// 例如: "https://api.github.com/repos/user/repo/releases/latest"
   final String releaseApiUrl;
 
+  static const String _lastUpdateCheckKey = 'lastUpdateCheckDate';
+  Map<String, dynamic>? _cachedReleaseInfo;
+  String? _cachedReleaseDate;
 
   /// 构造函数。
   ///
   /// 需要提供 [currentVersion] (当前应用版本) 和 [releaseApiUrl] (GitHub API 地址)。
   AppVersionInfo({required this.currentVersion, required this.releaseApiUrl});
+
+  String _todayKey() {
+    final now = DateTime.now();
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  bool _isSameDay(String? value) {
+    return value != null && value == _todayKey();
+  }
+
+  bool _isSkipTodayError(String? msg) {
+    return msg != null && msg.startsWith('今日已检查更新');
+  }
 
   /// 比较两个版本号字符串。
   ///
@@ -66,6 +85,18 @@ class AppVersionInfo {
   ///
   /// 返回包含发布信息的 Map，如果请求失败或解析失败则返回 null。
   Future<Result<Map<String, dynamic>, String>> _fetchLatestReleaseInfo() async {
+    final today = _todayKey();
+    if (_cachedReleaseInfo != null && _cachedReleaseDate == today) {
+      return Result.ok(_cachedReleaseInfo!);
+    }
+
+    final lastCheck = configer.get<String>(_lastUpdateCheckKey, '');
+    if (lastCheck == today) {
+      return Result.err('今日已检查更新，跳过网络请求');
+    }
+
+    configer.set<String>(_lastUpdateCheckKey, today);
+
     try {
       logger.info('正在从 $releaseApiUrl 获取最新版本信息...');
       final response = await http.get(Uri.parse(releaseApiUrl));
@@ -76,6 +107,8 @@ class AppVersionInfo {
         // logger.info('响应体: ${response.body}'); // Debug: 打印原始响应体
         try {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
+          _cachedReleaseInfo = data;
+          _cachedReleaseDate = today;
           return Result.ok(data);
         } catch (e) {
           logger.error('解析 JSON 失败: $e');
@@ -105,6 +138,9 @@ class AppVersionInfo {
   Future<Result<UpdateInfo, String>> checkUpdate() async {
     final releaseInfoResult = await _fetchLatestReleaseInfo();
     if (releaseInfoResult.isErr) {
+      if (_isSkipTodayError(releaseInfoResult.msg)) {
+        return Result.ok(UpdateInfo(hasUpdate: false));
+      }
       logger.info("未能获取最新版本信息，无法检查更新。错误信息: ${releaseInfoResult.msg}");
       return Result.err(releaseInfoResult.msg); // 获取信息失败
     }
@@ -146,6 +182,9 @@ class AppVersionInfo {
   Future<Result<String?, String>> getLatestVersionTag() async {
     final releaseInfoResult = await _fetchLatestReleaseInfo();
     if (releaseInfoResult.isErr) {
+      if (_isSkipTodayError(releaseInfoResult.msg)) {
+        return Result.ok(null);
+      }
       logger.info("未能获取最新版本信息，无法获取版本标签。错误信息: ${releaseInfoResult.msg}");
       return Result.err(releaseInfoResult.msg);
     }
@@ -168,6 +207,9 @@ class AppVersionInfo {
   Future<Result<String?, String>> getLatestReleaseUrl() async {
     final releaseInfoResult = await _fetchLatestReleaseInfo();
     if (releaseInfoResult.isErr) {
+      if (_isSkipTodayError(releaseInfoResult.msg)) {
+        return Result.ok(null);
+      }
       logger.info("未能获取最新版本信息，无法获取发布页面 URL。错误信息: ${releaseInfoResult.msg}");
       return Result.err(releaseInfoResult.msg); // 获取信息失败
     }

@@ -9,6 +9,7 @@ import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/VerTreeRegistryHelper.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/utils/WindowsPackageIdentity.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
@@ -37,8 +38,7 @@ class _SettingPageState extends State<SettingPage> {
   late bool viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
   late bool autoStart = VerTreeRegistryService.isAutoStartEnabled();
   late bool legacyMenuEnabled = _allLegacyMenusEnabled();
-  late bool win11MenuEnabled =
-      VerTreeRegistryService.checkWin11ContextMenuHandler();
+  late bool win11MenuEnabled = configer.get("win11MenuEnabled", true);
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _SettingPageState extends State<SettingPage> {
       monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
       viewTreeFile = VerTreeRegistryService.checkViewTreeKeyExists();
       legacyMenuEnabled = _allLegacyMenusEnabled();
-      win11MenuEnabled = VerTreeRegistryService.checkWin11ContextMenuHandler();
+      win11MenuEnabled = configer.get("win11MenuEnabled", true);
     });
   }
 
@@ -81,17 +81,29 @@ class _SettingPageState extends State<SettingPage> {
   Future<void> _toggleWin11Menu(bool? value) async {
     if (value == null) return;
     setState(() => isLoading = true);
+    logger.info('Win11 menu toggle start: target=$value');
+    try {
+      final packaged = WindowsPackageIdentity.isPackagedOrRegistered();
+      logger.info('Win11 menu packagedOrRegistered=$packaged');
+      if (!packaged) {
+        showToast('Win11 新菜单需要 Sparse Package/MSIX 身份');
+        _refreshLegacyMenuState();
+        return;
+      }
 
-    if (value) {
-      VerTreeRegistryService.addWin11ContextMenuHandler();
-    } else {
-      VerTreeRegistryService.removeWin11ContextMenuHandler();
+      configer.set("win11MenuEnabled", value);
+      logger.info('Win11 menu config updated: $value');
+    } catch (e) {
+      logger.error('Win11 menu toggle failed: $e');
+    } finally {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _refreshLegacyMenuState();
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+        logger.info('Win11 menu toggle end');
+      });
     }
-
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _refreshLegacyMenuState();
-      setState(() => isLoading = false);
-    });
   }
 
   Future<void> _toggleBackupFile(bool? value) async {

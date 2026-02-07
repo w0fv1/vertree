@@ -1,25 +1,40 @@
 [Setup]
+AppId={{E3E58F5C-9E78-4A10-9F2B-76F968B8034C}}
 AppName=Vertree
 AppVersion=0.7.1
+AppVerName=Vertree 0.7.1
 AppPublisher=Vertree
 AppPublisherURL=https://vertree.w0fv1.dev
+AppSupportURL=https://vertree.w0fv1.dev
+AppUpdatesURL=https://vertree.w0fv1.dev
 DefaultDirName={commonpf}\Vertree
+DisableProgramGroupPage=yes
 DefaultGroupName=Vertree
 OutputDir=.
 OutputBaseFilename=Vertree_Setup
-SetupIconFile="..\build\windows\x64\runner\Release\data\flutter_assets\assets\img\logo\logo.ico"
+#ifndef BuildMode
+#define BuildMode "Release"
+#endif
+SetupIconFile="..\build\windows\x64\runner\{#BuildMode}\data\flutter_assets\assets\img\logo\logo.ico"
 UninstallDisplayIcon={app}\vertree.exe
+UninstallDisplayName=Vertree
+VersionInfoVersion=0.7.1.0
+VersionInfoProductName=Vertree
+VersionInfoCompany=Vertree
+VersionInfoDescription=Vertree Installer
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
+SetupLogging=yes
 
 [Files]
-Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "..\build\windows\x64\runner\{#BuildMode}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{group}\Vertree"; Filename: "{app}\vertree.exe"
-Name: "{commondesktop}\Vertree"; Filename: "{app}\vertree.exe"
+Name: "{commonprograms}\Vertree"; Filename: "{app}\vertree.exe"; IconFilename: "{app}\data\flutter_assets\assets\img\logo\logo.ico"
+Name: "{commonprograms}\Uninstall Vertree"; Filename: "{uninstallexe}"; IconFilename: "{app}\data\flutter_assets\assets\img\logo\logo.ico"
+Name: "{commondesktop}\Vertree"; Filename: "{app}\vertree.exe"; IconFilename: "{app}\data\flutter_assets\assets\img\logo\logo.ico"
 
 [Run]
 Filename: "{app}\vertree.exe"; Description: "Launch Vertree"; Flags: nowait postinstall skipifsilent
@@ -50,9 +65,17 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
 begin
   if CurUninstallStep = usUninstall then
   begin
     DeleteRegistryKeys();
+    Exec('powershell.exe',
+      '-NoProfile -ExecutionPolicy Bypass -Command "Get-AppxPackage -Name w0fv1.vertree -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue"',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode);
   end;
 end;

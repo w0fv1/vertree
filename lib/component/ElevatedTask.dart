@@ -383,8 +383,13 @@ class ElevatedTaskRunner {
         desiredAccessRights: AccessRights.allAccess,
       );
       final clsidKey = classesRoot.createKey(clsid);
-      final serverKey = clsidKey.createKey('LocalServer32');
+      try {
+        clsidKey.deleteKey('LocalServer32', recursive: true);
+      } catch (_) {}
+
+      final serverKey = clsidKey.createKey('InprocServer32');
       serverKey.createValue(RegistryValue.string('', '"$serverPath"'));
+      serverKey.createValue(RegistryValue.string('ThreadingModel', 'Apartment'));
       serverKey.close();
       clsidKey.close();
       classesRoot.close();
