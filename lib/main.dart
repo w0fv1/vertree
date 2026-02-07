@@ -33,6 +33,24 @@ final appVersionInfo = AppVersionInfo(
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
 
+Future<void> fadeInWindow() async {
+  const durationMs = 320;
+  const frameTime = Duration(milliseconds: 16);
+  final stopwatch = Stopwatch()..start();
+  double lastOpacity = -1;
+
+  while (stopwatch.elapsedMilliseconds < durationMs) {
+    final t = stopwatch.elapsedMilliseconds / durationMs;
+    final eased = Curves.easeOutCubic.transform(t.clamp(0.0, 1.0));
+    if ((eased - lastOpacity).abs() > 0.002) {
+      await windowManager.setOpacity(eased);
+      lastOpacity = eased;
+    }
+    await Future.delayed(frameTime);
+  }
+  await windowManager.setOpacity(1);
+}
+
 void main(List<String> args) async {
   if (ElevatedTaskRunner.tryHandleElevatedTask(args)) {
     return;
@@ -67,6 +85,8 @@ void main(List<String> args) async {
         titleBarStyle: TitleBarStyle.hidden,
       ),
       () async {
+        await windowManager.setOpacity(0);
+        await windowManager.setSkipTaskbar(true);
         bool launch2Tray = configer.get("launch2Tray", true);
         bool isSetupDone = configer.get<bool>('isSetupDone', false);
 
@@ -78,8 +98,8 @@ void main(List<String> args) async {
               go(BrandPage());
             },
           );
-          windowManager.hide();
         }
+        windowManager.hide();
 
         Future.delayed(Duration(milliseconds: 2500), () async {
           monitService.startAll().then((_) async {
@@ -211,8 +231,11 @@ class _MainPageState extends State<MainPage> with WindowListener {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await windowManager.setOpacity(0);
+      await windowManager.setSkipTaskbar(false);
       await windowManager.show();
       await windowManager.focus();
+      await fadeInWindow();
     });
   }
 
