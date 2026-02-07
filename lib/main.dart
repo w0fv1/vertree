@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -51,6 +52,42 @@ Future<void> fadeInWindow() async {
   await windowManager.setOpacity(1);
 }
 
+bool _isNonActionableSecondArgs(List<String> args) {
+  if (args.isEmpty) return true;
+  if (args.length == 1 && !args.first.startsWith('--')) return true;
+  return false;
+}
+
+Future<void> _bringExistingWindowToFront() async {
+  try {
+    await windowManager.setSkipTaskbar(false);
+    if (await windowManager.isMinimized()) {
+      await windowManager.restore();
+    }
+    await windowManager.show();
+    await windowManager.focus();
+    // Ensure we're not stuck at zero opacity due to startup/tray logic.
+    await windowManager.setOpacity(1);
+  } catch (e) {
+    logger.error('bring window to front failed: $e');
+  }
+}
+
+void _handleSecondInstance(List<String> args) {
+  logger.info("onSecondWindow $args");
+  unawaited(() async {
+    await _bringExistingWindowToFront();
+
+    if (_isNonActionableSecondArgs(args)) {
+      // Double-clicking the app should always surface the UI.
+      go(BrandPage());
+      return;
+    }
+
+    processArgs(args);
+  }());
+}
+
 void main(List<String> args) async {
   if (ElevatedTaskRunner.tryHandleElevatedTask(args)) {
     return;
@@ -71,8 +108,7 @@ void main(List<String> args) async {
       args,
       "w0fv1.dev.vertree",
       onSecondWindow: (args) {
-        logger.info("onSecondWindow $args");
-        processArgs(args);
+        _handleSecondInstance(args);
       },
       bringWindowToFront: false,
     );

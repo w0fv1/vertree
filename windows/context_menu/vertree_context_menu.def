@@ -1,0 +1,4 @@
+LIBRARY "vertree_context_menu"
+EXPORTS
+    DllGetClassObject
+    DllCanUnloadNow

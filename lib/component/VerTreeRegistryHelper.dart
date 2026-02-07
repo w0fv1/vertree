@@ -3,6 +3,7 @@ import 'package:vertree/component/ElevatedTask.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/main.dart';
+import 'package:vertree/utils/WindowsPackageIdentity.dart';
 
 import '../utils/WindowsRegistryUtil.dart';
 import 'package:path/path.dart' as path;
@@ -21,6 +22,14 @@ class VerTreeRegistryService {
   static const String win11HandlerName = 'Vertree';
   static const String win11HandlerClsid =
       '{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}';
+  static bool _warnedNoIdentity = false;
+  static void _warnNoIdentityOnce() {
+    if (_warnedNoIdentity) {
+      return;
+    }
+    _warnedNoIdentity = true;
+    logger.error('Win11 新菜单需要 Sparse Package/MSIX 身份');
+  }
 
   static String exePath = Platform.resolvedExecutable;
 
@@ -356,36 +365,30 @@ class VerTreeRegistryService {
         RegistryHelper.enableAutoStart(runRegistryPath, appName, exePath) &&
         success;
 
-    final helperPath = _contextMenuHelperPath();
-    success =
-        RegistryHelper.addWin11ContextMenuHandler(
-          win11HandlerName,
-          win11HandlerClsid,
-          helperPath,
-        ) &&
-        success;
+    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
+      // Packaged apps register Win11 menu via AppX manifest.
+      success = success && true;
+    } else {
+      logger.info('Win11 新菜单需要 Sparse Package/MSIX 身份，已跳过注册');
+    }
 
     if (success) {
       return true;
     }
 
     logger.info('初始化普通权限失败，尝试一次性提权配置...');
+    final payload = <String, dynamic>{
+      'contextMenus': entries,
+      'autostart': {
+        'enable': true,
+        'runRegistryPath': runRegistryPath,
+        'appName': appName,
+        'appPath': exePath,
+      },
+    };
     final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
       ElevatedTaskRunner.opApplySetup,
-      payload: {
-        'contextMenus': entries,
-        'autostart': {
-          'enable': true,
-          'runRegistryPath': runRegistryPath,
-          'appName': appName,
-          'appPath': exePath,
-        },
-        'win11Menu': {
-          'handlerName': win11HandlerName,
-          'clsid': win11HandlerClsid,
-          'serverPath': helperPath,
-        },
-      },
+      payload: payload,
     );
 
     if (elevatedSuccess) {
@@ -451,40 +454,25 @@ class VerTreeRegistryService {
   }
 
   static bool addWin11ContextMenuHandler({bool allowElevation = true}) {
-    final helperPath = _contextMenuHelperPath();
-    bool success = RegistryHelper.addWin11ContextMenuHandler(
-      win11HandlerName,
-      win11HandlerClsid,
-      helperPath,
-    );
-    if (!success && allowElevation) {
-      success = ElevatedTaskRunner.runTaskSync(
-        ElevatedTaskRunner.opAddWin11Menu,
-        payload: {
-          'handlerName': win11HandlerName,
-          'clsid': win11HandlerClsid,
-          'serverPath': helperPath,
-        },
-      );
+    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
+      return true;
     }
-    return success;
+    _warnNoIdentityOnce();
+    return false;
   }
 
   static bool removeWin11ContextMenuHandler({bool allowElevation = true}) {
-    bool success = RegistryHelper.removeWin11ContextMenuHandler(
-      win11HandlerName,
-      win11HandlerClsid,
-    );
-    if (!success && allowElevation) {
-      success = ElevatedTaskRunner.runTaskSync(
-        ElevatedTaskRunner.opRemoveWin11Menu,
-        payload: {'handlerName': win11HandlerName, 'clsid': win11HandlerClsid},
-      );
+    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
+      return true;
     }
-    return success;
+    _warnNoIdentityOnce();
+    return false;
   }
 
   static bool checkWin11ContextMenuHandler() {
+    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
+      return true;
+    }
     return RegistryHelper.checkWin11ContextMenuHandler(
       win11HandlerName,
       win11HandlerClsid,
@@ -515,10 +503,6 @@ class VerTreeRegistryService {
       isLogo ? 'logo' : 'icon',
       fileName,
     );
-  }
-
-  static String _contextMenuHelperPath() {
-    return path.join(FileUtils.appDirPath(), 'vertree_context_menu.exe');
   }
 
   static List<Map<String, String?>> _legacyMenuEntries() {
