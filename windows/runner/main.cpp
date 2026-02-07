@@ -5,20 +5,12 @@
 #include "flutter_window.h"
 #include "utils.h"
 
-BOOL isRunAsAdmin();
-void runAsAdmin();
 BOOL isAlreadyRunning();
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
 
     BOOL alreadyRunning = isAlreadyRunning();
-    BOOL isAdmin = isRunAsAdmin();
-
-  if (!isAdmin) {
-     runAsAdmin();
-     return 0;  // 避免 `exit(0);` 影响 `flutter run`
-  }
   if(alreadyRunning){
 
   }
@@ -39,8 +31,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
-  Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  Win32Window::Size size(600, 600);
+  int screen_width = GetSystemMetrics(SM_CXSCREEN);
+  int screen_height = GetSystemMetrics(SM_CYSCREEN);
+  Win32Window::Point origin((screen_width - size.width) / 2,
+                            (screen_height - size.height) / 2);
   if (!window.Create(L"vertree", origin, size)) {
     return EXIT_FAILURE;
   }
@@ -65,46 +60,4 @@ BOOL isAlreadyRunning() {
     }
     (void)hMutex; // Suppress unused variable warning
     return FALSE;
-}
-
-
-
-BOOL isRunAsAdmin() {
-    BOOL isAdmin = FALSE;
-    HANDLE hToken = NULL;
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-        TOKEN_ELEVATION elevation;
-        DWORD dwSize = 0;
-        if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &dwSize)) {
-            isAdmin = elevation.TokenIsElevated;
-        }
-        CloseHandle(hToken);
-    }
-    return isAdmin;
-}
-
-void runAsAdmin() {
-    WCHAR filePath[MAX_PATH];
-    GetModuleFileName(NULL, filePath, MAX_PATH);
-
-    // 获取命令行参数
-    LPWSTR commandLine = GetCommandLine();
-
-    SHELLEXECUTEINFO sei = { sizeof(sei) };
-    sei.lpVerb = L"runas";  // 以管理员权限运行
-    sei.lpFile = filePath;
-    sei.lpParameters = commandLine; // 传递参数
-    sei.nShow = SW_SHOW;
-    sei.fMask = SEE_MASK_NOCLOSEPROCESS;
-
-    if (ShellExecuteEx(&sei)) {
-        // 等待管理员进程启动
-        if (sei.hProcess) {
-            WaitForSingleObject(sei.hProcess, INFINITE);
-            CloseHandle(sei.hProcess);
-        }
-        exit(0);  // 退出当前进程，防止重复运行
-    } else {
-        MessageBox(NULL, L"需要管理员权限才能运行此应用！", L"权限错误", MB_OK | MB_ICONERROR);
-    }
 }

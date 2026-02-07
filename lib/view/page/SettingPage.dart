@@ -24,6 +24,12 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
+  Future<void> _restoreIfMaximized() async {
+    if (await windowManager.isMaximized()) {
+      await windowManager.restore();
+    }
+  }
+
   late bool backupFile = VerTreeRegistryService.checkBackupKeyExists();
   late bool expressBackupFile = VerTreeRegistryService.checkExpressBackupKeyExists();
   late bool monitorFile = VerTreeRegistryService.checkMonitorKeyExists();
@@ -32,8 +38,8 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   void initState() {
-    windowManager.restore();
     super.initState();
+    _restoreIfMaximized();
   }
 
   bool isLoading = false;

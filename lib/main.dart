@@ -7,6 +7,7 @@ import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
+import 'package:vertree/component/ElevatedTask.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
@@ -28,10 +29,15 @@ final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
   currentVersion: "V0.7.1", // 替换为你的实际当前版本
-  releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
+  releaseApiUrl:
+      "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
 
 void main(List<String> args) async {
+  if (ElevatedTaskRunner.tryHandleElevatedTask(args)) {
+    return;
+  }
+
   await logger.init();
   await configer.init();
 
@@ -97,7 +103,9 @@ void main(List<String> args) async {
 
     TrayManager().init();
     runApp(const MainPage());
-    processArgs(args);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      processArgs(args);
+    });
   } catch (e) {
     logger.error('Vertree启动失败: $e');
     exit(0);
@@ -123,7 +131,12 @@ void processArgs(List<String> args) {
     }
 
     // 增加action是否合法，path是否存在的检查
-    final allowedActions = ["--backup", "--express-backup", "--monit", "--viewtree"];
+    final allowedActions = [
+      "--backup",
+      "--express-backup",
+      "--monit",
+      "--viewtree",
+    ];
     if (!allowedActions.contains(action)) {
       logger.error("传入的 action 不合法: $action，允许的 action 为: $allowedActions");
       return;
@@ -179,7 +192,10 @@ class _MainPageState extends State<MainPage> with WindowListener {
       child: MaterialApp(
         navigatorKey: navigatorKey,
         title: 'Vertree维树',
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), fontFamily: 'Microsoft YaHei'),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+          fontFamily: 'Microsoft YaHei',
+        ),
         home: page,
       ),
     );
@@ -188,14 +204,15 @@ class _MainPageState extends State<MainPage> with WindowListener {
   void goPage(Widget page) async {
     logger.info("goPage");
 
-    await windowManager.show();
-    await windowManager.focus();
+    if (!mounted) return;
 
-    Future.delayed(Duration(milliseconds: 100), () {
-      setState(() {
-        this.page = Container();
-        this.page = page;
-      });
+    setState(() {
+      this.page = page;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await windowManager.show();
+      await windowManager.focus();
     });
   }
 
@@ -239,7 +256,10 @@ void expressBackup(String path) {
 
   fileNode.safeBackup().then((Result<FileNode, String> result) async {
     if (result.isErr) {
-      showWindowsNotification(appLocale.getText(LocaleKey.app_backupFailed), result.msg);
+      showWindowsNotification(
+        appLocale.getText(LocaleKey.app_backupFailed),
+        result.msg,
+      );
       return;
     }
     FileNode backup = result.unwrap();
@@ -267,10 +287,16 @@ void backup(String path) {
         builder: (context) {
           String input = "";
           return AlertDialog(
-            title: Text(appLocale.getText(LocaleKey.app_enterLabelTitle).tr([fileNode.mate.name])),
+            title: Text(
+              appLocale.getText(LocaleKey.app_enterLabelTitle).tr([
+                fileNode.mate.name,
+              ]),
+            ),
             content: TextField(
               autofocus: true,
-              decoration: InputDecoration(hintText: appLocale.getText(LocaleKey.app_enterLabelHint)),
+              decoration: InputDecoration(
+                hintText: appLocale.getText(LocaleKey.app_enterLabelHint),
+              ),
               onChanged: (value) {
                 input = value;
               },
@@ -280,7 +306,10 @@ void backup(String path) {
                 onPressed: () {
                   Navigator.of(context).pop('\$CANCEL_BACKUP');
                 },
-                child: Text(appLocale.getText(LocaleKey.app_cancelBackup), style: TextStyle(color: Colors.red)),
+                child: Text(
+                  appLocale.getText(LocaleKey.app_cancelBackup),
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
               TextButton(
                 onPressed: () {
@@ -302,12 +331,17 @@ void backup(String path) {
       }
     } catch (e) {
       logger.error("创建询问label失败：${e}");
-      showToast(appLocale.getText(LocaleKey.app_labelDialogError) + e.toString());
+      showToast(
+        appLocale.getText(LocaleKey.app_labelDialogError) + e.toString(),
+      );
     }
 
     fileNode.safeBackup(label).then((Result<FileNode, String> result) async {
       if (result.isErr) {
-        showWindowsNotification(appLocale.getText(LocaleKey.app_backupFailed), result.msg);
+        showWindowsNotification(
+          appLocale.getText(LocaleKey.app_backupFailed),
+          result.msg,
+        );
         return;
       }
       FileNode backup = result.unwrap();
@@ -347,9 +381,14 @@ void backup(String path) {
 
 void monit(String path) {
   logger.info(path);
-  monitService.addFileMonitTask(path).then((Result<FileMonitTask, String> fileMonitTaskResult) {
+  monitService.addFileMonitTask(path).then((
+    Result<FileMonitTask, String> fileMonitTaskResult,
+  ) {
     if (fileMonitTaskResult.isErr) {
-      showWindowsNotification(appLocale.getText(LocaleKey.app_monitFailedTitle), fileMonitTaskResult.msg);
+      showWindowsNotification(
+        appLocale.getText(LocaleKey.app_monitFailedTitle),
+        fileMonitTaskResult.msg,
+      );
       return;
     }
     FileMonitTask fileMonitTask = fileMonitTaskResult.unwrap();
@@ -365,7 +404,5 @@ void monit(String path) {
 
 void viewtree(String path) {
   logger.info(path);
-  Future.delayed(const Duration(milliseconds: 500), () async {
-    go(FileTreePage(key: UniqueKey(), path: path));
-  });
+  go(FileTreePage(key: UniqueKey(), path: path));
 }

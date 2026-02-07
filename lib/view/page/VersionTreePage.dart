@@ -25,19 +25,23 @@ class _FileTreePageState extends State<FileTreePage> {
   FileNode? rootNode;
   bool isLoading = true;
 
+  Future<void> _syncWindowState() async {
+    var fileTreeWindowsStatus = configer.get("fileTreeWindowsStatus", "maximize");
+    bool isMaximized = await windowManager.isMaximized();
+
+    if (fileTreeWindowsStatus == "maximize" && !isMaximized) {
+      await windowManager.maximize();
+    } else if (fileTreeWindowsStatus != "maximize" && isMaximized) {
+      await windowManager.restore();
+    }
+  }
+
   @override
   void initState() {
     focusNode = FileNode(path);
 
-    var fileTreeWindowsStatus = configer.get("fileTreeWindowsStatus", "maximize");
-
-    if (fileTreeWindowsStatus == "maximize") {
-      windowManager.maximize();
-    } else {
-      windowManager.restore();
-    }
-
     super.initState();
+    _syncWindowState();
 
     Future.wait([buildTree(path), Future.delayed(Duration(milliseconds: 200))]).then((results) {
       Result<FileNode, void> buildTreeResult = results[0];

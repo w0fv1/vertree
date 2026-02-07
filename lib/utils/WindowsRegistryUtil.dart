@@ -1,16 +1,44 @@
-import 'dart:math';
-
 import 'package:vertree/main.dart';
+import 'package:win32/win32.dart';
 import 'package:win32_registry/win32_registry.dart';
 
 class RegistryHelper {
+  static const String allUsersClassesShellPath = r'Software\Classes\*\shell';
+  static const int _hrFileNotFound = 0x80070002;
+  static const int _hrPathNotFound = 0x80070003;
+  static const int _hrAccessDenied = 0x80070005;
+
+  static int _normalizeHr(int hr) => hr & 0xFFFFFFFF;
+
+  static bool _isKeyMissingError(Object error) {
+    if (error is WindowsException) {
+      final hr = _normalizeHr(error.hr);
+      return hr == _hrFileNotFound || hr == _hrPathNotFound;
+    }
+    return false;
+  }
+
+  static bool _isAccessDeniedError(Object error) {
+    if (error is WindowsException) {
+      return _normalizeHr(error.hr) == _hrAccessDenied;
+    }
+    return false;
+  }
+
   /// 检查注册表项是否存在
   static bool checkRegistryKeyExists(RegistryHive hive, String path) {
     try {
-      final key = Registry.openPath(hive, path: path, desiredAccessRights: AccessRights.readOnly);
+      final key = Registry.openPath(
+        hive,
+        path: path,
+        desiredAccessRights: AccessRights.readOnly,
+      );
       key.close();
       return true;
     } catch (e) {
+      if (_isKeyMissingError(e)) {
+        return false;
+      }
       logger.error('检查注册表path: "$path" 失败: $e');
       return false;
     }
@@ -18,22 +46,39 @@ class RegistryHelper {
 
   /// 检查注册表项是否存在
   static bool checkRegistryMenuExistsByMenuName(String menuName) {
-    return checkRegistryKeyExists(RegistryHive.classesRoot, r'*\shell\' + menuName);
+    return checkRegistryKeyExists(
+      RegistryHive.localMachine,
+      '$allUsersClassesShellPath\\$menuName',
+    );
   }
 
   /// 通过注册表键名检查右键菜单项是否存在
   static bool checkRegistryMenuExistsByKey(String keyName) {
-    return checkRegistryKeyExists(RegistryHive.classesRoot, r'*\shell\' + keyName);
+    return checkRegistryKeyExists(
+      RegistryHive.localMachine,
+      '$allUsersClassesShellPath\\$keyName',
+    );
   }
 
   /// 添加或更新注册表项
-  static bool addOrUpdateRegistryKey(String path, String keyName, String value) {
+  static bool addOrUpdateRegistryKey(
+    String path,
+    String keyName,
+    String value,
+  ) {
     try {
-      final key = Registry.openPath(RegistryHive.localMachine, path: path, desiredAccessRights: AccessRights.allAccess);
+      final key = Registry.openPath(
+        RegistryHive.localMachine,
+        path: path,
+        desiredAccessRights: AccessRights.allAccess,
+      );
       key.createValue(RegistryValue.string(keyName, value));
       key.close();
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
       logger.error('添加或更新注册表项失败: $e');
       return false;
     }
@@ -42,28 +87,42 @@ class RegistryHelper {
   /// 删除注册表项
   static bool deleteRegistryKey(String path, String keyName) {
     try {
-      final key = Registry.openPath(RegistryHive.localMachine, path: path, desiredAccessRights: AccessRights.allAccess);
+      final key = Registry.openPath(
+        RegistryHive.localMachine,
+        path: path,
+        desiredAccessRights: AccessRights.allAccess,
+      );
       key.deleteValue(keyName);
       key.close();
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
       logger.error('删除注册表项失败: $e');
       return false;
     }
   }
 
   /// 增加右键菜单项功能按钮（适用于选中文件），支持自定义图标
-  static bool addContextMenuOption(String keyName, String muiVerb, String command, {String? iconPath}) {
+  static bool addContextMenuOption(
+    String keyName,
+    String muiVerb,
+    String command, {
+    String? iconPath,
+  }) {
     try {
-      String registryPath = r'*\shell\' + keyName;
+      String registryPath = '$allUsersClassesShellPath\\$keyName';
       String commandPath = '$registryPath\\command';
 
-      logger.info('尝试创建右键菜单: registryPath="$registryPath", commandPath="$commandPath"');
+      logger.info(
+        '尝试创建右键菜单: registryPath="$registryPath", commandPath="$commandPath"',
+      );
 
       // 打开或创建 registryPath
       final shellKey = Registry.openPath(
-        RegistryHive.classesRoot,
-        path: r'*\shell',
+        RegistryHive.localMachine,
+        path: allUsersClassesShellPath,
         desiredAccessRights: AccessRights.allAccess,
       );
 
@@ -84,7 +143,7 @@ class RegistryHelper {
 
       // 打开或创建 commandPath
       final menuCommandKey = Registry.openPath(
-        RegistryHive.classesRoot,
+        RegistryHive.localMachine,
         path: registryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
@@ -97,6 +156,9 @@ class RegistryHelper {
 
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
       logger.error('添加右键菜单失败: $e');
       return false;
     }
@@ -104,12 +166,12 @@ class RegistryHelper {
 
   static bool removeContextMenuOptionByMenuName(String menuName) {
     try {
-      String registryPath = r'*\shell\' + menuName;
+      String registryPath = '$allUsersClassesShellPath\\$menuName';
 
       // 直接打开完整路径
       final key = Registry.openPath(
-        RegistryHive.classesRoot,
-        path: r'*\shell',
+        RegistryHive.localMachine,
+        path: allUsersClassesShellPath,
         desiredAccessRights: AccessRights.allAccess,
       );
 
@@ -120,6 +182,9 @@ class RegistryHelper {
       logger.info('成功删除右键菜单项: $registryPath');
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+        return false;
+      }
       logger.error('删除右键菜单失败: $e');
       return false;
     }
@@ -128,8 +193,8 @@ class RegistryHelper {
   static bool removeContextMenuOptionByKey(String keyName) {
     try {
       final parentKey = Registry.openPath(
-        RegistryHive.classesRoot,
-        path: r'*\shell',
+        RegistryHive.localMachine,
+        path: allUsersClassesShellPath,
         desiredAccessRights: AccessRights.allAccess,
       );
 
@@ -139,16 +204,23 @@ class RegistryHelper {
       logger.info('成功通过键名 "$keyName" 删除右键菜单项');
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+        return false;
+      }
       logger.error('通过键名 "$keyName" 删除右键菜单项失败: $e');
       return false;
     }
   }
 
   /// 启用开机自启
-  static bool enableAutoStart(String runRegistryPath, String appName, String appPath) {
+  static bool enableAutoStart(
+    String runRegistryPath,
+    String appName,
+    String appPath,
+  ) {
     try {
       final key = Registry.openPath(
-        RegistryHive.currentUser,
+        RegistryHive.localMachine,
         path: runRegistryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
@@ -157,6 +229,9 @@ class RegistryHelper {
       logger.info('成功设置应用 "$appName" 开机自启');
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e)) {
+        return false;
+      }
       logger.error('设置开机自启失败: $e');
       return false;
     }
@@ -166,7 +241,7 @@ class RegistryHelper {
   static bool disableAutoStart(String runRegistryPath, String appName) {
     try {
       final key = Registry.openPath(
-        RegistryHive.currentUser,
+        RegistryHive.localMachine,
         path: runRegistryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
@@ -175,6 +250,9 @@ class RegistryHelper {
       logger.info('成功移除应用 "$appName" 的开机自启');
       return true;
     } catch (e) {
+      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+        return false;
+      }
       logger.error('移除开机自启失败: $e');
       return false;
     }
@@ -184,7 +262,7 @@ class RegistryHelper {
   static bool isAutoStartEnabled(String runRegistryPath, String appName) {
     try {
       final key = Registry.openPath(
-        RegistryHive.currentUser,
+        RegistryHive.localMachine,
         path: runRegistryPath,
         desiredAccessRights: AccessRights.readOnly,
       );
@@ -192,6 +270,9 @@ class RegistryHelper {
       key.close();
       return exists;
     } catch (e) {
+      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+        return false;
+      }
       logger.error('检查开机自启状态失败: $e');
       return false;
     }
