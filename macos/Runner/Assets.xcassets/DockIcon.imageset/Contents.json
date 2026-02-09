@@ -1,0 +1,14 @@
+{
+  "images" : [
+    {
+      "filename" : "dock_icon_1024.png",
+      "idiom" : "mac",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+

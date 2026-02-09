@@ -1,23 +1,27 @@
 import 'dart:io';
 import 'dart:async';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:toastification/toastification.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
-import 'package:vertree/component/ElevatedTask.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/component/TrayManager.dart';
+import 'package:vertree/platform/platform_integration.dart';
+import 'package:vertree/platform/windows_registry_bridge.dart';
+import 'package:vertree/platform/windows_single_instance_bridge.dart';
 import 'package:vertree/view/page/BrandPage.dart';
 import 'package:vertree/view/page/MonitPage.dart';
+import 'package:vertree/view/page/SettingPage.dart';
 import 'package:vertree/view/page/VersionTreePage.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_single_instance/windows_single_instance.dart';
 
 import 'component/AppVersionInfo.dart';
 
@@ -61,6 +65,7 @@ bool _isNonActionableSecondArgs(List<String> args) {
 Future<void> _bringExistingWindowToFront() async {
   try {
     await windowManager.setSkipTaskbar(false);
+    await PlatformIntegration.refreshMacOSDockIcon();
     if (await windowManager.isMinimized()) {
       await windowManager.restore();
     }
@@ -89,22 +94,35 @@ void _handleSecondInstance(List<String> args) {
 }
 
 void main(List<String> args) async {
-  if (ElevatedTaskRunner.tryHandleElevatedTask(args)) {
-    return;
-  }
+  if (await WindowsRegistryBridge.tryHandleElevatedTask(args)) return;
 
   await logger.init();
   await configer.init();
+  await PlatformIntegration.init();
 
   monitService = MonitManager();
   logger.info("启动参数: $args");
 
   try {
+    final bool launch2Tray = configer.get("launch2Tray", true);
+    final bool isSetupDone = configer.get<bool>('isSetupDone', false);
+
     WidgetsFlutterBinding.ensureInitialized();
+    _setupMacOSServiceChannel();
     await windowManager.ensureInitialized();
     await windowManager.setPreventClose(true);
 
-    await WindowsSingleInstance.ensureSingleInstance(
+    // On macOS, `setSkipTaskbar(true)` switches activationPolicy to `.accessory`.
+    // Doing it early avoids a brief Dock icon flash during long startup work.
+    if (Platform.isMacOS && launch2Tray && isSetupDone) {
+      try {
+        await windowManager.setSkipTaskbar(true);
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    await WindowsSingleInstanceBridge.ensureSingleInstance(
       args,
       "w0fv1.dev.vertree",
       onSecondWindow: (args) {
@@ -123,11 +141,8 @@ void main(List<String> args) async {
       ),
       () async {
         await windowManager.setOpacity(0);
-        bool launch2Tray = configer.get("launch2Tray", true);
-        bool isSetupDone = configer.get<bool>('isSetupDone', false);
 
         if (launch2Tray && isSetupDone) {
-          await windowManager.setSkipTaskbar(true);
           await showWindowsNotificationWithTask(
             appLocale.getText(LocaleKey.app_trayNotificationTitle),
             appLocale.getText(LocaleKey.app_trayNotificationContent),
@@ -138,6 +153,7 @@ void main(List<String> args) async {
           windowManager.hide();
         } else {
           await windowManager.setSkipTaskbar(false);
+          await PlatformIntegration.refreshMacOSDockIcon();
           await windowManager.show();
           await windowManager.focus();
           await fadeInWindow();
@@ -172,6 +188,61 @@ void main(List<String> args) async {
     logger.error('Vertree启动失败: $e');
     exit(0);
   }
+}
+
+void _setupMacOSServiceChannel() {
+  if (!Platform.isMacOS) return;
+  const channel = MethodChannel('vertree/service');
+  channel.setMethodCallHandler((call) async {
+    final raw = call.arguments;
+    if (raw is! Map) return;
+    final action = raw['action']?.toString();
+    if (action == null || action.isEmpty) return;
+
+    if (call.method == 'serviceAction') {
+      final path = raw['path']?.toString();
+      if (path == null || path.isEmpty) return;
+      processArgs(['--service', action, path]);
+      return;
+    }
+
+    if (call.method == 'menuAction') {
+      if (action == 'openSettings') {
+        await _ensureWindowVisible();
+        go(SettingPage());
+        return;
+      }
+
+      const allowedActions = [
+        "--backup",
+        "--express-backup",
+        "--monit",
+        "--viewtree",
+      ];
+      if (!allowedActions.contains(action)) return;
+      await _pickFileAndRunAction(action);
+    }
+  });
+}
+
+Future<void> _ensureWindowVisible() async {
+  try {
+    await windowManager.setSkipTaskbar(false);
+    await PlatformIntegration.refreshMacOSDockIcon();
+    await windowManager.show();
+    await windowManager.focus();
+    await windowManager.setOpacity(1);
+  } catch (_) {
+    // ignore
+  }
+}
+
+Future<void> _pickFileAndRunAction(String action) async {
+  await _ensureWindowVisible();
+  final result = await FilePicker.platform.pickFiles();
+  final path = result?.files.single.path;
+  if (path == null || path.isEmpty) return;
+  processArgs(['--menu', action, path]);
 }
 
 void processArgs(List<String> args) {
@@ -256,7 +327,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
         title: 'Vertree维树',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
         ),
         home: page,
       ),
@@ -275,6 +346,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await windowManager.setOpacity(0);
       await windowManager.setSkipTaskbar(false);
+      await PlatformIntegration.refreshMacOSDockIcon();
       await windowManager.show();
       await windowManager.focus();
       await fadeInWindow();

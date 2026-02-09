@@ -53,7 +53,9 @@ class _VAppBarState extends State<VAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMacOS = Theme.of(context).platform == TargetPlatform.macOS;
     return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onPanUpdate: (_) async => await windowManager.startDragging(),
       onDoubleTap: () async {
         if (isMaximized) {
@@ -75,65 +77,92 @@ class _VAppBarState extends State<VAppBar> {
         height: 40,
         padding: EdgeInsets.all(4),
         color: Colors.transparent,
-        child: Row(
-          children: [
-            if (widget.goHome)
-              _buildAppBarButton(Icons.arrow_back_rounded, () async {
-                go(BrandPage());
-              }),
-            Expanded(
-              child: Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: widget.title,
-              ),
-            ),
-            if (widget.goHome)
-              _buildAppBarButton(Icons.home_rounded, () async {
-                go(BrandPage());
-              }),
+        child: isMacOS ? _buildMacLayout() : _buildDefaultLayout(),
+      ),
+    );
+  }
 
-            /// **窗口操作按钮**
-            Row(
-              children: [
-                if (widget.showMinimize)
-                  _buildAppBarButton(Icons.remove, () async {
-                    await windowManager.minimize();
-                    if (widget.onMinimize != null) {
-                      widget.onMinimize!();
-                    }
-                  }),
-                if (widget.showMinimize) const SizedBox(width: 6),
-                if (widget.showMaximize)
-                  _buildAppBarButton(isMaximized ? Icons.filter_none : Icons.crop_square, () async {
-                    if (isMaximized) {
-                      await windowManager.restore();
-                      isMaximized = false;
-                      if (widget.onRestore != null) {
-                        widget.onRestore!();
-                      }
-                    } else {
-                      await windowManager.maximize();
-                      isMaximized = true;
-                      if (widget.onMaximize != null) {
-                        widget.onMaximize!();
-                      }
-                    }
-                    setState(() {});
-                  }),
-                if (widget.showMaximize) const SizedBox(width: 6),
-                if (widget.showClose)
-                  _buildAppBarButton(Icons.close, () async {
-                    await windowManager.hide(); // 仅隐藏窗口
-                    if (widget.onClose != null) {
-                      widget.onClose!();
-                    }
-                  }),
-              ],
-            ),
+  Widget _buildMacLayout() {
+    const double trafficLightInset = 72;
+    return Row(
+      children: [
+        const SizedBox(width: trafficLightInset),
+        if (widget.goHome)
+          _buildAppBarButton(Icons.arrow_back_rounded, () async {
+            go(BrandPage());
+          }),
+        if (widget.goHome)
+          _buildAppBarButton(Icons.home_rounded, () async {
+            go(BrandPage());
+          }),
+        const Spacer(),
+        Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 12),
+          child: widget.title,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDefaultLayout() {
+    return Row(
+      children: [
+        if (widget.goHome)
+          _buildAppBarButton(Icons.arrow_back_rounded, () async {
+            go(BrandPage());
+          }),
+        Expanded(
+          child: Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: widget.title,
+          ),
+        ),
+        if (widget.goHome)
+          _buildAppBarButton(Icons.home_rounded, () async {
+            go(BrandPage());
+          }),
+
+        /// **窗口操作按钮**
+        Row(
+          children: [
+            if (widget.showMinimize)
+              _buildAppBarButton(Icons.remove, () async {
+                await windowManager.minimize();
+                if (widget.onMinimize != null) {
+                  widget.onMinimize!();
+                }
+              }),
+            if (widget.showMinimize) const SizedBox(width: 6),
+            if (widget.showMaximize)
+              _buildAppBarButton(isMaximized ? Icons.filter_none : Icons.crop_square, () async {
+                if (isMaximized) {
+                  await windowManager.restore();
+                  isMaximized = false;
+                  if (widget.onRestore != null) {
+                    widget.onRestore!();
+                  }
+                } else {
+                  await windowManager.maximize();
+                  isMaximized = true;
+                  if (widget.onMaximize != null) {
+                    widget.onMaximize!();
+                  }
+                }
+                setState(() {});
+              }),
+            if (widget.showMaximize) const SizedBox(width: 6),
+            if (widget.showClose)
+              _buildAppBarButton(Icons.close, () async {
+                await windowManager.hide(); // 仅隐藏窗口
+                if (widget.onClose != null) {
+                  widget.onClose!();
+                }
+              }),
           ],
         ),
-      ),
+      ],
     );
   }
 

@@ -1,0 +1,183 @@
+platform :osx, '10.15'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'ephemeral', 'Flutter-Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure \"flutter pub get\" is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Flutter-Generated.xcconfig, then run \"flutter pub get\""
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_macos_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_macos_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_macos_build_settings(target)
+  end
+end
+
+post_integrate do |installer|
+  # When the project lives on a File Provider-backed volume (e.g. Desktop/iCloud),
+  # copied build artifacts may carry xattrs like FinderInfo/resource forks.
+  # codesign then fails with:
+  # "resource fork, Finder information, or similar detritus not allowed"
+  #
+  # Patch the "[CP] Embed Pods Frameworks" build phase after CocoaPods integration,
+  # and ensure a final "Strip Xattrs" build phase exists (pod install can rewrite pbxproj).
+  # codesign cares about resource forks / Finder info; `xattr -c` does not reliably
+  # remove those for File Provider volumes, but `xattr -r -d <attr>` does.
+  xattr_shell_lines = [
+    '/usr/bin/xattr -r -d com.apple.FinderInfo $TARGET_BUILD_DIR/$FULL_PRODUCT_NAME || true',
+    '/usr/bin/xattr -r -d com.apple.ResourceFork $TARGET_BUILD_DIR/$FULL_PRODUCT_NAME || true',
+    "/usr/bin/xattr -r -d 'com.apple.fileprovider.fpfs#P' $TARGET_BUILD_DIR/$FULL_PRODUCT_NAME || true",
+  ]
+  xattr_script_pbx = xattr_shell_lines.join("\\n")
+  xattr_marker = 'com.apple.FinderInfo'
+  pbxproj_path = File.join(__dir__, 'Runner.xcodeproj', 'project.pbxproj')
+  next unless File.exist?(pbxproj_path)
+
+  contents = File.read(pbxproj_path)
+  changed = false
+
+  # Patch via a small state-machine over lines: locate the build phase block and
+  # replace its shellScript line with a multi-line script that scrubs xattrs.
+  lines = contents.lines
+  in_embed_pods_frameworks = false
+
+  lines.each_with_index do |line, idx|
+    if line.include?('/* [CP] Embed Pods Frameworks */ = {')
+      in_embed_pods_frameworks = true
+      next
+    end
+
+    if in_embed_pods_frameworks && line.strip == '};'
+      in_embed_pods_frameworks = false
+      next
+    end
+
+    next unless in_embed_pods_frameworks
+    next unless line.lstrip.start_with?('shellScript = ')
+    next unless line.include?('Pods-Runner-frameworks.sh')
+    next if line.include?(xattr_marker)
+
+    indent = line[/^\s*/] || ''
+    lines[idx] = "#{indent}shellScript = \"\\\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\\\"\\n#{xattr_script_pbx}\\n\";\n"
+    changed = true
+    break
+  end
+
+  # Add a final build phase that always runs (some builds may skip pod scripts
+  # under dependency analysis, but codesign will still run).
+  strip_phase_name = '[vertree] Strip Xattrs'
+  # Also drop a marker file so we can tell the phase ran in build logs/artifacts.
+  strip_phase_script = "echo $TARGET_BUILD_DIR/$FULL_PRODUCT_NAME > $TARGET_BUILD_DIR/vertree_strip_xattrs_path || true\\ntouch $TARGET_BUILD_DIR/vertree_strip_xattrs_ran || true\\n#{xattr_script_pbx}\\n"
+  strip_phase_id = nil
+  strip_phase_def_re = /^\t\t([A-F0-9]{24}) \/\* #{Regexp.escape(strip_phase_name)} \*\/ = \{\s*$/
+  lines.each do |l|
+    m = l.match(strip_phase_def_re)
+    if m
+      strip_phase_id = m[1]
+      break
+    end
+  end
+
+  unless strip_phase_id
+    require 'securerandom'
+    begin
+      candidate = SecureRandom.hex(12).upcase
+    end while contents.include?(candidate)
+    strip_phase_id = candidate
+
+    insert_at = lines.find_index { |l| l.include?('/* End PBXShellScriptBuildPhase section */') }
+    if insert_at
+      phase = []
+      phase << "\t\t#{strip_phase_id} /* #{strip_phase_name} */ = {\n"
+      phase << "\t\t\tisa = PBXShellScriptBuildPhase;\n"
+      phase << "\t\t\talwaysOutOfDate = 1;\n"
+      phase << "\t\t\tbuildActionMask = 2147483647;\n"
+      phase << "\t\t\tfiles = (\n"
+      phase << "\t\t\t);\n"
+      phase << "\t\t\tinputFileListPaths = (\n"
+      phase << "\t\t\t);\n"
+      phase << "\t\t\tinputPaths = (\n"
+      phase << "\t\t\t);\n"
+      phase << "\t\t\toutputFileListPaths = (\n"
+      phase << "\t\t\t);\n"
+      phase << "\t\t\toutputPaths = (\n"
+      phase << "\t\t\t);\n"
+      phase << "\t\t\trunOnlyForDeploymentPostprocessing = 0;\n"
+      phase << "\t\t\tshellPath = /bin/sh;\n"
+      phase << "\t\t\tshellScript = \"#{strip_phase_script}\";\n"
+      phase << "\t\t\tshowEnvVarsInLog = 0;\n"
+      phase << "\t\t};\n"
+      lines.insert(insert_at, *phase)
+      changed = true
+    end
+  end
+
+  runner_target_id = '33CC10EC2044A3C60003C045'
+  in_runner_target = false
+  in_build_phases = false
+  build_phases_end_idx = nil
+
+  lines.each_with_index do |line, idx|
+    if line.include?("#{runner_target_id} /* Runner */ = {")
+      in_runner_target = true
+      next
+    end
+
+    if in_runner_target && line.include?('buildPhases = (')
+      in_build_phases = true
+      next
+    end
+
+    if in_build_phases && line.strip == ');'
+      build_phases_end_idx = idx
+      break
+    end
+
+    if in_runner_target && !in_build_phases && line.strip == '};'
+      break
+    end
+  end
+
+  phase_ref = "#{strip_phase_id} /* #{strip_phase_name} */"
+  phase_referenced = false
+  if build_phases_end_idx
+    build_phases_start_idx = lines[0..build_phases_end_idx].rindex { |l| l.include?('buildPhases = (') } || 0
+    phase_referenced = lines[build_phases_start_idx..build_phases_end_idx].any? { |l| l.include?(strip_phase_name) }
+  end
+
+  if build_phases_end_idx && !phase_referenced
+    # Insert just before the closing ');' of Runner's buildPhases list.
+    lines.insert(build_phases_end_idx, "\t\t\t\t#{phase_ref},\n")
+    changed = true
+  end
+
+  File.write(pbxproj_path, lines.join) if changed
+end
