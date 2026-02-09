@@ -84,9 +84,15 @@ class _VAppBarState extends State<VAppBar> {
 
   Widget _buildMacLayout() {
     const double trafficLightInset = 72;
+    final bool showThemeToggle = currentThemeSetting != AppThemeSetting.system;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final IconData themeIcon =
+        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
+
     return Row(
       children: [
         const SizedBox(width: trafficLightInset),
+        const Spacer(),
         if (widget.goHome)
           _buildAppBarButton(Icons.arrow_back_rounded, () async {
             go(BrandPage());
@@ -95,7 +101,12 @@ class _VAppBarState extends State<VAppBar> {
           _buildAppBarButton(Icons.home_rounded, () async {
             go(BrandPage());
           }),
-        const Spacer(),
+        if (widget.goHome) const SizedBox(width: 4),
+        if (showThemeToggle)
+          _buildAppBarButton(themeIcon, () {
+            toggleLightDarkTheme();
+          }),
+        const SizedBox(width: 8),
         Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 12),
@@ -106,73 +117,101 @@ class _VAppBarState extends State<VAppBar> {
   }
 
   Widget _buildDefaultLayout() {
+    final bool showThemeToggle = currentThemeSetting != AppThemeSetting.system;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final IconData themeIcon =
+        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    final windowButtons = Row(
+      children: [
+        if (widget.showMinimize)
+          _buildAppBarButton(Icons.remove, () async {
+            await windowManager.minimize();
+            if (widget.onMinimize != null) {
+              widget.onMinimize!();
+            }
+          }),
+        if (widget.showMinimize) const SizedBox(width: 6),
+        if (widget.showMaximize)
+          _buildAppBarButton(
+              isMaximized ? Icons.filter_none : Icons.crop_square, () async {
+            if (isMaximized) {
+              await windowManager.restore();
+              isMaximized = false;
+              if (widget.onRestore != null) {
+                widget.onRestore!();
+              }
+            } else {
+              await windowManager.maximize();
+              isMaximized = true;
+              if (widget.onMaximize != null) {
+                widget.onMaximize!();
+              }
+            }
+            setState(() {});
+          }),
+        if (widget.showMaximize) const SizedBox(width: 6),
+        if (widget.showClose)
+          _buildAppBarButton(
+            Icons.close,
+            () async {
+              await windowManager.hide(); // 仅隐藏窗口
+              if (widget.onClose != null) {
+                widget.onClose!();
+              }
+            },
+            color: scheme.error,
+          ),
+      ],
+    );
+
     return Row(
       children: [
         if (widget.goHome)
           _buildAppBarButton(Icons.arrow_back_rounded, () async {
             go(BrandPage());
           }),
-        Expanded(
-          child: Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: widget.title,
-          ),
-        ),
         if (widget.goHome)
           _buildAppBarButton(Icons.home_rounded, () async {
             go(BrandPage());
           }),
-
-        /// **窗口操作按钮**
-        Row(
-          children: [
-            if (widget.showMinimize)
-              _buildAppBarButton(Icons.remove, () async {
-                await windowManager.minimize();
-                if (widget.onMinimize != null) {
-                  widget.onMinimize!();
-                }
-              }),
-            if (widget.showMinimize) const SizedBox(width: 6),
-            if (widget.showMaximize)
-              _buildAppBarButton(isMaximized ? Icons.filter_none : Icons.crop_square, () async {
-                if (isMaximized) {
-                  await windowManager.restore();
-                  isMaximized = false;
-                  if (widget.onRestore != null) {
-                    widget.onRestore!();
-                  }
-                } else {
-                  await windowManager.maximize();
-                  isMaximized = true;
-                  if (widget.onMaximize != null) {
-                    widget.onMaximize!();
-                  }
-                }
-                setState(() {});
-              }),
-            if (widget.showMaximize) const SizedBox(width: 6),
-            if (widget.showClose)
-              _buildAppBarButton(Icons.close, () async {
-                await windowManager.hide(); // 仅隐藏窗口
-                if (widget.onClose != null) {
-                  widget.onClose!();
-                }
-              }),
-          ],
+        const Spacer(),
+        windowButtons,
+        const SizedBox(width: 8),
+        if (showThemeToggle)
+          _buildAppBarButton(themeIcon, () {
+            toggleLightDarkTheme();
+          }),
+        const SizedBox(width: 4),
+        Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(right: 12),
+          child: widget.title,
         ),
       ],
     );
   }
 
   /// **窗口按钮组件**
-  Widget _buildAppBarButton(IconData icon, VoidCallback onPressed, {Color color = Colors.black87, double padding = 6}) {
+  Widget _buildAppBarButton(
+    IconData icon,
+    VoidCallback onPressed, {
+    Color? color,
+    double padding = 6,
+  }) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color effectiveColor =
+        color ?? scheme.onSurfaceVariant.withOpacity(0.9);
     double size = widget.height - 4;
     return IconButton(
       padding: EdgeInsets.all(padding),
       onPressed: onPressed,
-      icon: Icon(icon, size: size / 3 * 2 - padding, color: color),
+      icon: Icon(
+        icon,
+        size: size / 3 * 2 - padding,
+        color: effectiveColor,
+      ),
     );
   }
 }

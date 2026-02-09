@@ -36,6 +36,7 @@ class _SettingPageState extends State<SettingPage> {
   bool autoStart = false;
   bool legacyMenuEnabled = false;
   bool win11MenuEnabled = false;
+  String _themeModeSetting = 'system';
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _SettingPageState extends State<SettingPage> {
     if (PlatformIntegration.supportsAutoStart) {
       autoStart = await PlatformIntegration.isAutoStartEnabled();
     }
+    _themeModeSetting = configer.get<String>('themeMode', 'system');
     if (!mounted) return;
     setState(() {});
   }
@@ -340,11 +342,64 @@ class _SettingPageState extends State<SettingPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 14.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dark_mode_rounded),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${appLocale.getText(LocaleKey.setting_themeModeLabel)}: ",
+                        ),
+                        const Spacer(),
+                        DropdownButton<String>(
+                          value: _themeModeSetting,
+                          onChanged: (String? value) {
+                            if (value == null) return;
+                            setState(() {
+                              _themeModeSetting = value;
+                            });
+                            if (value == 'system') {
+                              updateThemeSetting(AppThemeSetting.system);
+                            } else if (value == 'light') {
+                              updateThemeSetting(AppThemeSetting.light);
+                            } else {
+                              updateThemeSetting(AppThemeSetting.dark);
+                            }
+                          },
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: 'system',
+                              child: Text(
+                                "    ${appLocale.getText(LocaleKey.setting_themeModeSystem)}    ",
+                              ),
+                            ),
+                            DropdownMenuItem<String>(
+                              value: 'light',
+                              child: Text(
+                                "    ${appLocale.getText(LocaleKey.setting_themeModeLight)}    ",
+                              ),
+                            ),
+                            DropdownMenuItem<String>(
+                              value: 'dark',
+                              child: Text(
+                                "    ${appLocale.getText(LocaleKey.setting_themeModeDark)}    ",
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 20),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
                   if (PlatformIntegration.supportsContextMenus) ...[
                     SwitchListTile(
                       secondary: const Icon(Icons.build, size: 20),
-                      title: const Text("右键菜单选项设置"),
+                      title: Text(
+                        appLocale.getText(LocaleKey.setting_contextMenuGroup),
+                      ),
                       value: win11MenuEnabled,
                       onChanged: _toggleWin11Menu,
                     ),
@@ -356,7 +411,9 @@ class _SettingPageState extends State<SettingPage> {
                       ),
                       children: [
                         SwitchListTile(
-                          title: const Text("右键菜单选项"),
+                          title: Text(
+                            appLocale.getText(LocaleKey.setting_contextMenuToggle),
+                          ),
                           value: legacyMenuEnabled,
                           onChanged: _toggleLegacyMenus,
                         ),

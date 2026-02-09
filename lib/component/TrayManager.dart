@@ -39,11 +39,13 @@ class TrayManager with TrayListener {
     String iconPath = Platform.isWindows
         ? 'assets/img/logo/logo.ico'
         : (Platform.isMacOS
-            ? 'assets/img/logo/tray_colored.png'
+            ? 'assets/img/logo/tray_template.png'
             : 'assets/img/logo/logo.png');
     _iconPath = iconPath;
 
-    await trayManager.setIcon(iconPath, isTemplate: false);
+    // macOS 使用 template 图标以适配深色/浅色模式，其它平台仍使用普通位图。
+    final isTemplate = Platform.isMacOS;
+    await trayManager.setIcon(iconPath, isTemplate: isTemplate);
 
     // 设置托盘菜单
     List<MenuItem> menuItems = _buildMenuItems();
@@ -120,7 +122,7 @@ class TrayManager with TrayListener {
       await PlatformIntegration.refreshMacOSDockIcon();
       await windowManager.show();
       await windowManager.focus();
-      await windowManager.setOpacity(1);
+      await fadeInWindow();
     } catch (_) {
       // ignore
     }
@@ -144,7 +146,8 @@ class TrayManager with TrayListener {
       return;
     }
     try {
-      await trayManager.setIcon(_iconPath!, isTemplate: false);
+      final isTemplate = Platform.isMacOS;
+      await trayManager.setIcon(_iconPath!, isTemplate: isTemplate);
       await trayManager.setContextMenu(_menu!);
     } catch (_) {
       // ignore
@@ -153,6 +156,7 @@ class TrayManager with TrayListener {
 
   @override
   void onTrayIconMouseDown() {
+    _ensureWindowVisible();
     go(BrandPage());
   }
 
