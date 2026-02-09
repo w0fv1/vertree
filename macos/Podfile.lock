@@ -1,0 +1,64 @@
+PODS:
+  - bitsdojo_window_macos (0.0.1):
+    - FlutterMacOS
+  - file_picker (0.0.1):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+  - local_notifier (0.1.0):
+    - FlutterMacOS
+  - screen_retriever_macos (0.0.1):
+    - FlutterMacOS
+  - superuser_plugin_unix (2.1.0):
+    - FlutterMacOS
+  - tray_manager (0.0.1):
+    - FlutterMacOS
+  - url_launcher_macos (0.0.1):
+    - FlutterMacOS
+  - window_manager (0.5.0):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - bitsdojo_window_macos (from `Flutter/ephemeral/.symlinks/plugins/bitsdojo_window_macos/macos`)
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - local_notifier (from `Flutter/ephemeral/.symlinks/plugins/local_notifier/macos`)
+  - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
+  - superuser_plugin_unix (from `Flutter/ephemeral/.symlinks/plugins/superuser_plugin_unix/macos`)
+  - tray_manager (from `Flutter/ephemeral/.symlinks/plugins/tray_manager/macos`)
+  - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
+  - window_manager (from `Flutter/ephemeral/.symlinks/plugins/window_manager/macos`)
+
+EXTERNAL SOURCES:
+  bitsdojo_window_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/bitsdojo_window_macos/macos
+  file_picker:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  local_notifier:
+    :path: Flutter/ephemeral/.symlinks/plugins/local_notifier/macos
+  screen_retriever_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos
+  superuser_plugin_unix:
+    :path: Flutter/ephemeral/.symlinks/plugins/superuser_plugin_unix/macos
+  tray_manager:
+    :path: Flutter/ephemeral/.symlinks/plugins/tray_manager/macos
+  url_launcher_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
+  window_manager:
+    :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
+
+SPEC CHECKSUMS:
+  bitsdojo_window_macos: 7959fb0ca65a3ccda30095c181ecb856fae48ea9
+  file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  local_notifier: ebf072651e35ae5e47280ad52e2707375cb2ae4e
+  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
+  superuser_plugin_unix: fe519bb139fae643108b2b11daadcd4152c3c16e
+  tray_manager: a104b5c81b578d83f3c3d0f40a997c8b10810166
+  url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
+  window_manager: b729e31d38fb04905235df9ea896128991cad99e
+
+PODFILE CHECKSUM: 20680d319876ddc31511c389c5394352c22e9796
+
+COCOAPODS: 1.16.2

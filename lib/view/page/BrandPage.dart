@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vertree/component/I18nLang.dart';
-import 'package:vertree/component/VerTreeRegistryHelper.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
+import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
@@ -115,6 +115,13 @@ class _BrandPageState extends State<BrandPage> {
 
   Future<void> setup(BuildContext context) async {
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
+    if (!PlatformIntegration.isWindows) {
+      if (!isSetupDone) {
+        configer.set<bool>('isSetupDone', true);
+      }
+      return;
+    }
+
     if (isSetupDone) {
       // 启动时不自动触发管理员授权；仅做必要的兼容/提示。
 
@@ -123,7 +130,7 @@ class _BrandPageState extends State<BrandPage> {
         false,
       );
       final expressExists =
-          VerTreeRegistryService.checkExpressBackupKeyExists();
+          await PlatformIntegration.checkExpressBackupKeyExists();
       if (!alreadyPrompted && !expressExists) {
         configer.set<bool>(_expressMenuPromptedKey, true);
 
@@ -150,7 +157,7 @@ class _BrandPageState extends State<BrandPage> {
           );
 
           if (consent == true) {
-            VerTreeRegistryService.addVerTreeExpressBackupContextMenu();
+            await PlatformIntegration.addExpressBackupContextMenu();
           }
         });
       }
@@ -180,7 +187,7 @@ class _BrandPageState extends State<BrandPage> {
     );
 
     if (userConsent == true) {
-      final allSuccess = VerTreeRegistryService.applyInitialSetup();
+      final allSuccess = await PlatformIntegration.applyInitialSetup();
       if (allSuccess) {
         await showWindowsNotification(
           appLocale.getText(LocaleKey.brand_initDoneTitle),

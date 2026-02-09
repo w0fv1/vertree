@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:vertree/component/VerTreeRegistryHelper.dart'; // Assuming this exists
+import 'package:vertree/platform/platform_integration.dart';
 // Assuming 'main.dart' defines 'configer' or provides access to it
 // If 'configer' is global, this import might be okay.
 // Otherwise, AppLocale might need access via constructor or DI.
@@ -229,7 +230,7 @@ class AppLocale {
     lang = newLang;
     configer.set<String>('locale', newLang.name); // ✅ Save to config
 
-    VerTreeRegistryService.reAddContextMenu();
+    unawaited(PlatformIntegration.reAddContextMenu());
     // If you use flutter_localization or intl, refresh here
     // Example: LocalizationService().setLocale(newLang.toLocale());
     print("AppLocale Language changed to: ${lang.name}");

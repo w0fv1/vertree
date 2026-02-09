@@ -74,7 +74,9 @@ class Monitor {
     try {
       final now = DateTime.now();
       logger.info("handleFileChange ${file.path}");
-      if (_lastBackupTime == null || now.difference(_lastBackupTime!).inMinutes >= configer.get("monitorRate", 1)) {
+      if (_lastBackupTime == null ||
+          now.difference(_lastBackupTime!).inMinutes >=
+              configer.get("monitorRate", 5)) {
         logger.info("backupFile ${file.path}");
 
         _backupFile(file, backupDir);
@@ -89,7 +91,7 @@ class Monitor {
   }
 
   void _cleanupOldBackups(Directory backupDir) {
-    final maxBackups = configer.get("monitorMaxSize",9999 );
+    final maxBackups = configer.get("monitorMaxSize", 50);
     final files = backupDir.listSync().whereType<File>().toList();
     if (files.length > maxBackups) {
       files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));

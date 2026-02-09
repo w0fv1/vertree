@@ -27,6 +27,7 @@ dependencies:
   path_provider: ^2.1.5
   loading_indicator: ^3.1.1
   local_notifier: ^0.1.6
+  launch_at_startup: ^0.5.1
   file_picker: ^10.3.10
   url_launcher: ^6.3.1
   toastification: ^3.0.1
@@ -38,6 +39,19 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: 0.14.4
+
+flutter_launcher_icons:
+  android: false
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    icon_size: 256
 flutter:
   uses-material-design: true
   generate: true  # ✅ 添加这一行
@@ -45,3 +59,4 @@ flutter:
     - assets/
     - assets/img/logo/
     - assets/img/icon/
+    - assets/icon/
