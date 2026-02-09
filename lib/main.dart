@@ -38,6 +38,103 @@ final appVersionInfo = AppVersionInfo(
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
 
+/// 统一定义全局明暗主题，默认跟随系统。
+ThemeData _buildLightTheme() {
+  return ThemeData(
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF2E7D32), // 稍偏「树」的绿色
+      brightness: Brightness.light,
+    ),
+    scaffoldBackgroundColor: const Color(0xFFF7F7F7),
+    fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
+    useMaterial3: true,
+  );
+}
+
+ThemeData _buildDarkTheme() {
+  return ThemeData(
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF81C784), // 与浅色主题同色系的柔和绿
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
+    useMaterial3: true,
+  );
+}
+
+/// 主题配置枚举：跟随系统 / 浅色 / 深色。
+enum AppThemeSetting { system, light, dark }
+
+/// 当前主题配置（不等同于实际 ThemeMode，因为 system 需要交给 Flutter 处理）。
+AppThemeSetting currentThemeSetting = AppThemeSetting.system;
+
+/// 全局主题监听器：用于在运行时切换主题并刷新整个应用。
+late ValueNotifier<ThemeMode> themeModeNotifier;
+
+AppThemeSetting _parseThemeSetting(String value) {
+  switch (value) {
+    case 'light':
+      return AppThemeSetting.light;
+    case 'dark':
+      return AppThemeSetting.dark;
+    case 'system':
+    default:
+      return AppThemeSetting.system;
+  }
+}
+
+String _themeSettingToString(AppThemeSetting setting) {
+  switch (setting) {
+    case AppThemeSetting.light:
+      return 'light';
+    case AppThemeSetting.dark:
+      return 'dark';
+    case AppThemeSetting.system:
+    default:
+      return 'system';
+  }
+}
+
+ThemeMode _themeModeFromSetting(AppThemeSetting setting) {
+  switch (setting) {
+    case AppThemeSetting.light:
+      return ThemeMode.light;
+    case AppThemeSetting.dark:
+      return ThemeMode.dark;
+    case AppThemeSetting.system:
+    default:
+      return ThemeMode.system;
+  }
+}
+
+/// 从配置初始化主题（在 main 中调用，runApp 之前）。
+void initThemeFromConfig() {
+  final stored = configer.get<String>('themeMode', 'system');
+  currentThemeSetting = _parseThemeSetting(stored);
+  themeModeNotifier = ValueNotifier<ThemeMode>(
+    _themeModeFromSetting(currentThemeSetting),
+  );
+}
+
+/// 修改主题设置并持久化，同时刷新全局 ThemeMode。
+void updateThemeSetting(AppThemeSetting setting) {
+  currentThemeSetting = setting;
+  configer.set<String>('themeMode', _themeSettingToString(setting));
+  // system 由 Flutter 自行选择明暗，light/dark 强制指定。
+  themeModeNotifier.value = _themeModeFromSetting(setting);
+}
+
+/// 在「浅色」与「深色」之间切换（当配置为跟随系统时，此方法不生效）。
+void toggleLightDarkTheme() {
+  if (currentThemeSetting == AppThemeSetting.system) {
+    return;
+  }
+  final next =
+      currentThemeSetting == AppThemeSetting.light ? AppThemeSetting.dark : AppThemeSetting.light;
+  updateThemeSetting(next);
+}
+
 Future<void> fadeInWindow() async {
   const durationMs = 320;
   const frameTime = Duration(milliseconds: 16);
@@ -98,6 +195,7 @@ void main(List<String> args) async {
 
   await logger.init();
   await configer.init();
+  initThemeFromConfig();
   await PlatformIntegration.init();
 
   monitService = MonitManager();
@@ -231,7 +329,7 @@ Future<void> _ensureWindowVisible() async {
     await PlatformIntegration.refreshMacOSDockIcon();
     await windowManager.show();
     await windowManager.focus();
-    await windowManager.setOpacity(1);
+    await fadeInWindow();
   } catch (_) {
     // ignore
   }
@@ -322,14 +420,18 @@ class _MainPageState extends State<MainPage> with WindowListener {
   @override
   Widget build(BuildContext context) {
     return ToastificationWrapper(
-      child: MaterialApp(
-        navigatorKey: navigatorKey,
-        title: 'Vertree维树',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-          fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
-        ),
-        home: page,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: themeModeNotifier,
+        builder: (context, themeMode, _) {
+          return MaterialApp(
+            navigatorKey: navigatorKey,
+            title: 'Vertree维树',
+            themeMode: themeMode,
+            theme: _buildLightTheme(),
+            darkTheme: _buildDarkTheme(),
+            home: page,
+          );
+        },
       ),
     );
   }
@@ -341,15 +443,6 @@ class _MainPageState extends State<MainPage> with WindowListener {
 
     setState(() {
       this.page = page;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await windowManager.setOpacity(0);
-      await windowManager.setSkipTaskbar(false);
-      await PlatformIntegration.refreshMacOSDockIcon();
-      await windowManager.show();
-      await windowManager.focus();
-      await fadeInWindow();
     });
   }
 

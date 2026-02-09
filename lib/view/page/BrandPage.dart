@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/view/component/AppBar.dart';
@@ -34,16 +35,7 @@ class _BrandPageState extends State<BrandPage> {
       appBar: VAppBar(
         title: Row(
           children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage("assets/img/logo/logo.png"),
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
+            themedLogoImage(context: context, width: 20, height: 20),
             SizedBox(width: 8),
             Text(appLocale.getText(LocaleKey.brand_title)),
           ],
@@ -57,16 +49,7 @@ class _BrandPageState extends State<BrandPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 240,
-                height: 180,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/img/logo/logo.png"),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
+              themedLogoImage(context: context, width: 240, height: 180),
               SizedBox(height: 16),
               Text(
                 appLocale.getText(LocaleKey.brand_title),

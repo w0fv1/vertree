@@ -196,10 +196,16 @@ Vertree 依赖以下优秀的开源库 (部分列举)：
 Launcher Icon（macOS/Windows）统一由 `flutter_launcher_icons` 生成，源图标为 `assets/icon/app_icon.png`。
 
 ```bash
-# 生成 canonical 1024x1024 图标 + 托盘/Dock 刷新用资源
+# 1. 基于透明 Logo 生成 canonical 1024x1024 图标 + 托盘 / Dock 刷新用资源
+#    - 输入：assets/img/logo/logo.png
+#    - 输出：
+#      - assets/icon/app_icon.png              # 作为 flutter_launcher_icons 输入
+#      - macos/Runner/Assets.xcassets/DockIcon.imageset/dock_icon_1024.png
+#      - assets/img/logo/tray_template.png     # macOS 托盘 Template 图标（跟随系统深浅色）
+#      - assets/img/logo/tray_colored.png      # 菜单栏圆形镂空图标
 python3 tools/generate_macos_icons.py
 
-# 生成各平台 Launcher Icon
+# 2. 基于 app_icon.png 生成各平台 Launcher Icon
 dart run flutter_launcher_icons
 ```
 

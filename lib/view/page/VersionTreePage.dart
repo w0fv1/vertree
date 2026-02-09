@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/core/TreeBuilder.dart';
@@ -63,13 +64,7 @@ class _FileTreePageState extends State<FileTreePage> {
       appBar: VAppBar(
         title: Row(
           children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(
-                image: DecorationImage(image: AssetImage("assets/img/logo/logo.png"), fit: BoxFit.contain),
-              ),
-            ),
+            themedLogoImage(context: context, width: 20, height: 20),
             const SizedBox(width: 8),
             Text(
               appLocale.getText(LocaleKey.vertree_fileTreeTitle).tr([
