@@ -150,6 +150,12 @@ enum LocaleKey {
   // VerTree Page Keys
   vertree_title,
   vertree_fileTreeTitle,
+  vertree_overviewTitle,
+  vertree_focusVersion,
+  vertree_latestVersion,
+  vertree_totalNodes,
+  vertree_totalBranches,
+  vertree_canvasHint,
 
   // Monitor Card Keys
   monitcard_monitorStatus,
@@ -180,6 +186,7 @@ enum LocaleKey {
   fileleaf_cancel,
   fileleaf_confirm,
   fileleaf_menuBackup,
+  fileleaf_menuBranch,
   fileleaf_menuMonit,
   fileleaf_menuProperty,
   fileleaf_monitTitle,
@@ -199,6 +206,8 @@ enum LocaleKey {
   fileleaf_propertyCreated,
   fileleaf_propertyModified,
   fileleaf_propertyClose,
+  fileleaf_branchLabel,
+  fileleaf_revisionLabel,
 }
 
 // --- AppLocale Class ---
@@ -409,6 +418,13 @@ class AppLocale {
 
     LocaleKey.vertree_title: "Vertree",
     LocaleKey.vertree_fileTreeTitle: "%a.%a File Version Tree",
+    LocaleKey.vertree_overviewTitle: "Version tree overview",
+    LocaleKey.vertree_focusVersion: "Focus version",
+    LocaleKey.vertree_latestVersion: "Latest version",
+    LocaleKey.vertree_totalNodes: "Total nodes",
+    LocaleKey.vertree_totalBranches: "Branch nodes",
+    LocaleKey.vertree_canvasHint:
+        "Drag to pan, scroll to zoom, right click a node for actions",
 
     LocaleKey.monitcard_monitorStatus: "Monitoring of %a has been %a",
     LocaleKey.monitcard_backupFolder: "Backup Folder: %a",
@@ -437,6 +453,7 @@ class AppLocale {
     LocaleKey.fileleaf_cancel: "Cancel",
     LocaleKey.fileleaf_confirm: "Confirm",
     LocaleKey.fileleaf_menuBackup: "Backup version",
+    LocaleKey.fileleaf_menuBranch: "Create branch",
     LocaleKey.fileleaf_menuMonit: "Monitor changes",
     LocaleKey.fileleaf_menuProperty: "Properties",
     LocaleKey.fileleaf_monitTitle: "Confirm file monitoring",
@@ -457,6 +474,8 @@ class AppLocale {
     LocaleKey.fileleaf_propertyCreated: "Created Time:",
     LocaleKey.fileleaf_propertyModified: "Modified Time:",
     LocaleKey.fileleaf_propertyClose: "Close",
+    LocaleKey.fileleaf_branchLabel: "Branch",
+    LocaleKey.fileleaf_revisionLabel: "Revision",
   };
 
   static const Map<LocaleKey, String> _ZH_CN = {
@@ -574,7 +593,13 @@ class AppLocale {
     LocaleKey.setting_hasNewVertion: "有新版本：%a",
 
     LocaleKey.vertree_title: "Vertree维树",
-    LocaleKey.vertree_fileTreeTitle: "%a.%a 文本版本树",
+    LocaleKey.vertree_fileTreeTitle: "%a.%a 文件版本树",
+    LocaleKey.vertree_overviewTitle: "版本树概览",
+    LocaleKey.vertree_focusVersion: "焦点版本",
+    LocaleKey.vertree_latestVersion: "最新版本",
+    LocaleKey.vertree_totalNodes: "节点总数",
+    LocaleKey.vertree_totalBranches: "分支节点",
+    LocaleKey.vertree_canvasHint: "拖动画布可平移，滚轮可缩放，右键节点可查看更多操作",
 
     LocaleKey.monitcard_monitorStatus: "%a的监控已经%a",
     LocaleKey.monitcard_backupFolder: "备份文件夹：%a",
@@ -603,6 +628,7 @@ class AppLocale {
     LocaleKey.fileleaf_cancel: "取消",
     LocaleKey.fileleaf_confirm: "确认",
     LocaleKey.fileleaf_menuBackup: "备份版本",
+    LocaleKey.fileleaf_menuBranch: "新建分支",
     LocaleKey.fileleaf_menuMonit: "监控变更",
     LocaleKey.fileleaf_menuProperty: "属性",
     LocaleKey.fileleaf_monitTitle: "确认文件监控",
@@ -623,6 +649,8 @@ class AppLocale {
     LocaleKey.fileleaf_propertyCreated: "创建时间:",
     LocaleKey.fileleaf_propertyModified: "修改时间:",
     LocaleKey.fileleaf_propertyClose: "关闭",
+    LocaleKey.fileleaf_branchLabel: "分支",
+    LocaleKey.fileleaf_revisionLabel: "版本",
   };
 
   static const Map<LocaleKey, String> _JA = {
@@ -739,6 +767,12 @@ class AppLocale {
 
     LocaleKey.vertree_title: "Vertreeバージョンツリー",
     LocaleKey.vertree_fileTreeTitle: "%a.%a ファイルバージョンツリー",
+    LocaleKey.vertree_overviewTitle: "バージョンツリー概要",
+    LocaleKey.vertree_focusVersion: "注目バージョン",
+    LocaleKey.vertree_latestVersion: "最新バージョン",
+    LocaleKey.vertree_totalNodes: "総ノード数",
+    LocaleKey.vertree_totalBranches: "分岐ノード数",
+    LocaleKey.vertree_canvasHint: "ドラッグで移動、ホイールで拡大縮小、ノードを右クリックで操作",
 
     LocaleKey.monitcard_monitorStatus: "%aの監視は%aされました",
     // Needs context for %a (e.g., 開始/停止 - started/stopped)
@@ -768,6 +802,7 @@ class AppLocale {
     LocaleKey.fileleaf_cancel: "キャンセル",
     LocaleKey.fileleaf_confirm: "確認",
     LocaleKey.fileleaf_menuBackup: "バックアップバージョン",
+    LocaleKey.fileleaf_menuBranch: "ブランチを作成",
     LocaleKey.fileleaf_menuMonit: "変更を監視",
     LocaleKey.fileleaf_menuProperty: "プロパティ",
     LocaleKey.fileleaf_monitTitle: "ファイル監視の確認",
@@ -788,5 +823,7 @@ class AppLocale {
     LocaleKey.fileleaf_propertyCreated: "作成日時：",
     LocaleKey.fileleaf_propertyModified: "更新日時：",
     LocaleKey.fileleaf_propertyClose: "閉じる",
+    LocaleKey.fileleaf_branchLabel: "ブランチ",
+    LocaleKey.fileleaf_revisionLabel: "バージョン",
   };
 }

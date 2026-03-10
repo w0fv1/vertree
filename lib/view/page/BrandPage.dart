@@ -39,7 +39,7 @@ class _BrandPageState extends State<BrandPage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            themedLogoImage(context: context, width: 20, height: 20),
+            themedLogoImage(context: context, width: 18, height: 18),
             const SizedBox(width: 8),
             Text(appLocale.getText(LocaleKey.brand_title)),
           ],
@@ -63,7 +63,11 @@ class _BrandPageState extends State<BrandPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      themedLogoImage(context: context, width: 240, height: 180),
+                      themedLogoImage(
+                        context: context,
+                        width: 240,
+                        height: 180,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         appLocale.getText(LocaleKey.brand_title),
@@ -111,7 +115,9 @@ class _BrandPageState extends State<BrandPage> {
                               exit(0);
                             },
                             icon: const Icon(Icons.exit_to_app_rounded),
-                            label: Text(appLocale.getText(LocaleKey.brand_exit)),
+                            label: Text(
+                              appLocale.getText(LocaleKey.brand_exit),
+                            ),
                           ),
                         ],
                       ),

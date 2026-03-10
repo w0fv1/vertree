@@ -27,6 +27,247 @@ class _FileTreePageState extends State<FileTreePage> {
   FileNode? rootNode;
   bool isLoading = true;
 
+  String _formatVersionSummary(FileVersion version) {
+    return "${appLocale.getText(LocaleKey.fileleaf_branchLabel)} ${version.branchPath} · "
+        "${appLocale.getText(LocaleKey.fileleaf_revisionLabel)} ${version.revisionNumber}";
+  }
+
+  int _countNodes(FileNode node) {
+    var total = 1;
+    if (node.child != null) {
+      total += _countNodes(node.child!);
+    }
+    for (final branch in node.branches) {
+      total += _countNodes(branch);
+    }
+    return total;
+  }
+
+  int _countBranchNodes(FileNode node) {
+    var total = node.branches.length;
+    if (node.child != null) {
+      total += _countBranchNodes(node.child!);
+    }
+    for (final branch in node.branches) {
+      total += _countBranchNodes(branch);
+    }
+    return total;
+  }
+
+  FileNode _findLatestNode(FileNode node) {
+    FileNode latest = node;
+    if (node.child != null) {
+      final childLatest = _findLatestNode(node.child!);
+      if (childLatest.mate.version.compareTo(latest.mate.version) > 0) {
+        latest = childLatest;
+      }
+    }
+    for (final branch in node.branches) {
+      final branchLatest = _findLatestNode(branch);
+      if (branchLatest.mate.version.compareTo(latest.mate.version) > 0) {
+        latest = branchLatest;
+      }
+    }
+    return latest;
+  }
+
+  Widget _buildStatChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 156, maxWidth: 228),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: scheme.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewContent(BuildContext context, FileNode root) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final latestNode = _findLatestNode(root);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "${root.mate.name} ${appLocale.getText(LocaleKey.vertree_overviewTitle)}",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            path,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildStatChip(
+                context,
+                icon: Icons.my_location_rounded,
+                label: appLocale.getText(LocaleKey.vertree_focusVersion),
+                value: _formatVersionSummary(focusNode.mate.version),
+              ),
+              _buildStatChip(
+                context,
+                icon: Icons.update_rounded,
+                label: appLocale.getText(LocaleKey.vertree_latestVersion),
+                value: _formatVersionSummary(latestNode.mate.version),
+              ),
+              _buildStatChip(
+                context,
+                icon: Icons.hub_outlined,
+                label: appLocale.getText(LocaleKey.vertree_totalNodes),
+                value: _countNodes(root).toString(),
+              ),
+              _buildStatChip(
+                context,
+                icon: Icons.call_split_rounded,
+                label: appLocale.getText(LocaleKey.vertree_totalBranches),
+                value: _countBranchNodes(root).toString(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showOverviewDialog(BuildContext context, FileNode root) async {
+    final scheme = Theme.of(context).colorScheme;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: scheme.surfaceContainerHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: BorderSide(color: scheme.outlineVariant),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: _buildOverviewContent(dialogContext, root),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCanvasPanel(BuildContext context, FileNode root) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Card(
+      color: scheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLowest,
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.65),
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return FileTree(
+                        rootNode: root,
+                        focusNode: focusNode,
+                        height: constraints.maxHeight,
+                        width: constraints.maxWidth,
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Card.filled(
+                    color: scheme.surfaceContainerHigh.withValues(alpha: 0.94),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: IconButton.filledTonal(
+                        tooltip: appLocale.getText(
+                          LocaleKey.vertree_overviewTitle,
+                        ),
+                        icon: const Icon(Icons.info_outline_rounded),
+                        onPressed: () {
+                          _showOverviewDialog(context, root);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _syncWindowState() async {
     var fileTreeWindowsStatus = configer.get(
       "fileTreeWindowsStatus",
@@ -52,7 +293,7 @@ class _FileTreePageState extends State<FileTreePage> {
       buildTree(path),
       Future.delayed(Duration(milliseconds: 200)),
     ]).then((results) {
-      Result<FileNode, void> buildTreeResult = results[0];
+      Result<FileNode, String> buildTreeResult = results[0];
       if (buildTreeResult.isErr) {
         showToast(buildTreeResult.msg);
         isLoading = false;
@@ -72,7 +313,7 @@ class _FileTreePageState extends State<FileTreePage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            themedLogoImage(context: context, width: 20, height: 20),
+            themedLogoImage(context: context, width: 18, height: 18),
             const SizedBox(width: 8),
             Text(
               appLocale.getText(LocaleKey.vertree_fileTreeTitle).tr([
@@ -98,14 +339,12 @@ class _FileTreePageState extends State<FileTreePage> {
       body: AppPageBackground(
         child: LoadingWidget(
           isLoading: isLoading,
-          child: rootNode != null
-              ? FileTree(
-                  rootNode: rootNode!,
-                  focusNode: focusNode,
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                )
-              : Container(),
+          child: rootNode == null
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildCanvasPanel(context, rootNode!),
+                ),
         ),
       ),
     );

@@ -33,7 +33,7 @@ Configer configer = Configer();
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.8.0-alpha3", // 替换为你的实际当前版本
+  currentVersion: "V0.8.0-alpha4", // 替换为你的实际当前版本
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
@@ -167,6 +167,16 @@ ThemeData _buildTheme({
         ),
         side: WidgetStatePropertyAll(BorderSide(color: scheme.outlineVariant)),
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        menuPadding: const EdgeInsets.symmetric(vertical: 8),
+      ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
@@ -182,7 +192,7 @@ ThemeData _buildLightTheme() {
   return _buildTheme(
     brightness: Brightness.light,
     seedColor: const Color(0xFF2E7D32),
-    scaffoldBackgroundColor: const Color(0xFFF4F8F2),
+    scaffoldBackgroundColor: const Color(0xFFF5F6F2),
   );
 }
 
@@ -190,7 +200,7 @@ ThemeData _buildDarkTheme() {
   return _buildTheme(
     brightness: Brightness.dark,
     seedColor: const Color(0xFF81C784),
-    scaffoldBackgroundColor: const Color(0xFF101412),
+    scaffoldBackgroundColor: const Color(0xFF111311),
   );
 }
 

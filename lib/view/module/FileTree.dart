@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 
 import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
-import 'package:vertree/view/component/Loading.dart';
-import 'package:vertree/view/component/tree/CanvasComponent.dart';
-import 'package:vertree/view/component/tree/EdgePainter.dart';
 import 'package:vertree/view/component/tree/Canvas.dart';
+import 'package:vertree/view/component/tree/CanvasComponent.dart';
 import 'package:vertree/view/component/tree/CanvasManager.dart';
+import 'package:vertree/view/component/tree/EdgePainter.dart';
 import 'package:vertree/view/module/FileLeaf.dart';
 
 class FileTree extends StatefulWidget {
-  const FileTree({super.key, required this.rootNode, required this.height, required this.width, this.focusNode});
+  const FileTree({
+    super.key,
+    required this.rootNode,
+    required this.height,
+    required this.width,
+    this.focusNode,
+  });
 
   final double height;
   final double width;
@@ -24,56 +30,114 @@ class FileTree extends StatefulWidget {
 }
 
 class _FileTreeState extends State<FileTree> {
-  final double _Xmobility = 260;
-  final double _Ymobility = 60;
+  static const double _baseHorizontalGap = 54;
+  static const double _baseVerticalGap = 42;
+  static const double _rootLeftPadding = 48;
+  static const double _scenePadding = 120;
 
   late FileNode rootNode = widget.rootNode;
   final TreeCanvasManager treeCanvasManager = TreeCanvasManager();
+  final Map<FileNode, Size> _nodeSizes = {};
+  final Map<FileNode, _SubtreeSpan> _subtreeSpans = {};
+  final Map<String, GlobalKey<CanvasComponentState>> _nodeKeys = {};
 
   List<CanvasComponentContainer> canvasComponentContainers = [];
   List<Edge> edges = [];
   late GlobalKey<CanvasComponentState> rootKey;
-  late var initPosition = Offset(_Xmobility, widget.height / 2 - _Ymobility / 2);
+  late Offset initPosition;
+  Rect? _contentBounds;
+  Size _sceneSize = Size.zero;
 
-  bool isLoading = false;
+  bool _hasResolvedDependencies = false;
+  int _canvasRevision = 0;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _hasResolvedDependencies = true;
     _refreshTree();
   }
 
   @override
+  void didUpdateWidget(covariant FileTree oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.height != widget.height ||
+        oldWidget.width != widget.width ||
+        oldWidget.rootNode != widget.rootNode ||
+        oldWidget.focusNode != widget.focusNode) {
+      rootNode = widget.rootNode;
+      _refreshTree();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return LoadingWidget(
-      isLoading: isLoading,
-      child: TreeCanvas(
-        key: UniqueKey(),
-        height: widget.height,
-        width: widget.width,
-        manager: treeCanvasManager,
-        children: canvasComponentContainers,
-        edges: edges,
-        refresh: _refreshTree, // 如果 TreeCanvas 支持 refresh 参数
-      ),
+    return TreeCanvas(
+      height: widget.height,
+      width: widget.width,
+      manager: treeCanvasManager,
+      children: canvasComponentContainers,
+      edges: edges,
+      sceneSize: _sceneSize,
+      revision: _canvasRevision,
+      refresh: _refreshTreeAnimated,
     );
   }
 
-  /// 当树结构发生变化时，清空所有旧的组件与连线，并重新构建树
-  void _refreshTree() {
-    // 清空现有组件列表和边
-    canvasComponentContainers.clear();
-    edges.clear();
-
-    // 从根节点开始重新构建树
-    rootKey = addChild(rootNode, initPosition);
-    _buildTree(rootNode, initPosition, rootKey);
-
-    // 调用 setState 通知刷新
-    setState(() {});
+  String _nodeId(FileNode node) {
+    return node.mate.fullPath;
   }
 
-  /// 弹出对话框，询问用户输入备注（label），用户取消则返回 null
+  String _edgeId(String parentNodeId, String childNodeId) {
+    return '$parentNodeId->$childNodeId';
+  }
+
+  Future<void> _refreshTreeAnimated() async {
+    if (!mounted || !_hasResolvedDependencies) {
+      return;
+    }
+    _refreshTreeLayout();
+  }
+
+  void _refreshTree() {
+    _refreshTreeLayout();
+  }
+
+  void _refreshTreeLayout() {
+    if (!mounted || !_hasResolvedDependencies) {
+      return;
+    }
+
+    _nodeSizes.clear();
+    _subtreeSpans.clear();
+    canvasComponentContainers.clear();
+    edges.clear();
+    _contentBounds = null;
+
+    _measureTree(rootNode);
+    _updateInitPosition();
+
+    rootKey = addChild(rootNode, initPosition);
+    _layoutTree(rootNode, initPosition, rootKey);
+    _updateSceneSize();
+    _canvasRevision += 1;
+
+    setState(() {});
+    treeCanvasManager.requestRepaint();
+  }
+
+  void _updateInitPosition() {
+    final rootSize =
+        _nodeSizes[rootNode] ?? FileLeaf.estimateSize(context, rootNode);
+    final rootSpan = _subtreeSpans[rootNode] ?? _computeSubtreeSpan(rootNode);
+    final centeredRootY =
+        (widget.height / 2) + ((rootSpan.top - rootSpan.bottom) / 2);
+    initPosition = Offset(
+      _rootLeftPadding,
+      centeredRootY - (rootSize.height / 2),
+    );
+  }
+
   Future<String?> _askForLabel() async {
     return showDialog<String>(
       context: context,
@@ -105,58 +169,67 @@ class _FileTreeState extends State<FileTree> {
     );
   }
 
-
-  /// sprout 方法：更新数据模型后刷新整个树，同时展示 loading 效果 500ms
-  void sprout(FileNode parentNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) async {
-    // 弹出对话框询问备注信息
+  Future<void> _runNodeMutation(
+    Future<Result<FileNode, String>> Function(String? label) action,
+  ) async {
     final label = await _askForLabel();
 
-    setState(() {
-      isLoading = true;
-    });
-
-    Result<FileNode, String> sproutResult;
-
-    if (parentNode.child == null) {
-      sproutResult = await parentNode.backup(label);
-      if (sproutResult.isErr) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-      // 更新数据模型，设置 child 属性
-      parentNode.child = sproutResult.unwrap();
-    } else {
-      sproutResult = await parentNode.branch(label);
-      if (sproutResult.isErr) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-      // 添加到分支列表中
-      parentNode.branches.add(sproutResult.unwrap());
+    final result = await action(label);
+    if (result.isErr) {
+      showToast(result.msg);
+      return;
     }
 
-    // 保证 loading 状态至少展示 500ms
-    Future.delayed(const Duration(milliseconds: 500)).then((_) {
-      // 数据更新后，刷新整棵树，并取消 loading 状态
-      _refreshTree();
-      setState(() {
-        isLoading = false;
-      });
-    });
+    await _refreshTreeAnimated();
   }
 
-  /// **绘制子节点并连接**
+  void sprout(
+    FileNode parentNode,
+    Offset parentPosition,
+    GlobalKey<CanvasComponentState> parentKey,
+  ) async {
+    _runNodeMutation(
+      (label) => parentNode.child == null
+          ? parentNode.backup(label)
+          : parentNode.branch(label),
+    );
+  }
+
+  void backupNode(
+    FileNode parentNode,
+    Offset parentPosition,
+    GlobalKey<CanvasComponentState> parentKey,
+  ) {
+    if (parentNode.child != null) {
+      showToast("当前版本已有长子，不允许备份");
+      return;
+    }
+    _runNodeMutation((label) => parentNode.backup(label));
+  }
+
+  void branchNode(
+    FileNode parentNode,
+    Offset parentPosition,
+    GlobalKey<CanvasComponentState> parentKey,
+  ) {
+    _runNodeMutation((label) => parentNode.branch(label));
+  }
+
   GlobalKey<CanvasComponentState> addChild(
     FileNode child,
     Offset childPosition, {
     GlobalKey<CanvasComponentState>? parentKey,
+    String? parentNodeId,
   }) {
-    GlobalKey<CanvasComponentState> childKey = GlobalKey<CanvasComponentState>();
-    bool isFocused = widget.focusNode != null && (widget.focusNode!.version.compareTo(child.version) == 0);
+    final nodeId = _nodeId(child);
+    final isFreshNode = !_nodeKeys.containsKey(nodeId);
+    final childKey = _nodeKeys.putIfAbsent(
+      nodeId,
+      () => GlobalKey<CanvasComponentState>(),
+    );
+    final isFocused =
+        widget.focusNode != null &&
+        widget.focusNode!.version.compareTo(child.version) == 0;
     logger.info(
       "isFocused: $isFocused, widget.focusNode version: ${widget.focusNode?.version}, child version: ${child.version}",
     );
@@ -166,36 +239,218 @@ class _FileTreeState extends State<FileTree> {
         FileLeaf(
           child,
           sprout: sprout,
+          backupNode: backupNode,
+          branchNode: branchNode,
           key: childKey,
+          componentId: nodeId,
           treeCanvasManager: treeCanvasManager,
           position: childPosition,
-          isFocused: isFocused, // 传入焦点状态
+          preferredWidth:
+              (_nodeSizes[child] ?? FileLeaf.estimateSize(context, child))
+                  .width,
+          isFocused: isFocused,
+          animateEntry: isFreshNode,
         ),
       ),
     );
+    _includeNodeBounds(child, childPosition);
 
-    if (parentKey != null) {
-      edges.add(Edge(parentKey, childKey));
+    if (parentKey != null && parentNodeId != null) {
+      final edgeId = _edgeId(parentNodeId, nodeId);
+      edges.add(Edge(parentKey, childKey, id: edgeId));
     }
 
     return childKey;
   }
 
-  void _buildTree(FileNode fileNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) {
-    // 处理子节点
-    if (fileNode.child != null) {
-      Offset childPosition = parentPosition + Offset(_Xmobility, 0);
-      GlobalKey<CanvasComponentState> childKey = addChild(fileNode.child!, childPosition, parentKey: parentKey);
-      _buildTree(fileNode.child!, childPosition, childKey);
+  void _includeNodeBounds(FileNode node, Offset position) {
+    final nodeSize = _nodeSizes[node] ?? FileLeaf.estimateSize(context, node);
+    final rect = Rect.fromLTWH(
+      position.dx,
+      position.dy,
+      nodeSize.width,
+      nodeSize.height,
+    );
+    _contentBounds = _contentBounds == null
+        ? rect
+        : _contentBounds!.expandToInclude(rect);
+  }
+
+  void _updateSceneSize() {
+    final bounds = _contentBounds;
+    if (bounds == null) {
+      _sceneSize = Size(widget.width, widget.height);
+      return;
     }
 
-    // 处理分支节点
-    for (FileNode branch in fileNode.branches) {
-      bool top = branch.mate.version.segments.last.branch % 2 == 0;
-      double height = branch.getParentRelativeHeight().toDouble();
-      Offset branchPosition = parentPosition + Offset(_Xmobility, (top ? -_Ymobility : _Ymobility) * height);
-      GlobalKey<CanvasComponentState> childKey = addChild(branch, branchPosition, parentKey: parentKey);
-      _buildTree(branch, branchPosition, childKey);
+    _sceneSize = Size(
+      bounds.right + _scenePadding > widget.width
+          ? bounds.right + _scenePadding
+          : widget.width,
+      bounds.bottom + _scenePadding > widget.height
+          ? bounds.bottom + _scenePadding
+          : widget.height,
+    );
+  }
+
+  void _measureTree(FileNode node) {
+    _nodeSizes[node] = FileLeaf.estimateSize(context, node);
+    if (node.child != null) {
+      _measureTree(node.child!);
+    }
+    for (final branch in node.branches) {
+      _measureTree(branch);
+    }
+    _computeSubtreeSpan(node);
+  }
+
+  _SubtreeSpan _computeSubtreeSpan(FileNode node) {
+    final cached = _subtreeSpans[node];
+    if (cached != null) {
+      return cached;
+    }
+
+    final nodeSize = _nodeSizes[node] ?? FileLeaf.estimateSize(context, node);
+    double topExtent = nodeSize.height / 2;
+    double bottomExtent = nodeSize.height / 2;
+
+    _SubtreeSpan? childSpan;
+    if (node.child != null) {
+      childSpan = _computeSubtreeSpan(node.child!);
+      if (childSpan.top > topExtent) {
+        topExtent = childSpan.top;
+      }
+      if (childSpan.bottom > bottomExtent) {
+        bottomExtent = childSpan.bottom;
+      }
+    }
+
+    double topCursor = topExtent;
+    for (final branch in node.topBranches) {
+      final span = _computeSubtreeSpan(branch);
+      final branchGap = _verticalGapFor(node, branch);
+      final branchCenterDistance = topCursor + branchGap + span.bottom;
+      final branchTopExtent = branchCenterDistance + span.top;
+      if (branchTopExtent > topExtent) {
+        topExtent = branchTopExtent;
+      }
+      topCursor = branchTopExtent;
+    }
+
+    double bottomCursor = bottomExtent;
+    for (final branch in node.bottomBranches) {
+      final span = _computeSubtreeSpan(branch);
+      final branchGap = _verticalGapFor(node, branch);
+      final branchCenterDistance = bottomCursor + branchGap + span.top;
+      final branchBottomExtent = branchCenterDistance + span.bottom;
+      if (branchBottomExtent > bottomExtent) {
+        bottomExtent = branchBottomExtent;
+      }
+      bottomCursor = branchBottomExtent;
+    }
+
+    final result = _SubtreeSpan(top: topExtent, bottom: bottomExtent);
+    _subtreeSpans[node] = result;
+    return result;
+  }
+
+  double _horizontalGapFor(FileNode node) {
+    final nodeSize = _nodeSizes[node] ?? FileLeaf.estimateSize(context, node);
+    return _baseHorizontalGap +
+        ((nodeSize.width - FileLeaf.minCardWidth) * 0.18);
+  }
+
+  double _verticalGapFor(FileNode from, FileNode to) {
+    final fromSize = _nodeSizes[from] ?? FileLeaf.estimateSize(context, from);
+    final toSize = _nodeSizes[to] ?? FileLeaf.estimateSize(context, to);
+    return _baseVerticalGap + ((fromSize.height + toSize.height) * 0.12);
+  }
+
+  void _layoutTree(
+    FileNode fileNode,
+    Offset parentPosition,
+    GlobalKey<CanvasComponentState> parentKey,
+  ) {
+    final nodeSize =
+        _nodeSizes[fileNode] ?? FileLeaf.estimateSize(context, fileNode);
+    final centerY = parentPosition.dy + (nodeSize.height / 2);
+    final childX =
+        parentPosition.dx + nodeSize.width + _horizontalGapFor(fileNode);
+    final fileNodeId = _nodeId(fileNode);
+
+    if (fileNode.child != null) {
+      final childSize =
+          _nodeSizes[fileNode.child!] ??
+          FileLeaf.estimateSize(context, fileNode.child!);
+      final childPosition = Offset(childX, centerY - (childSize.height / 2));
+      final childKey = addChild(
+        fileNode.child!,
+        childPosition,
+        parentKey: parentKey,
+        parentNodeId: fileNodeId,
+      );
+      _layoutTree(fileNode.child!, childPosition, childKey);
+    }
+
+    final childSpan = fileNode.child != null
+        ? _subtreeSpans[fileNode.child!]
+        : null;
+
+    double topCursor = nodeSize.height / 2;
+    if ((childSpan?.top ?? 0) > topCursor) {
+      topCursor = childSpan!.top;
+    }
+    for (final branch in fileNode.topBranches) {
+      final branchSize =
+          _nodeSizes[branch] ?? FileLeaf.estimateSize(context, branch);
+      final branchSpan = _subtreeSpans[branch] ?? _computeSubtreeSpan(branch);
+      final branchGap = _verticalGapFor(fileNode, branch);
+      final branchCenterY =
+          centerY - (topCursor + branchGap + branchSpan.bottom);
+      final branchPosition = Offset(
+        childX,
+        branchCenterY - (branchSize.height / 2),
+      );
+      final childKey = addChild(
+        branch,
+        branchPosition,
+        parentKey: parentKey,
+        parentNodeId: fileNodeId,
+      );
+      _layoutTree(branch, branchPosition, childKey);
+      topCursor += branchGap + branchSpan.bottom + branchSpan.top;
+    }
+
+    double bottomCursor = nodeSize.height / 2;
+    if ((childSpan?.bottom ?? 0) > bottomCursor) {
+      bottomCursor = childSpan!.bottom;
+    }
+    for (final branch in fileNode.bottomBranches) {
+      final branchSize =
+          _nodeSizes[branch] ?? FileLeaf.estimateSize(context, branch);
+      final branchSpan = _subtreeSpans[branch] ?? _computeSubtreeSpan(branch);
+      final branchGap = _verticalGapFor(fileNode, branch);
+      final branchCenterY =
+          centerY + (bottomCursor + branchGap + branchSpan.top);
+      final branchPosition = Offset(
+        childX,
+        branchCenterY - (branchSize.height / 2),
+      );
+      final childKey = addChild(
+        branch,
+        branchPosition,
+        parentKey: parentKey,
+        parentNodeId: fileNodeId,
+      );
+      _layoutTree(branch, branchPosition, childKey);
+      bottomCursor += branchGap + branchSpan.top + branchSpan.bottom;
     }
   }
+}
+
+class _SubtreeSpan {
+  const _SubtreeSpan({required this.top, required this.bottom});
+
+  final double top;
+  final double bottom;
 }

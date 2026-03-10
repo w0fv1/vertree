@@ -100,9 +100,6 @@ class _VAppBarState extends State<VAppBar> {
         const SizedBox(width: trafficLightInset),
         const Spacer(),
         if (widget.goHome) ...[
-          _buildAppBarButton(Icons.arrow_back_rounded, () async {
-            go(BrandPage());
-          }),
           _buildAppBarButton(Icons.home_rounded, () async {
             go(BrandPage());
           }),
@@ -175,6 +172,12 @@ class _VAppBarState extends State<VAppBar> {
 
     return Row(
       children: [
+        if (widget.goHome) ...[
+          _buildAppBarButton(Icons.home_rounded, () async {
+            go(BrandPage());
+          }),
+          const SizedBox(width: 6),
+        ],
         Flexible(
           child: Padding(
             padding: const EdgeInsets.only(left: 8, right: 12),
@@ -182,15 +185,6 @@ class _VAppBarState extends State<VAppBar> {
           ),
         ),
         const Spacer(),
-        if (widget.goHome) ...[
-          _buildAppBarButton(Icons.arrow_back_rounded, () async {
-            go(BrandPage());
-          }),
-          _buildAppBarButton(Icons.home_rounded, () async {
-            go(BrandPage());
-          }),
-          const SizedBox(width: 4),
-        ],
         if (showThemeToggle)
           _buildAppBarButton(themeIcon, () {
             toggleLightDarkTheme();
@@ -206,18 +200,22 @@ class _VAppBarState extends State<VAppBar> {
     IconData icon,
     VoidCallback onPressed, {
     Color? color,
-    double padding = 6,
+    double padding = 5,
   }) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final Color effectiveColor =
-        color ?? scheme.onSurfaceVariant.withOpacity(0.9);
-    double size = widget.height - 4;
+        color ?? scheme.onSurfaceVariant.withValues(alpha: 0.9);
+    double size = widget.height - 8;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: IconButton(
         padding: EdgeInsets.all(padding),
         onPressed: onPressed,
-        icon: Icon(icon, size: size / 3 * 2 - padding, color: effectiveColor),
+        icon: Icon(
+          icon,
+          size: size / 3 * 2 - padding - 1,
+          color: effectiveColor,
+        ),
       ),
     );
   }

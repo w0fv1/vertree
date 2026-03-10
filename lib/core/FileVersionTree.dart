@@ -2,7 +2,22 @@ import 'dart:io';
 import 'dart:math';
 import 'package:path/path.dart' as path;
 import 'package:vertree/core/Result.dart';
-import 'package:vertree/main.dart';
+
+void _logCoreError(String message) {
+  stderr.writeln(message);
+}
+
+class _ParsedFileNameParts {
+  final String name;
+  final String? label;
+  final FileVersion version;
+
+  const _ParsedFileNameParts({
+    required this.name,
+    required this.label,
+    required this.version,
+  });
+}
 
 class FileVersion implements Comparable<FileVersion> {
   final List<Segment> segments;
@@ -19,8 +34,8 @@ class FileVersion implements Comparable<FileVersion> {
     for (final part in parts) {
       List<String> bv = part.split('.');
       if (bv.length != 2) {
-       logger.error("版本段格式错误，每段必须是 X.Y 形式: $part");
-       bv = ["0","0"];
+        _logCoreError("版本段格式错误，每段必须是 X.Y 形式: $part");
+        bv = ["0", "0"];
       }
       final branch = int.parse(bv[0]);
       final ver = int.parse(bv[1]);
@@ -58,9 +73,22 @@ class FileVersion implements Comparable<FileVersion> {
     return segments.map((seg) => '${seg.branch}.${seg.version}').join('-');
   }
 
+  String get branchPath {
+    return segments.map((seg) => seg.branch.toString()).join('-');
+  }
+
+  int get revisionNumber {
+    if (segments.isEmpty) {
+      return 0;
+    }
+    return segments.last.version;
+  }
+
   @override
   int compareTo(FileVersion other) {
-    final minLen = segments.length < other.segments.length ? segments.length : other.segments.length;
+    final minLen = segments.length < other.segments.length
+        ? segments.length
+        : other.segments.length;
     for (int i = 0; i < minLen; i++) {
       final diffBranch = segments[i].branch - other.segments[i].branch;
       if (diffBranch != 0) return diffBranch;
@@ -109,7 +137,7 @@ class FileVersion implements Comparable<FileVersion> {
 
   /// 判断 [other] 是否为 [this] 的“间接分支”
   bool isIndirectBranch(FileVersion other) {
-    if (other.segments.length <= segments.length) {
+    if (other.segments.length <= segments.length + 1) {
       return false;
     }
     for (int i = 0; i < segments.length; i++) {
@@ -140,6 +168,10 @@ class Segment {
 
 /// 文件元数据信息，增加了 label 属性，用于保存备注信息
 class FileMeta {
+  static final RegExp _versionSuffixPattern = RegExp(
+    r'^(.*)\.((?:\d+\.\d+)(?:-\d+\.\d+)*)$',
+  );
+
   /// 文件全名（含扩展名），例如 "example#labelContent.0.0.txt"
   String fullName = "";
 
@@ -170,6 +202,47 @@ class FileMeta {
   /// 文件上次修改时间
   DateTime lastModifiedTime = DateTime.fromMillisecondsSinceEpoch(0);
 
+  static bool isSupportedTreeFilePath(String fullPath) {
+    final extension = path.extension(fullPath);
+    final fileNameWithoutExt = path.basenameWithoutExtension(fullPath);
+
+    if (extension.isEmpty || fileNameWithoutExt.isEmpty) {
+      return false;
+    }
+
+    final parsed = _parseFileNameParts(fileNameWithoutExt);
+    return parsed.name.isNotEmpty && !parsed.name.startsWith('.');
+  }
+
+  static _ParsedFileNameParts _parseFileNameParts(String fileNameWithoutExt) {
+    String basePart = fileNameWithoutExt;
+    FileVersion version = FileVersion("0.0");
+
+    final versionMatch = _versionSuffixPattern.firstMatch(fileNameWithoutExt);
+    if (versionMatch != null) {
+      basePart = versionMatch.group(1)!;
+      version = FileVersion(versionMatch.group(2)!);
+    }
+
+    final hashIndex = basePart.indexOf('#');
+    if (hashIndex == -1) {
+      return _ParsedFileNameParts(
+        name: basePart,
+        label: null,
+        version: version,
+      );
+    }
+
+    final name = basePart.substring(0, hashIndex);
+    final rawLabel = basePart.substring(hashIndex + 1);
+
+    return _ParsedFileNameParts(
+      name: name,
+      label: rawLabel.isEmpty ? null : rawLabel,
+      version: version,
+    );
+  }
+
   FileMeta(this.fullPath) : originalFile = File(fullPath) {
     // 1) 获取不带路径的完整文件名
     fullName = path.basename(fullPath);
@@ -179,33 +252,10 @@ class FileMeta {
 
     // 3) 去除扩展名后的文件名
     final fileNameWithoutExt = path.basenameWithoutExtension(fullPath);
-    // 文件名格式: <name>[#<label>].<version>
-    final dotIndex = fileNameWithoutExt.indexOf('.');
-    if (dotIndex == -1) {
-      // 没有版本号，默认使用 0.0
-      final hashIndex = fileNameWithoutExt.indexOf('#');
-      if (hashIndex == -1) {
-        name = fileNameWithoutExt;
-        label = null;
-      } else {
-        name = fileNameWithoutExt.substring(0, hashIndex);
-        label = fileNameWithoutExt.substring(hashIndex + 1);
-      }
-      version = FileVersion("0.0");
-    } else {
-      // 有版本号，前面的部分可能包含 label（使用 '#' 分隔）
-      final basePart = fileNameWithoutExt.substring(0, dotIndex);
-      final versionStr = fileNameWithoutExt.substring(dotIndex + 1);
-      final hashIndex = basePart.indexOf('#');
-      if (hashIndex == -1) {
-        name = basePart;
-        label = null;
-      } else {
-        name = basePart.substring(0, hashIndex);
-        label = basePart.substring(hashIndex + 1);
-      }
-      version = versionStr.isEmpty ? FileVersion("0.0") : FileVersion(versionStr);
-    }
+    final parsed = _parseFileNameParts(fileNameWithoutExt);
+    name = parsed.name;
+    label = parsed.label;
+    version = parsed.version;
 
     // 4) 若文件存在，则获取文件大小及时间信息
     if (originalFile.existsSync()) {
@@ -220,7 +270,7 @@ class FileMeta {
   void setLabel(String? newLabel) {
     label = newLabel;
     fullName =
-    "$name${(newLabel != null && newLabel.isNotEmpty) ? "#$newLabel" : ""}.${version.toString()}.$extension";
+        "$name${(newLabel != null && newLabel.isNotEmpty) ? "#$newLabel" : ""}.${version.toString()}.$extension";
   }
 
   /// 重命名文件，将当前文件按照新的备注更新文件名，并更新内部元数据
@@ -265,12 +315,6 @@ class FileMeta {
         'lastModifiedTime: $lastModifiedTime'
         ')';
   }
-}
-
-
-void main(List<String> args){
-  FileMeta fileMeta = FileMeta("D:\\project\\vertree\\testree\\0.0.docx");
-  print(fileMeta);
 }
 
 /// 文件节点，表示文件的一个版本，并可能有子版本（child）和分支（branches）
@@ -332,7 +376,8 @@ class FileNode {
     List<FileNode> branchesList = parent.topBranches.contains(this)
         ? parent.topBranches
         : parent.bottomBranches;
-    if (!parent.topBranches.contains(this) && !parent.bottomBranches.contains(this)) {
+    if (!parent.topBranches.contains(this) &&
+        !parent.bottomBranches.contains(this)) {
       return [];
     }
     int index = branchesList.indexOf(this);
@@ -369,11 +414,14 @@ class FileNode {
       parentChildHeight += parent.child!.getHeight(top);
     }
     tmp += parentChildHeight;
-    return tmp;
+    return max(1, tmp);
   }
 
   void addChild(FileNode node) {
-    child ??= node;
+    if (child != null) {
+      return;
+    }
+    child = node;
     child?.parent = this;
     totalChildren += 1;
   }
@@ -389,8 +437,10 @@ class FileNode {
       }
       if (branch.mate.version.segments.last.branch % 2 == 0) {
         topBranches.add(branch);
+        topBranches.sort((a, b) => a.mate.version.compareTo(b.mate.version));
       } else {
         bottomBranches.add(branch);
+        bottomBranches.sort((a, b) => a.mate.version.compareTo(b.mate.version));
       }
     }
   }
@@ -398,12 +448,7 @@ class FileNode {
   Future<Result<FileNode, String>> safeBackup([String? label]) async {
     try {
       final newVersion = mate.version.nextVersion();
-      final newFileName =
-          '${mate.name}${label != null ? "#$label" : ""}.${newVersion.toString()}.${mate.extension}';
-      final dirPath = path.dirname(mate.fullPath);
-      final newFilePath = path.join(dirPath, newFileName);
-      final newFile = File(newFilePath);
-      if (!newFile.existsSync()) {
+      if (!_hasVersionConflict(newVersion)) {
         return await backup(label);
       } else {
         return await branch(label);
@@ -448,6 +493,26 @@ class FileNode {
     }
   }
 
+  bool _hasVersionConflict(FileVersion version) {
+    final dir = Directory(path.dirname(mate.fullPath));
+    if (!dir.existsSync()) {
+      return false;
+    }
+
+    for (final entity in dir.listSync()) {
+      if (entity is! File) {
+        continue;
+      }
+
+      final meta = FileMeta(entity.path);
+      if (meta.name == mate.name && meta.version.compareTo(version) == 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   bool push(FileNode node) {
     if (mate.version.compareTo(node.mate.version) == 0) {
       return false;
@@ -476,7 +541,9 @@ class FileNode {
   String toTreeString({int level = 0, String label = 'Root'}) {
     final indent = ' ' * (level * 4);
     final buffer = StringBuffer();
-    buffer.writeln('$indent$label[${mate.fullName} (version: ${mate.version})]');
+    buffer.writeln(
+      '$indent$label[${mate.fullName} (version: ${mate.version})]',
+    );
     if (child != null) {
       buffer.write(child!.toTreeString(level: level, label: 'Child'));
     }
@@ -485,7 +552,6 @@ class FileNode {
     }
     return buffer.toString();
   }
-
 
   @override
   String toString() {

@@ -3,36 +3,37 @@ import 'package:path/path.dart' as path;
 
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
-import 'package:vertree/main.dart';
 
-Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
+Future<Result<FileNode, String>> buildTree(String selectedFileNodePath) async {
   FileNode? rootNode;
 
   try {
     if (!File(selectedFileNodePath).existsSync()) {
       return Result.eMsg("文件路径不存在");
     }
-    final Map<String, FileNode> fileVersionMap = {};
+    if (!FileMeta.isSupportedTreeFilePath(selectedFileNodePath)) {
+      return Result.eMsg("当前文件命名不支持版本树");
+    }
+
     FileNode selectedFileNode = FileNode(selectedFileNodePath);
-    // print("selectedFileNode $selectedFileNode");
     String dirname = path.dirname(selectedFileNodePath);
 
     final files = await Directory(dirname).list().toList();
 
-    // 过滤掉所有 name 与 selectedFileNode 不相同的文件
-    final filteredFiles =
-    files.where((file) {
-      FileMeta? fileMeta;
+    // 过滤掉所有 name 与 extension 不一致，或不满足版本树命名规则的文件
+    final filteredFiles = files.where((file) {
       try {
         if (file is! File) return false;
-
-        fileMeta = FileMeta(file.path);
+        if (!FileMeta.isSupportedTreeFilePath(file.path)) {
+          return false;
+        }
+        final fileMeta = FileMeta(file.path);
+        return fileMeta.name == selectedFileNode.mate.name &&
+            fileMeta.extension == selectedFileNode.mate.extension;
       } catch (e) {
-        logger.error("$e");
+        stderr.writeln("$e");
         return false;
       }
-
-      return fileMeta.name == selectedFileNode.mate.name;
     }).toList();
 
     List<FileNode> fileNodes = [];
@@ -44,7 +45,8 @@ Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
       final fileNode = FileNode(file.path);
       fileNodes.add(fileNode);
 
-      if (rootNode == null || fileMeta.version.compareTo(rootNode.mate.version) < 0) {
+      if (rootNode == null ||
+          fileMeta.version.compareTo(rootNode.mate.version) < 0) {
         rootNode = fileNode;
       }
     }
@@ -63,9 +65,8 @@ Future<Result<FileNode, void>> buildTree(String selectedFileNodePath) async {
       rootNode.push(node);
     }
   } catch (e) {
-    return Result.err(e);
+    return Result.err(e.toString());
   }
-
 
   return Result.ok(rootNode);
 }

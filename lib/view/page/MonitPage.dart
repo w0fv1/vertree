@@ -295,7 +295,7 @@ class _MonitPageState extends State<MonitPage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.monitor_heart_rounded, size: 20),
+            const Icon(Icons.monitor_heart_rounded, size: 18),
             const SizedBox(width: 8),
             Text(appLocale.getText(LocaleKey.monit_title)),
           ],
@@ -354,7 +354,10 @@ class _MonitPageState extends State<MonitPage> {
                       itemCount: _filteredMonitTasks.length,
                       itemBuilder: (context, index) {
                         final task = _filteredMonitTasks[index];
-                        return MonitTaskCard(task: task, removeTask: _removeTask);
+                        return MonitTaskCard(
+                          task: task,
+                          removeTask: _removeTask,
+                        );
                       },
                     ),
             ),

@@ -8,20 +8,21 @@ abstract class CanvasComponent extends StatefulWidget {
   final GlobalKey<CanvasComponentState> canvasComponentKey;
   final String id;
   final TreeCanvasManager treeCanvasManager;
-  Offset position;
-  late Offset offset = Offset.zero;
+  final Offset position;
 
   // 修正 constructor，确保传递的 key 被赋值给 canvasComponentKey
   CanvasComponent({
     required super.key, // 父类的 key
     required this.treeCanvasManager,
     this.position = Offset.zero,
+    String? componentId,
   }) : // 备份传递的 key 到 canvasComponentKey
        canvasComponentKey = key as GlobalKey<CanvasComponentState>,
-       id = const Uuid().v4();
+       id = componentId ?? const Uuid().v4();
 }
 
-abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> with SingleTickerProviderStateMixin {
+abstract class CanvasComponentState<T extends CanvasComponent> extends State<T>
+    with TickerProviderStateMixin {
   late Offset position = widget.position;
   late AnimationController _animationController;
   late Animation<Offset> _animation;
@@ -32,18 +33,38 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
     onInitState();
 
     super.initState();
-    _animationController = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
-    _animation = Tween<Offset>(
-      begin: widget.position,
-      end: widget.position,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _animation = Tween<Offset>(begin: widget.position, end: widget.position)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
     _animation.addListener(() {
-      setPosition(_animation.value);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        position = _animation.value;
+      });
+      widget.treeCanvasManager.requestRepaint();
     });
   }
 
   void onInitState() {
     return;
+  }
+
+  @override
+  void didUpdateWidget(covariant T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.position != oldWidget.position && !isDragging) {
+      _animateTo(widget.position);
+    }
   }
 
   String getId() {
@@ -65,6 +86,7 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
     setState(() {
       this.position = position;
     });
+    widget.treeCanvasManager.requestRepaint();
   }
 
   Size size = Size.zero;
@@ -76,10 +98,11 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
         setState(() {
           this.size = size;
         });
+        widget.treeCanvasManager.requestRepaint();
       },
       child: Positioned(
-        left: position.dx + widget.offset.dx,
-        top: position.dy + widget.offset.dy,
+        left: position.dx,
+        top: position.dy,
         child: MouseRegion(
           cursor: _cursor,
           onEnter: (_) {
@@ -114,6 +137,7 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
                 position += details.delta;
                 _cursor = SystemMouseCursors.allScroll;
               });
+              widget.treeCanvasManager.requestRepaint();
             },
             onPanEnd: (_) {
               setState(() {
@@ -139,19 +163,33 @@ abstract class CanvasComponentState<T extends CanvasComponent> extends State<T> 
   }
 
   String put(
-    CanvasComponent Function(GlobalKey<CanvasComponentState> key, TreeCanvasManager treeCanvasManager) builder,
+    CanvasComponent Function(
+      GlobalKey<CanvasComponentState> key,
+      TreeCanvasManager treeCanvasManager,
+    )
+    builder,
     Offset position,
   ) {
     return widget.treeCanvasManager.put(builder);
   }
 
   void animateMove(Offset targetOffset) {
-    _animation = Tween<Offset>(
-      begin: position,
-      end: position + targetOffset,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
+    _animation = Tween<Offset>(begin: position, end: position + targetOffset)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
 
     _animationController.forward(from: 0.0); // 重新启动动画
+  }
+
+  void _animateTo(Offset targetPosition) {
+    _animation = Tween<Offset>(begin: position, end: targetPosition).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.forward(from: 0.0);
   }
 
   void move(Offset offset) {

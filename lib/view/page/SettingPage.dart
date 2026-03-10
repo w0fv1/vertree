@@ -550,7 +550,7 @@ class _SettingPageState extends State<SettingPage> {
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.settings_rounded, size: 20),
+              const Icon(Icons.settings_rounded, size: 18),
               const SizedBox(width: 8),
               Text(appLocale.getText(LocaleKey.setting_titleBar)),
             ],
@@ -566,299 +566,309 @@ class _SettingPageState extends State<SettingPage> {
                 child: Scrollbar(
                   child: ListView(
                     children: [
-                    _buildSection(
-                      icon: Icons.palette_outlined,
-                      title: appLocale.getText(
-                        LocaleKey.setting_appearanceGroup,
-                      ),
-                      children: [
-                        _buildSegmentedPreference<Lang>(
-                          icon: Icons.language_rounded,
-                          title: appLocale.getText(LocaleKey.setting_language),
-                          selected: {appLocale.lang},
-                          segments: appLocale.supportedLangs
-                              .map(
-                                (lang) => ButtonSegment<Lang>(
-                                  value: lang,
-                                  label: Text(lang.label),
-                                ),
-                              )
-                              .toList(),
-                          onSelected: _updateLanguage,
-                        ),
-                        _buildSegmentedPreference<String>(
-                          icon: Icons.dark_mode_rounded,
-                          title: appLocale.getText(
-                            LocaleKey.setting_themeModeLabel,
-                          ),
-                          selected: {_themeModeSetting},
-                          segments: [
-                            ButtonSegment<String>(
-                              value: 'system',
-                              icon: const Icon(Icons.brightness_auto_rounded),
-                              label: Text(
-                                appLocale.getText(
-                                  LocaleKey.setting_themeModeSystem,
-                                ),
-                              ),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'light',
-                              icon: const Icon(Icons.light_mode_rounded),
-                              label: Text(
-                                appLocale.getText(
-                                  LocaleKey.setting_themeModeLight,
-                                ),
-                              ),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'dark',
-                              icon: const Icon(Icons.dark_mode_rounded),
-                              label: Text(
-                                appLocale.getText(
-                                  LocaleKey.setting_themeModeDark,
-                                ),
-                              ),
-                            ),
-                          ],
-                          onSelected: _updateThemeMode,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (PlatformIntegration.supportsContextMenus ||
-                        PlatformIntegration.supportsAutoStart) ...[
                       _buildSection(
-                        icon: Icons.extension_outlined,
+                        icon: Icons.palette_outlined,
                         title: appLocale.getText(
-                          LocaleKey.setting_integrationsGroup,
+                          LocaleKey.setting_appearanceGroup,
                         ),
                         children: [
-                          if (PlatformIntegration.supportsContextMenus)
-                            _buildSwitchTile(
-                              icon: Icons.apps_rounded,
-                              title: appLocale.getText(
-                                LocaleKey.setting_contextMenuGroup,
-                              ),
-                              value: win11MenuEnabled,
-                              onChanged: _toggleWin11Menu,
+                          _buildSegmentedPreference<Lang>(
+                            icon: Icons.language_rounded,
+                            title: appLocale.getText(
+                              LocaleKey.setting_language,
                             ),
-                          if (PlatformIntegration.supportsContextMenus)
-                            _buildSubsectionCard(
-                              icon: Icons.history_toggle_off_rounded,
-                              title:
-                                  "${appLocale.getText(LocaleKey.setting_contextMenuGroup)}（旧版）",
-                              trailing: IconButton.filledTonal(
-                                onPressed: () {
-                                  setState(() {
-                                    _showLegacyMenuDetails =
-                                        !_showLegacyMenuDetails;
-                                  });
-                                },
-                                icon: Icon(
-                                  _showLegacyMenuDetails
-                                      ? Icons.expand_less_rounded
-                                      : Icons.expand_more_rounded,
+                            selected: {appLocale.lang},
+                            segments: appLocale.supportedLangs
+                                .map(
+                                  (lang) => ButtonSegment<Lang>(
+                                    value: lang,
+                                    label: Text(lang.label),
+                                  ),
+                                )
+                                .toList(),
+                            onSelected: _updateLanguage,
+                          ),
+                          _buildSegmentedPreference<String>(
+                            icon: Icons.dark_mode_rounded,
+                            title: appLocale.getText(
+                              LocaleKey.setting_themeModeLabel,
+                            ),
+                            selected: {_themeModeSetting},
+                            segments: [
+                              ButtonSegment<String>(
+                                value: 'system',
+                                icon: const Icon(Icons.brightness_auto_rounded),
+                                label: Text(
+                                  appLocale.getText(
+                                    LocaleKey.setting_themeModeSystem,
+                                  ),
                                 ),
                               ),
-                              children: [
-                                _buildSwitchTile(
-                                  icon: Icons.toggle_on_rounded,
-                                  title: appLocale.getText(
-                                    LocaleKey.setting_contextMenuToggle,
+                              ButtonSegment<String>(
+                                value: 'light',
+                                icon: const Icon(Icons.light_mode_rounded),
+                                label: Text(
+                                  appLocale.getText(
+                                    LocaleKey.setting_themeModeLight,
                                   ),
-                                  value: legacyMenuEnabled,
-                                  onChanged: _toggleLegacyMenus,
                                 ),
-                                AnimatedCrossFade(
-                                  duration: const Duration(milliseconds: 180),
-                                  crossFadeState: _showLegacyMenuDetails
-                                      ? CrossFadeState.showSecond
-                                      : CrossFadeState.showFirst,
-                                  firstChild: const SizedBox.shrink(),
-                                  secondChild: Column(
-                                    children: [
-                                      _buildSwitchTile(
-                                        icon: Icons.save_outlined,
-                                        title: appLocale.getText(
-                                          LocaleKey.setting_addBackupMenu,
+                              ),
+                              ButtonSegment<String>(
+                                value: 'dark',
+                                icon: const Icon(Icons.dark_mode_rounded),
+                                label: Text(
+                                  appLocale.getText(
+                                    LocaleKey.setting_themeModeDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onSelected: _updateThemeMode,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (PlatformIntegration.supportsContextMenus ||
+                          PlatformIntegration.supportsAutoStart) ...[
+                        _buildSection(
+                          icon: Icons.extension_outlined,
+                          title: appLocale.getText(
+                            LocaleKey.setting_integrationsGroup,
+                          ),
+                          children: [
+                            if (PlatformIntegration.supportsContextMenus)
+                              _buildSwitchTile(
+                                icon: Icons.apps_rounded,
+                                title: appLocale.getText(
+                                  LocaleKey.setting_contextMenuGroup,
+                                ),
+                                value: win11MenuEnabled,
+                                onChanged: _toggleWin11Menu,
+                              ),
+                            if (PlatformIntegration.supportsContextMenus)
+                              _buildSubsectionCard(
+                                icon: Icons.history_toggle_off_rounded,
+                                title:
+                                    "${appLocale.getText(LocaleKey.setting_contextMenuGroup)}（旧版）",
+                                trailing: IconButton.filledTonal(
+                                  onPressed: () {
+                                    setState(() {
+                                      _showLegacyMenuDetails =
+                                          !_showLegacyMenuDetails;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _showLegacyMenuDetails
+                                        ? Icons.expand_less_rounded
+                                        : Icons.expand_more_rounded,
+                                  ),
+                                ),
+                                children: [
+                                  _buildSwitchTile(
+                                    icon: Icons.toggle_on_rounded,
+                                    title: appLocale.getText(
+                                      LocaleKey.setting_contextMenuToggle,
+                                    ),
+                                    value: legacyMenuEnabled,
+                                    onChanged: _toggleLegacyMenus,
+                                  ),
+                                  AnimatedCrossFade(
+                                    duration: const Duration(milliseconds: 180),
+                                    crossFadeState: _showLegacyMenuDetails
+                                        ? CrossFadeState.showSecond
+                                        : CrossFadeState.showFirst,
+                                    firstChild: const SizedBox.shrink(),
+                                    secondChild: Column(
+                                      children: [
+                                        _buildSwitchTile(
+                                          icon: Icons.save_outlined,
+                                          title: appLocale.getText(
+                                            LocaleKey.setting_addBackupMenu,
+                                          ),
+                                          value: backupFile,
+                                          onChanged: _toggleBackupFile,
                                         ),
-                                        value: backupFile,
-                                        onChanged: _toggleBackupFile,
-                                      ),
-                                      _buildSwitchTile(
-                                        icon: Icons.flash_on_outlined,
-                                        title: appLocale.getText(
-                                          LocaleKey
-                                              .setting_addExpressBackupMenu,
+                                        _buildSwitchTile(
+                                          icon: Icons.flash_on_outlined,
+                                          title: appLocale.getText(
+                                            LocaleKey
+                                                .setting_addExpressBackupMenu,
+                                          ),
+                                          value: expressBackupFile,
+                                          onChanged: _toggleExpressBackupFile,
                                         ),
-                                        value: expressBackupFile,
-                                        onChanged: _toggleExpressBackupFile,
-                                      ),
-                                      _buildSwitchTile(
-                                        icon: Icons.monitor_heart_outlined,
-                                        title: appLocale.getText(
-                                          LocaleKey.setting_addMonitorMenu,
+                                        _buildSwitchTile(
+                                          icon: Icons.monitor_heart_outlined,
+                                          title: appLocale.getText(
+                                            LocaleKey.setting_addMonitorMenu,
+                                          ),
+                                          value: monitorFile,
+                                          onChanged: _toggleMonitorFile,
                                         ),
-                                        value: monitorFile,
-                                        onChanged: _toggleMonitorFile,
-                                      ),
-                                      _buildSwitchTile(
-                                        icon: Icons.account_tree_outlined,
-                                        title: appLocale.getText(
-                                          LocaleKey.setting_addViewtreeMenu,
+                                        _buildSwitchTile(
+                                          icon: Icons.account_tree_outlined,
+                                          title: appLocale.getText(
+                                            LocaleKey.setting_addViewtreeMenu,
+                                          ),
+                                          value: viewTreeFile,
+                                          onChanged: _toggleViewTreeFile,
                                         ),
-                                        value: viewTreeFile,
-                                        onChanged: _toggleViewTreeFile,
-                                      ),
-                                    ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (PlatformIntegration.supportsAutoStart)
+                              _buildSwitchTile(
+                                icon: Icons.power_settings_new_rounded,
+                                title: appLocale.getText(
+                                  LocaleKey.setting_enableAutostart,
+                                ),
+                                value: autoStart,
+                                onChanged: _toggleAutoStart,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      _buildSection(
+                        icon: Icons.monitor_heart_outlined,
+                        title: appLocale.getText(LocaleKey.setting_monitGroup),
+                        children: [
+                          _buildIntegerSettingTile(
+                            icon: Icons.schedule_rounded,
+                            title: appLocale.getText(
+                              LocaleKey.setting_monitRate,
+                            ),
+                            controller: _monitorRateController,
+                            configKey: "monitorRate",
+                            fallback: 5,
+                          ),
+                          _buildIntegerSettingTile(
+                            icon: Icons.inventory_2_outlined,
+                            title: appLocale.getText(
+                              LocaleKey.setting_monitMaxSize,
+                            ),
+                            controller: _monitorMaxSizeController,
+                            configKey: "monitorMaxSize",
+                            fallback: 50,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSection(
+                        icon: Icons.folder_outlined,
+                        title: appLocale.getText(
+                          LocaleKey.setting_resourcesGroup,
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                FilledButton.tonalIcon(
+                                  onPressed: () => FileUtils.openFile(
+                                    configer.configFilePath,
+                                  ),
+                                  icon: const Icon(Icons.description_outlined),
+                                  label: Text(
+                                    appLocale.getText(
+                                      LocaleKey.setting_openConfig,
+                                    ),
+                                  ),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () =>
+                                      FileUtils.openFolder(logger.logDirPath),
+                                  icon: const Icon(Icons.receipt_long_outlined),
+                                  label: Text(
+                                    appLocale.getText(
+                                      LocaleKey.setting_openLogs,
+                                    ),
+                                  ),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _openUrl(
+                                    "https://w0fv1.github.io/vertree/",
+                                  ),
+                                  icon: const Icon(Icons.language_rounded),
+                                  label: Text(
+                                    appLocale.getText(
+                                      LocaleKey.setting_visitWebsite,
+                                    ),
+                                  ),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _openUrl(
+                                    "https://github.com/w0fv1/vertree",
+                                  ),
+                                  icon: const Icon(
+                                    MaterialCommunityIcons.github,
+                                  ),
+                                  label: Text(
+                                    appLocale.getText(
+                                      LocaleKey.setting_openGithub,
+                                    ),
+                                  ),
+                                ),
+                                Tooltip(
+                                  message: appLocale.getText(
+                                    LocaleKey.setting_versionInfo,
+                                  ),
+                                  child: AppVersionDisplay(
+                                    appVersion: appVersionInfo.currentVersion,
+                                    defaultLink:
+                                        "https://github.com/w0fv1/vertree/releases",
+                                    checkNewVersion: () async {
+                                      final Result<UpdateInfo, String>
+                                      checkUpdateResult = await appVersionInfo
+                                          .checkUpdate();
+
+                                      if (checkUpdateResult.isErr) {
+                                        logger.error(checkUpdateResult.msg);
+                                        return false;
+                                      }
+
+                                      final hasNewVersion = checkUpdateResult
+                                          .unwrap()
+                                          .hasUpdate;
+                                      final newVersionTag = checkUpdateResult
+                                          .unwrap()
+                                          .latestVersionTag;
+
+                                      if (hasNewVersion &&
+                                          newVersionTag != null &&
+                                          newVersionTag.isNotEmpty) {
+                                        showToast(
+                                          appLocale
+                                              .getText(
+                                                LocaleKey.setting_hasNewVertion,
+                                              )
+                                              .tr([newVersionTag]),
+                                        );
+                                      }
+                                      return hasNewVersion;
+                                    },
+                                    getNewVersionDownloadUrl: () async {
+                                      final Result<String?, String>
+                                      checkUpdateResult = await appVersionInfo
+                                          .getLatestReleaseUrl();
+                                      if (checkUpdateResult.isErr) {
+                                        logger.info(checkUpdateResult.msg);
+                                        return "https://github.com/w0fv1/vertree/releases";
+                                      }
+                                      return checkUpdateResult.unwrap();
+                                    },
                                   ),
                                 ),
                               ],
                             ),
-                          if (PlatformIntegration.supportsAutoStart)
-                            _buildSwitchTile(
-                              icon: Icons.power_settings_new_rounded,
-                              title: appLocale.getText(
-                                LocaleKey.setting_enableAutostart,
-                              ),
-                              value: autoStart,
-                              onChanged: _toggleAutoStart,
-                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    _buildSection(
-                      icon: Icons.monitor_heart_outlined,
-                      title: appLocale.getText(LocaleKey.setting_monitGroup),
-                      children: [
-                        _buildIntegerSettingTile(
-                          icon: Icons.schedule_rounded,
-                          title: appLocale.getText(LocaleKey.setting_monitRate),
-                          controller: _monitorRateController,
-                          configKey: "monitorRate",
-                          fallback: 5,
-                        ),
-                        _buildIntegerSettingTile(
-                          icon: Icons.inventory_2_outlined,
-                          title: appLocale.getText(
-                            LocaleKey.setting_monitMaxSize,
-                          ),
-                          controller: _monitorMaxSizeController,
-                          configKey: "monitorMaxSize",
-                          fallback: 50,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSection(
-                      icon: Icons.folder_outlined,
-                      title: appLocale.getText(
-                        LocaleKey.setting_resourcesGroup,
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              FilledButton.tonalIcon(
-                                onPressed: () =>
-                                    FileUtils.openFile(configer.configFilePath),
-                                icon: const Icon(Icons.description_outlined),
-                                label: Text(
-                                  appLocale.getText(
-                                    LocaleKey.setting_openConfig,
-                                  ),
-                                ),
-                              ),
-                              FilledButton.tonalIcon(
-                                onPressed: () =>
-                                    FileUtils.openFolder(logger.logDirPath),
-                                icon: const Icon(Icons.receipt_long_outlined),
-                                label: Text(
-                                  appLocale.getText(LocaleKey.setting_openLogs),
-                                ),
-                              ),
-                              FilledButton.tonalIcon(
-                                onPressed: () => _openUrl(
-                                  "https://w0fv1.github.io/vertree/",
-                                ),
-                                icon: const Icon(Icons.language_rounded),
-                                label: Text(
-                                  appLocale.getText(
-                                    LocaleKey.setting_visitWebsite,
-                                  ),
-                                ),
-                              ),
-                              FilledButton.tonalIcon(
-                                onPressed: () =>
-                                    _openUrl("https://github.com/w0fv1/vertree"),
-                                icon: const Icon(MaterialCommunityIcons.github),
-                                label: Text(
-                                  appLocale.getText(
-                                    LocaleKey.setting_openGithub,
-                                  ),
-                                ),
-                              ),
-                              Tooltip(
-                                message: appLocale.getText(
-                                  LocaleKey.setting_versionInfo,
-                                ),
-                                child: AppVersionDisplay(
-                                  appVersion: appVersionInfo.currentVersion,
-                                  defaultLink:
-                                      "https://github.com/w0fv1/vertree/releases",
-                                  checkNewVersion: () async {
-                                    final Result<UpdateInfo, String>
-                                    checkUpdateResult = await appVersionInfo
-                                        .checkUpdate();
-
-                                    if (checkUpdateResult.isErr) {
-                                      logger.error(checkUpdateResult.msg);
-                                      return false;
-                                    }
-
-                                    final hasNewVersion = checkUpdateResult
-                                        .unwrap()
-                                        .hasUpdate;
-                                    final newVersionTag = checkUpdateResult
-                                        .unwrap()
-                                        .latestVersionTag;
-
-                                    if (hasNewVersion &&
-                                        newVersionTag != null &&
-                                        newVersionTag.isNotEmpty) {
-                                      showToast(
-                                        appLocale
-                                            .getText(
-                                              LocaleKey.setting_hasNewVertion,
-                                            )
-                                            .tr([newVersionTag]),
-                                      );
-                                    }
-                                    return hasNewVersion;
-                                  },
-                                  getNewVersionDownloadUrl: () async {
-                                    final Result<String?, String>
-                                    checkUpdateResult = await appVersionInfo
-                                        .getLatestReleaseUrl();
-                                    if (checkUpdateResult.isErr) {
-                                      logger.info(checkUpdateResult.msg);
-                                      return "https://github.com/w0fv1/vertree/releases";
-                                    }
-                                    return checkUpdateResult.unwrap();
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                     ],
                   ),
                 ),

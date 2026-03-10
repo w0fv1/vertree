@@ -9,18 +9,22 @@ class TreeCanvas extends StatefulWidget {
   final TreeCanvasManager manager;
   final double height;
   final double width;
+  final Size sceneSize;
   final List<CanvasComponentContainer>? children;
   final List<Edge>? edges;
+  final int revision;
 
-  final Function refresh;
+  final Future<void> Function() refresh;
 
   const TreeCanvas({
     super.key,
     required this.manager,
     this.height = 300,
     this.width = 500,
+    this.sceneSize = Size.zero,
     this.children,
     this.edges,
+    this.revision = 0,
     required this.refresh,
   });
 
@@ -31,44 +35,46 @@ class TreeCanvas extends StatefulWidget {
 class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
   final Map<String, CanvasComponentContainer> components = {};
   int indexCounter = 0; // 控制 index 递增
-  late final List<Edge> edges = [...widget.edges ?? []]; // 存储所有的连线
+  List<Edge> edges = []; // 存储所有的连线
 
   bool isDragging = false;
 
-  Offset canvasPosition = Offset(-2000, -2000);
-
-  Offset componentBaseOffset = Offset(2000, 2000);
+  Offset canvasPosition = Offset.zero;
 
   double _scale = 1.0;
   double minScale = 0.5;
   double maxScale = 3.0;
   SystemMouseCursor _cursor = SystemMouseCursors.allScroll;
-  UniqueKey refreshKey = UniqueKey();
 
   @override
   void initState() {
     widget.manager.put = put;
-
     widget.manager.move = move;
     widget.manager.jump = jump;
-
-    // 新增的两个方法
     widget.manager.raiseOneLayer = raiseOneLayer;
     widget.manager.lowerOneLayer = lowerOneLayer;
-
     widget.manager.connectPoints = connectPoints;
 
-    if (widget.children != null) {
-      for (var child in widget.children!) {
-        add(child);
-      }
-    }
+    _syncCanvasContent();
 
     super.initState();
   }
 
   @override
+  void didUpdateWidget(covariant TreeCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.revision != widget.revision) {
+      _syncCanvasContent();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final sceneSize = widget.sceneSize == Size.zero
+        ? Size(widget.width, widget.height)
+        : widget.sceneSize;
+
     return Listener(
       onPointerSignal: (pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
@@ -87,82 +93,93 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
             newScale = newScale.clamp(minScale, maxScale);
 
             final scaleChange = newScale / _scale;
-            canvasPosition = localFocalPoint - (localFocalPoint - canvasPosition) * scaleChange;
+            canvasPosition =
+                localFocalPoint -
+                (localFocalPoint - canvasPosition) * scaleChange;
             _scale = newScale;
           });
         }
       },
-      child: Container(
-        height: widget.height,
-        width: widget.width,
-        child: Stack(
-          children: [
-            Positioned(
-              key: refreshKey,
-              top: canvasPosition.dy,
-              left: canvasPosition.dx,
-              child: Transform.scale(
-                scale: _scale,
-                alignment: Alignment.topLeft,
-                child: GestureDetector(
-                  onPanStart: (_) {
-                    setState(() {
-                      isDragging = true;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    setState(() {
-                      canvasPosition += (details.delta * _scale);
-                    });
-                  },
-                  onPanEnd: (_) {
-                    setState(() {
-                      isDragging = false;
-                    });
-                  },
-                  child: MouseRegion(
-                    cursor: _cursor,
-
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        CustomPaint(size: Size(4000, 4000), painter: FileTreeCanvasPainter(edges, Offset(2000, 2000))),
-
-                        ...(components.values.toList()..sort((a, b) => a.index.compareTo(b.index))).map((e) {
-                          e.canvasComponent.offset = componentBaseOffset;
-                          return e.canvasComponent;
-                        }),
-                      ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanStart: (_) {
+          setState(() {
+            isDragging = true;
+          });
+        },
+        onPanUpdate: (details) {
+          setState(() {
+            canvasPosition += details.delta;
+          });
+        },
+        onPanEnd: (_) {
+          setState(() {
+            isDragging = false;
+          });
+        },
+        child: MouseRegion(
+          cursor: _cursor,
+          child: SizedBox(
+            height: widget.height,
+            width: widget.width,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: canvasPosition.dy,
+                  left: canvasPosition.dx,
+                  child: Transform.scale(
+                    scale: _scale,
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: sceneSize.width,
+                      height: sceneSize.height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CustomPaint(
+                            size: sceneSize,
+                            painter: FileTreeCanvasPainter(
+                              edges,
+                              Offset.zero,
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.92,
+                              ),
+                              debugColor: scheme.primary,
+                              repaint: widget.manager.repaintNotifier,
+                            ),
+                          ),
+                          ...(components.values.toList()
+                                ..sort((a, b) => a.index.compareTo(b.index)))
+                              .map((e) {
+                                return e.canvasComponent;
+                              }),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: Container(
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.refresh, color: Colors.white),
-                      onPressed: () {
-                        // 点击刷新后重绘 edges 和 components
-                        setState(() {
-                          widget.refresh.call();
-
-                          refreshKey = UniqueKey();
-                        });
-                      },
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: Card.filled(
+                    color: scheme.surfaceContainerHigh.withValues(alpha: 0.94),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: IconButton.filledTonal(
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).refreshIndicatorSemanticLabel,
+                        icon: const Icon(Icons.refresh_rounded),
+                        onPressed: () async {
+                          await widget.refresh();
+                        },
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -173,12 +190,34 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     components[canvasComponentContainer.id] = canvasComponentContainer;
   }
 
-  String put(CanvasComponent Function(GlobalKey<CanvasComponentState> key, TreeCanvasManager manager) builder) {
+  void _syncCanvasContent() {
+    components.clear();
+    edges = [...widget.edges ?? []];
+    indexCounter = 0;
+
+    if (widget.children != null) {
+      for (final child in widget.children!) {
+        add(child);
+      }
+    }
+  }
+
+  String put(
+    CanvasComponent Function(
+      GlobalKey<CanvasComponentState> key,
+      TreeCanvasManager manager,
+    )
+    builder,
+  ) {
     GlobalKey<CanvasComponentState> globalKey = GlobalKey();
     var canvasComponent = builder(globalKey, widget.manager); // 递增 index
 
     setState(() {
-      components[canvasComponent.id] = CanvasComponentContainer(canvasComponent, globalKey, indexCounter++);
+      components[canvasComponent.id] = CanvasComponentContainer(
+        canvasComponent,
+        globalKey,
+        indexCounter++,
+      );
     });
     return canvasComponent.id;
   }
@@ -200,7 +239,8 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     if (container == null) return;
 
     // 先按 index 排好序，找出当前组件位置
-    List<CanvasComponentContainer> sorted = components.values.toList()..sort((a, b) => a.index.compareTo(b.index));
+    List<CanvasComponentContainer> sorted = components.values.toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
     int currentPos = sorted.indexOf(container);
 
     // 如果已经在最顶层，就无法再升高一层
@@ -221,7 +261,8 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     if (container == null) return;
 
     // 先按 index 排好序，找出当前组件位置
-    List<CanvasComponentContainer> sorted = components.values.toList()..sort((a, b) => a.index.compareTo(b.index));
+    List<CanvasComponentContainer> sorted = components.values.toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
     int currentPos = sorted.indexOf(container);
 
     // 如果已经在最底层，就无法再降低一层
@@ -243,7 +284,9 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     if (startComponent == null || endComponent == null) return;
 
     setState(() {
-      edges.add(Edge(startComponent.key, endComponent.key));
+      edges.add(
+        Edge(startComponent.key, endComponent.key, id: '$startId->$endId'),
+      );
     });
   }
 }
@@ -254,7 +297,8 @@ class CanvasComponentContainer {
   late final GlobalKey<CanvasComponentState> key;
   late int index; // 组件的层级 index
 
-  CanvasComponentContainer(this.canvasComponent, this.key, this.index) : id = canvasComponent.id;
+  CanvasComponentContainer(this.canvasComponent, this.key, this.index)
+    : id = canvasComponent.id;
 
   CanvasComponentContainer.component(this.canvasComponent)
     : id = canvasComponent.id,

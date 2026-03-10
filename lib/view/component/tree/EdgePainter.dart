@@ -1,38 +1,49 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:vertree/view/component/tree/CanvasComponent.dart';
-import 'package:vertree/view/component/tree/Point.dart';
 
 class Edge {
   final GlobalKey<CanvasComponentState> startPoint;
   final GlobalKey<CanvasComponentState> endPoint;
+  final String id;
 
-  Edge(this.startPoint, this.endPoint);
+  Edge(this.startPoint, this.endPoint, {required this.id});
 }
 
 class FileTreeCanvasPainter extends CustomPainter {
   final List<Edge> edges;
   final Offset baseOffset;
   final bool showDebugPoints; // 调试点开关
+  final Color color;
+  final Color debugColor;
+  final Listenable repaint;
 
-  FileTreeCanvasPainter(this.edges, this.baseOffset, {this.showDebugPoints = false});
+  FileTreeCanvasPainter(
+    this.edges,
+    this.baseOffset, {
+    this.showDebugPoints = false,
+    required this.color,
+    required this.debugColor,
+    required this.repaint,
+  }) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
     // 调试用：绘制关键点的画笔
     final debugPaint = Paint()
-      ..color = Colors.red
+      ..color = debugColor
       ..strokeWidth = 4.0
       ..style = PaintingStyle.fill;
 
     for (var edge in edges) {
+      final paint = Paint()
+        ..color = color
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+
       // 获取起点和终点的中心位置，并加上基础偏移
-      var start = edge.startPoint.currentState?.getCenterPosition() ?? Offset.zero;
+      var start =
+          edge.startPoint.currentState?.getCenterPosition() ?? Offset.zero;
       var end = edge.endPoint.currentState?.getCenterPosition() ?? Offset.zero;
       Offset s = start + baseOffset;
       Offset e = end + baseOffset;
@@ -71,11 +82,7 @@ class FileTreeCanvasPainter extends CustomPainter {
 
         path.moveTo(s.dx, s.dy);
         path.lineTo(p1.dx, p1.dy);
-        path.arcToPoint(
-          p2,
-          radius: Radius.circular(r),
-          clockwise: clockwise,
-        );
+        path.arcToPoint(p2, radius: Radius.circular(r), clockwise: clockwise);
         path.lineTo(e.dx, e.dy);
 
         // 如果打开调试点，则绘制关键点
