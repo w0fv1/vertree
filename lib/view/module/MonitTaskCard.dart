@@ -11,7 +11,8 @@ class MonitTaskCard extends StatefulWidget {
   final FileMonitTask task;
   final Function(FileMonitTask task) removeTask;
 
-  const MonitTaskCard({Key? key, required this.task, required this.removeTask}) : super(key: key);
+  const MonitTaskCard({Key? key, required this.task, required this.removeTask})
+    : super(key: key);
 
   @override
   State<MonitTaskCard> createState() => _MonitTaskCardState();
@@ -20,11 +21,6 @@ class MonitTaskCard extends StatefulWidget {
 class _MonitTaskCardState extends State<MonitTaskCard> {
   late FileMonitTask task = widget.task;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Future<void> _toggleTask() async {
     final result = await monitService.toggleFileMonitTaskStatus(task);
     result.when(
@@ -32,8 +28,15 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
         setState(() {
           task = updatedTask;
         });
-        final status = updatedTask.isRunning ? "开启" : "关闭"; // 这里只是标记文字，建议也可做成i18n key
-        showToast(appLocale.getText(LocaleKey.monitcard_monitorStatus).tr([task.file.path, status]));
+        final status = updatedTask.isRunning
+            ? "开启"
+            : "关闭"; // 这里只是标记文字，建议也可做成i18n key
+        showToast(
+          appLocale.getText(LocaleKey.monitcard_monitorStatus).tr([
+            task.file.path,
+            status,
+          ]),
+        );
       },
       err: (_, msg) {
         showToast(msg); // 错误消息保留原样
@@ -54,17 +57,27 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogTitle)),
-            content: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogContent).tr([task.backupDirPath!])),
+            title: Text(
+              appLocale.getText(LocaleKey.monitcard_cleanDialogTitle),
+            ),
+            content: Text(
+              appLocale.getText(LocaleKey.monitcard_cleanDialogContent).tr([
+                task.backupDirPath!,
+              ]),
+            ),
             actions: <Widget>[
               TextButton(
-                child: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogCancel)),
+                child: Text(
+                  appLocale.getText(LocaleKey.monitcard_cleanDialogCancel),
+                ),
                 onPressed: () {
                   Navigator.of(context).pop(false); // 返回 false，表示取消
                 },
               ),
               TextButton(
-                child: Text(appLocale.getText(LocaleKey.monitcard_cleanDialogConfirm)),
+                child: Text(
+                  appLocale.getText(LocaleKey.monitcard_cleanDialogConfirm),
+                ),
                 onPressed: () {
                   Navigator.of(context).pop(true); // 返回 true，表示确认
                 },
@@ -83,89 +96,114 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                 file.deleteSync();
               }
             }
-            showToast(appLocale.getText(LocaleKey.monitcard_cleanSuccess).tr([task.backupDirPath!]));
+            showToast(
+              appLocale.getText(LocaleKey.monitcard_cleanSuccess).tr([
+                task.backupDirPath!,
+              ]),
+            );
           } catch (e) {
-            showToast(appLocale.getText(LocaleKey.monitcard_cleanFail).tr([task.backupDirPath!, e.toString()]));
+            showToast(
+              appLocale.getText(LocaleKey.monitcard_cleanFail).tr([
+                task.backupDirPath!,
+                e.toString(),
+              ]),
+            );
             logger.error('删除备份文件夹中的文件时发生错误: $e');
           }
         }
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final statusColor = task.isRunning ? Colors.green.shade700 : scheme.outline;
 
-          children: [
-            Text(task.filePath, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 4),
-            if (task.backupDirPath != null)
-              Text(
-                appLocale.getText(LocaleKey.monitcard_backupFolder).tr([task.backupDirPath!]),
-                style: Theme.of(context).textTheme.titleSmall,
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: Card.outlined(
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.circle, color: statusColor, size: 12),
+                  const SizedBox(width: 8),
+                  Text(
+                    task.isRunning
+                        ? appLocale.getText(LocaleKey.monitcard_statusRunning)
+                        : appLocale.getText(LocaleKey.monitcard_statusStopped),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  Tooltip(
+                    message: appLocale.getText(LocaleKey.monitcard_pause),
+                    child: Switch(
+                      value: task.isRunning,
+                      onChanged: (_) => _toggleTask(),
+                    ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                // 在这里增加任务的状态
-                Icon(
-                  Icons.circle,
-                  color: task.isRunning ? Colors.green.shade700 : Colors.grey ,
-                  size: 14,
+              const SizedBox(height: 6),
+              Text(
+                task.filePath,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                SizedBox(width: 4,),
+              ),
+              const SizedBox(height: 6),
+              if (task.backupDirPath != null)
                 Text(
-                  task.isRunning
-                      ? appLocale.getText(LocaleKey.monitcard_statusRunning)
-                      : appLocale.getText(LocaleKey.monitcard_statusStopped),
-                  style: TextStyle(
-                    color: task.isRunning ? Colors.green.shade500 : Colors.grey ,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12
+                  appLocale.getText(LocaleKey.monitcard_backupFolder).tr([
+                    task.backupDirPath!,
+                  ]),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
-                Spacer(),
-                Tooltip(
-                  message: appLocale.getText(LocaleKey.monitcard_pause),
-                  child: Transform.scale(
-                    scale: 0.7,
-                    child: Switch(value: task.isRunning, onChanged: (_) => _toggleTask()),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  Tooltip(
+                    message: appLocale.getText(
+                      LocaleKey.monitcard_openBackupFolder,
+                    ),
+                    child: IconButton.filledTonal(
+                      onPressed: _openBackupFolder,
+                      icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                    ),
                   ),
-                ),
-                Tooltip(
-                  message: appLocale.getText(LocaleKey.monitcard_delete),
-                  child: IconButton(
-                    onPressed: () {
-                      widget.removeTask(task);
-                    },
-                    icon: const Icon(Icons.delete_outline_rounded),
+                  Tooltip(
+                    message: appLocale.getText(LocaleKey.monitcard_clean),
+                    child: IconButton.filledTonal(
+                      onPressed: _cleanBackupFolder,
+                      icon: const Icon(Icons.cleaning_services_rounded, size: 20),
+                    ),
                   ),
-                ),
-                Tooltip(
-                  message: appLocale.getText(LocaleKey.monitcard_clean),
-                  child: IconButton(
-                    onPressed: _cleanBackupFolder,
-                    icon: const Icon(Icons.cleaning_services_rounded, size: 22),
+                  Tooltip(
+                    message: appLocale.getText(LocaleKey.monitcard_delete),
+                    child: IconButton.filled(
+                      onPressed: () {
+                        widget.removeTask(task);
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
                   ),
-                ),
-                Tooltip(
-                  message: appLocale.getText(LocaleKey.monitcard_openBackupFolder),
-                  child: IconButton(
-                    onPressed: _openBackupFolder,
-                    icon: const Icon(Icons.open_in_new_rounded, size: 22),
-                  ),
-                ),
-
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

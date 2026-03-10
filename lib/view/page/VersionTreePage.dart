@@ -7,6 +7,7 @@ import 'package:vertree/core/Result.dart';
 import 'package:vertree/core/TreeBuilder.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
+import 'package:vertree/view/component/AppPageBackground.dart';
 import 'package:vertree/view/component/Loading.dart';
 import 'package:vertree/view/module/FileTree.dart';
 import 'package:window_manager/window_manager.dart';
@@ -27,7 +28,10 @@ class _FileTreePageState extends State<FileTreePage> {
   bool isLoading = true;
 
   Future<void> _syncWindowState() async {
-    var fileTreeWindowsStatus = configer.get("fileTreeWindowsStatus", "maximize");
+    var fileTreeWindowsStatus = configer.get(
+      "fileTreeWindowsStatus",
+      "maximize",
+    );
     bool isMaximized = await windowManager.isMaximized();
 
     if (fileTreeWindowsStatus == "maximize" && !isMaximized) {
@@ -44,7 +48,10 @@ class _FileTreePageState extends State<FileTreePage> {
     super.initState();
     _syncWindowState();
 
-    Future.wait([buildTree(path), Future.delayed(Duration(milliseconds: 200))]).then((results) {
+    Future.wait([
+      buildTree(path),
+      Future.delayed(Duration(milliseconds: 200)),
+    ]).then((results) {
       Result<FileNode, void> buildTreeResult = results[0];
       if (buildTreeResult.isErr) {
         showToast(buildTreeResult.msg);
@@ -63,6 +70,7 @@ class _FileTreePageState extends State<FileTreePage> {
     return Scaffold(
       appBar: VAppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             themedLogoImage(context: context, width: 20, height: 20),
             const SizedBox(width: 8),
@@ -87,17 +95,18 @@ class _FileTreePageState extends State<FileTreePage> {
           print('Window closed');
         },
       ),
-      body: LoadingWidget(
-        isLoading: isLoading,
-        child:
-            rootNode != null
-                ? FileTree(
+      body: AppPageBackground(
+        child: LoadingWidget(
+          isLoading: isLoading,
+          child: rootNode != null
+              ? FileTree(
                   rootNode: rootNode!,
                   focusNode: focusNode,
                   height: MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
                 )
-                : Container(),
+              : Container(),
+        ),
       ),
     );
   }

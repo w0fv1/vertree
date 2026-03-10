@@ -101,6 +101,8 @@ enum LocaleKey {
   monit_deleteSuccess,
   monit_searchHint,
   monit_noResults,
+  monit_addTaskAction,
+  monit_cleanInvalidAction,
   monit_cleanInvalidTasksDialogTitle,
   monit_invalidTaskDialogItem,
   monit_cleanInvalidTaskDialogBackupDirNotSet,
@@ -110,6 +112,9 @@ enum LocaleKey {
   // Setting Page Keys
   setting_title,
   setting_titleBar,
+  setting_appearanceGroup,
+  setting_integrationsGroup,
+  setting_resourcesGroup,
   setting_language,
   setting_contextMenuGroup,
   setting_themeModeLabel,
@@ -279,12 +284,14 @@ class AppLocale {
     LocaleKey.registry_viewTreeKeyName: "View File Version Tree VerTree",
 
     LocaleKey.app_confirmExitTitle: "Confirm Exit",
-    LocaleKey.app_confirmExitContent: "Are you sure you want to exit the application?",
+    LocaleKey.app_confirmExitContent:
+        "Are you sure you want to exit the application?",
     LocaleKey.app_minimize: "Minimize",
     LocaleKey.app_exit: "Exit",
 
     LocaleKey.app_trayNotificationTitle: "Vertree running in background",
-    LocaleKey.app_trayNotificationContent: "File version tree manager 🌲 (Click to open)",
+    LocaleKey.app_trayNotificationContent:
+        "File version tree manager 🌲 (Click to open)",
 
     LocaleKey.app_monitStartedTitle: "Vertree started monitoring",
     LocaleKey.app_monitStartedContent: "Click to view monitoring tasks",
@@ -299,12 +306,14 @@ class AppLocale {
     LocaleKey.app_confirm: "Confirm",
 
     LocaleKey.app_cancelNotificationTitle: "Vertree backup canceled",
-    LocaleKey.app_cancelNotificationContent: "User canceled the backup operation",
+    LocaleKey.app_cancelNotificationContent:
+        "User canceled the backup operation",
 
     LocaleKey.app_labelDialogError: "Failed to create label input dialog: ",
 
     LocaleKey.app_enableMonitTitle: "Enable monitoring?",
-    LocaleKey.app_enableMonitContent: "Do you want to monitor the new version after backup?",
+    LocaleKey.app_enableMonitContent:
+        "Do you want to monitor the new version after backup?",
     LocaleKey.app_yes: "Yes",
     LocaleKey.app_no: "No",
 
@@ -313,12 +322,14 @@ class AppLocale {
     LocaleKey.app_monitSuccessContent: "Click to open backup folder",
 
     LocaleKey.brand_title: 'Vertree',
-    LocaleKey.brand_slogan: 'Vertree, a tree-based file version manager 🌲, making every iteration worry-free!',
+    LocaleKey.brand_slogan:
+        'Vertree, a tree-based file version manager 🌲, making every iteration worry-free!',
     LocaleKey.brand_monitorPage: 'Monitor Page',
     LocaleKey.brand_settingPage: 'Settings',
     LocaleKey.brand_exit: 'Exit Vertree',
     LocaleKey.brand_initTitle: 'Initial Setup',
-    LocaleKey.brand_initContent: 'Allow Vertree to add context menu and enable auto start?',
+    LocaleKey.brand_initContent:
+        'Allow Vertree to add context menu and enable auto start?',
     LocaleKey.brand_cancel: 'Cancel',
     LocaleKey.brand_confirm: 'Confirm',
     LocaleKey.brand_initDoneTitle: 'Vertree setup complete!',
@@ -330,21 +341,30 @@ class AppLocale {
     LocaleKey.monit_addFail: 'Failed to add task: %a',
     LocaleKey.monit_fileNotSelected: 'No file selected',
     LocaleKey.monit_deleteDialogTitle: 'Confirm Delete',
-    LocaleKey.monit_deleteDialogContent: 'Are you sure you want to delete the monitor task: %a?',
+    LocaleKey.monit_deleteDialogContent:
+        'Are you sure you want to delete the monitor task: %a?',
     LocaleKey.monit_cancel: 'Cancel',
     LocaleKey.monit_delete: 'Delete',
     LocaleKey.monit_deleteSuccess: 'Deleted monitor task: %a',
     LocaleKey.monit_searchHint: "Filter by keyword...",
     LocaleKey.monit_noResults: "No matching tasks found",
+    LocaleKey.monit_addTaskAction: "Add file",
+    LocaleKey.monit_cleanInvalidAction: "Clean invalid tasks",
 
     LocaleKey.monit_cleanInvalidTasksDialogTitle: "Clean Invalid Monitor Tasks",
     LocaleKey.monit_invalidTaskDialogItem: "File Path: %a, Backup Path: %a",
-    LocaleKey.monit_cleanInvalidTaskDialogBackupDirNotSet: "Backup path not set",
-    LocaleKey.monit_cleanInvalidTaskDialogNoInvalidTasks: "No invalid monitor tasks found",
-    LocaleKey.monit_cleanInvalidTaskDialogCleaned: "Invalid monitor tasks cleaned successfully",
+    LocaleKey.monit_cleanInvalidTaskDialogBackupDirNotSet:
+        "Backup path not set",
+    LocaleKey.monit_cleanInvalidTaskDialogNoInvalidTasks:
+        "No invalid monitor tasks found",
+    LocaleKey.monit_cleanInvalidTaskDialogCleaned:
+        "Invalid monitor tasks cleaned successfully",
 
     LocaleKey.setting_title: "Settings",
     LocaleKey.setting_titleBar: "Vertree Settings",
+    LocaleKey.setting_appearanceGroup: "Appearance",
+    LocaleKey.setting_integrationsGroup: "System Integration",
+    LocaleKey.setting_resourcesGroup: "Resources",
     LocaleKey.setting_language: "Language",
     LocaleKey.setting_contextMenuGroup: "Context Menu Options",
     LocaleKey.setting_themeModeLabel: "Theme mode",
@@ -353,23 +373,39 @@ class AppLocale {
     LocaleKey.setting_themeModeDark: "Dark",
     LocaleKey.setting_contextMenuToggle: "Context menu options",
     LocaleKey.setting_addBackupMenu: "Add 'Backup this file' to context menu",
-    LocaleKey.setting_addExpressBackupMenu: "Add 'Express backup this file' to context menu",
+    LocaleKey.setting_addExpressBackupMenu:
+        "Add 'Express backup this file' to context menu",
     LocaleKey.setting_addMonitorMenu: "Add 'Monitor this file' to context menu",
-    LocaleKey.setting_addViewtreeMenu: "Add 'View version tree' to context menu",
-    LocaleKey.setting_enableAutostart: "Enable Vertree on startup (Recommended)",
+    LocaleKey.setting_addViewtreeMenu:
+        "Add 'View version tree' to context menu",
+    LocaleKey.setting_monitGroup: "File Monitoring",
+    LocaleKey.setting_monitRate: "Backup interval (minutes)",
+    LocaleKey.setting_monitMaxSize:
+        "Maximum backups to keep (oldest files are removed first)",
+    LocaleKey.setting_enableAutostart:
+        "Enable Vertree on startup (Recommended)",
     LocaleKey.setting_openConfig: "Open config.json",
+    LocaleKey.setting_openLogs: "Open logs folder",
     LocaleKey.setting_visitWebsite: "Visit official website",
     LocaleKey.setting_openGithub: "View GitHub repo",
-    LocaleKey.setting_notifyAddBackup: "Added 'Backup this file version' to context menu",
-    LocaleKey.setting_notifyRemoveBackup: "Removed 'Backup this file version' from context menu",
-    LocaleKey.setting_notifyAddMonitor: "Added 'Monitor this file' to context menu",
-    LocaleKey.setting_notifyRemoveMonitor: "Removed 'Monitor this file' from context menu",
-    LocaleKey.setting_notifyAddView: "Added 'View file version tree' to context menu",
-    LocaleKey.setting_notifyRemoveView: "Removed 'View file version tree' from context menu",
+    LocaleKey.setting_notifyAddBackup:
+        "Added 'Backup this file version' to context menu",
+    LocaleKey.setting_notifyRemoveBackup:
+        "Removed 'Backup this file version' from context menu",
+    LocaleKey.setting_notifyAddMonitor:
+        "Added 'Monitor this file' to context menu",
+    LocaleKey.setting_notifyRemoveMonitor:
+        "Removed 'Monitor this file' from context menu",
+    LocaleKey.setting_notifyAddView:
+        "Added 'View file version tree' to context menu",
+    LocaleKey.setting_notifyRemoveView:
+        "Removed 'View file version tree' from context menu",
     LocaleKey.setting_notifyEnableAutostart: "Enabled autostart",
     LocaleKey.setting_notifyDisableAutostart: "Disabled autostart",
-    LocaleKey.setting_notifyAddExpress: "Added 'Express backup this file' to context menu",
-    LocaleKey.setting_notifyRemoveExpress: "Removed 'Express backup this file' from context menu",
+    LocaleKey.setting_notifyAddExpress:
+        "Added 'Express backup this file' to context menu",
+    LocaleKey.setting_notifyRemoveExpress:
+        "Removed 'Express backup this file' from context menu",
 
     LocaleKey.vertree_title: "Vertree",
     LocaleKey.vertree_fileTreeTitle: "%a.%a File Version Tree",
@@ -396,7 +432,8 @@ class AppLocale {
     LocaleKey.fileleaf_noLabel: "No label",
     LocaleKey.fileleaf_lastModified: "Last modified",
     LocaleKey.fileleaf_openTitle: "Open file %a.%a?",
-    LocaleKey.fileleaf_openContent: "You are about to open \"%a.%a\" version %a",
+    LocaleKey.fileleaf_openContent:
+        "You are about to open \"%a.%a\" version %a",
     LocaleKey.fileleaf_cancel: "Cancel",
     LocaleKey.fileleaf_confirm: "Confirm",
     LocaleKey.fileleaf_menuBackup: "Backup version",
@@ -480,12 +517,15 @@ class AppLocale {
     LocaleKey.monit_addFail: '添加失败: %a',
     LocaleKey.monit_fileNotSelected: '未选择文件',
     LocaleKey.monit_deleteDialogTitle: '确认删除',
-    LocaleKey.monit_deleteDialogContent: '确定要删除监控任务: %a 吗？此操作会一并删除相应的备份文件夹和所有备份内容！',
+    LocaleKey.monit_deleteDialogContent:
+        '确定要删除监控任务: %a 吗？此操作会一并删除相应的备份文件夹和所有备份内容！',
     LocaleKey.monit_cancel: '取消',
     LocaleKey.monit_delete: '删除',
     LocaleKey.monit_deleteSuccess: '已删除监控任务: %a',
     LocaleKey.monit_searchHint: "按关键字筛选...",
     LocaleKey.monit_noResults: "未找到匹配搜索的任务",
+    LocaleKey.monit_addTaskAction: "添加文件",
+    LocaleKey.monit_cleanInvalidAction: "清理无效任务",
 
     LocaleKey.monit_cleanInvalidTasksDialogTitle: "清理无效监控任务",
     LocaleKey.monit_invalidTaskDialogItem: "文件路径：%a，备份路径：%a",
@@ -496,6 +536,9 @@ class AppLocale {
     LocaleKey.setting_title: "设置",
     LocaleKey.setting_language: '语言',
     LocaleKey.setting_titleBar: "Vertree 设置",
+    LocaleKey.setting_appearanceGroup: "界面与外观",
+    LocaleKey.setting_integrationsGroup: "系统集成",
+    LocaleKey.setting_resourcesGroup: "资源与文件",
     LocaleKey.setting_contextMenuGroup: "右键菜单选项设置",
     LocaleKey.setting_themeModeLabel: "主题模式",
     LocaleKey.setting_themeModeSystem: "跟随系统",
@@ -640,13 +683,16 @@ class AppLocale {
     LocaleKey.monit_addFail: 'タスクの追加に失敗しました: %a',
     LocaleKey.monit_fileNotSelected: 'ファイルが選択されていません',
     LocaleKey.monit_deleteDialogTitle: '削除の確認',
-    LocaleKey.monit_deleteDialogContent: '監視タスク %a を削除しますか？対応するバックアップフォルダとすべてのバックアップ内容も削除されます！',
+    LocaleKey.monit_deleteDialogContent:
+        '監視タスク %a を削除しますか？対応するバックアップフォルダとすべてのバックアップ内容も削除されます！',
     // Updated JA translation
     LocaleKey.monit_cancel: 'キャンセル',
     LocaleKey.monit_delete: '削除',
     LocaleKey.monit_deleteSuccess: '監視タスクを削除しました: %a',
     LocaleKey.monit_searchHint: "キーワードで絞り込む...",
     LocaleKey.monit_noResults: "一致するタスクが見つかりません",
+    LocaleKey.monit_addTaskAction: "ファイルを追加",
+    LocaleKey.monit_cleanInvalidAction: "無効なタスクを整理",
 
     LocaleKey.monit_cleanInvalidTasksDialogTitle: "無効な監視タスクのクリーンアップ",
     LocaleKey.monit_invalidTaskDialogItem: "ファイルパス：%a、バックアップパス：%a",
@@ -657,6 +703,9 @@ class AppLocale {
     LocaleKey.setting_title: "設定",
     LocaleKey.setting_language: '言語',
     LocaleKey.setting_titleBar: "Vertree 設定",
+    LocaleKey.setting_appearanceGroup: "外観",
+    LocaleKey.setting_integrationsGroup: "システム連携",
+    LocaleKey.setting_resourcesGroup: "リソース",
     LocaleKey.setting_contextMenuGroup: "右クリックメニューのオプション",
     LocaleKey.setting_themeModeLabel: "テーマモード",
     LocaleKey.setting_themeModeSystem: "システムに従う",
@@ -667,12 +716,17 @@ class AppLocale {
     LocaleKey.setting_addExpressBackupMenu: "「このファイルを即時バックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addMonitorMenu: "「このファイルを監視」を右クリックメニューに追加",
     LocaleKey.setting_addViewtreeMenu: "「バージョンツリーを表示」を右クリックメニューに追加",
+    LocaleKey.setting_monitGroup: "ファイル監視",
+    LocaleKey.setting_monitRate: "バックアップ間隔（分）",
+    LocaleKey.setting_monitMaxSize: "保持するバックアップ数の上限（古いファイルから削除）",
     LocaleKey.setting_enableAutostart: "起動時に Vertree を自動実行（推奨）",
     LocaleKey.setting_openConfig: "config.json を開く",
+    LocaleKey.setting_openLogs: "ログフォルダを開く",
     LocaleKey.setting_visitWebsite: "公式サイトを訪問",
     LocaleKey.setting_openGithub: "GitHub リポジトリを見る",
     LocaleKey.setting_notifyAddBackup: "「このファイルバージョンをバックアップ」が右クリックメニューに追加されました",
-    LocaleKey.setting_notifyRemoveBackup: "「このファイルバージョンをバックアップ」が右クリックメニューから削除されました",
+    LocaleKey.setting_notifyRemoveBackup:
+        "「このファイルバージョンをバックアップ」が右クリックメニューから削除されました",
     LocaleKey.setting_notifyAddMonitor: "「このファイルを監視」が右クリックメニューに追加されました",
     LocaleKey.setting_notifyRemoveMonitor: "「このファイルを監視」が右クリックメニューから削除されました",
     LocaleKey.setting_notifyAddView: "「バージョンツリーを表示」が右クリックメニューに追加されました",
@@ -680,7 +734,8 @@ class AppLocale {
     LocaleKey.setting_notifyEnableAutostart: "自動起動が有効になりました",
     LocaleKey.setting_notifyDisableAutostart: "自動起動が無効になりました",
     LocaleKey.setting_notifyAddExpress: "「このファイルを即時バックアップ」が右クリックメニューに追加されました",
-    LocaleKey.setting_notifyRemoveExpress: "「このファイルを即時バックアップ」が右クリックメニューから削除されました",
+    LocaleKey.setting_notifyRemoveExpress:
+        "「このファイルを即時バックアップ」が右クリックメニューから削除されました",
 
     LocaleKey.vertree_title: "Vertreeバージョンツリー",
     LocaleKey.vertree_fileTreeTitle: "%a.%a ファイルバージョンツリー",
@@ -696,7 +751,8 @@ class AppLocale {
     LocaleKey.monitcard_cleanSuccess: "バックアップフォルダ %a のクリーンアップに成功しました",
     LocaleKey.monitcard_cleanFail: "バックアップフォルダ %a のクリーンアップに失敗しました",
     LocaleKey.monitcard_cleanDialogTitle: "バックアップフォルダのクリーンアップ確認",
-    LocaleKey.monitcard_cleanDialogContent: "バックアップフォルダ %a 内のすべてのファイルをクリーンアップしますか？この操作は元に戻せません。",
+    LocaleKey.monitcard_cleanDialogContent:
+        "バックアップフォルダ %a 内のすべてのファイルをクリーンアップしますか？この操作は元に戻せません。",
     LocaleKey.monitcard_cleanDialogCancel: "キャンセル",
     LocaleKey.monitcard_cleanDialogConfirm: "確認",
 

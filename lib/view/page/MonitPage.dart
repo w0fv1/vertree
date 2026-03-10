@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
-import 'package:vertree/component/FileUtils.dart'; // Assuming this exists and is needed
-import 'package:vertree/component/Notifier.dart'; // Assuming showToast is here
-import 'package:vertree/main.dart'; // Assuming monitService and appLocale are here
+import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
+import 'package:vertree/view/component/AppPageBackground.dart';
 import 'package:vertree/view/module/MonitTaskCard.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -83,15 +83,22 @@ class _MonitPageState extends State<MonitPage> {
       _filteredMonitTasks = List.from(_allMonitTasks);
     } else {
       // Otherwise, filter by filePath containing the query (case-insensitive)
-      _filteredMonitTasks =
-          _allMonitTasks.where((task) => task.filePath.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+      _filteredMonitTasks = _allMonitTasks
+          .where(
+            (task) => task.filePath.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ),
+          )
+          .toList();
     }
     // No need to call setState here as it's called within _onSearchChanged
     // or after add/remove operations that also call setState.
   }
 
   Future<void> _addNewTask() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+    );
 
     if (result != null && result.files.single.path != null) {
       String selectedFilePath = result.files.single.path!;
@@ -107,7 +114,9 @@ class _MonitPageState extends State<MonitPage> {
             sortTasks();
           });
           if (mounted) {
-            showToast(appLocale.getText(LocaleKey.monit_addSuccess).tr([task.filePath]));
+            showToast(
+              appLocale.getText(LocaleKey.monit_addSuccess).tr([task.filePath]),
+            );
           }
         },
         err: (error, msg) {
@@ -129,7 +138,11 @@ class _MonitPageState extends State<MonitPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(appLocale.getText(LocaleKey.monit_deleteDialogTitle)),
-          content: Text(appLocale.getText(LocaleKey.monit_deleteDialogContent).tr([task.filePath])),
+          content: Text(
+            appLocale.getText(LocaleKey.monit_deleteDialogContent).tr([
+              task.filePath,
+            ]),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -156,7 +169,9 @@ class _MonitPageState extends State<MonitPage> {
         // Re-apply the filter to update the displayed list
         _filterTasks();
       });
-      showToast(appLocale.getText(LocaleKey.monit_deleteSuccess).tr([task.filePath]));
+      showToast(
+        appLocale.getText(LocaleKey.monit_deleteSuccess).tr([task.filePath]),
+      );
       // Safely delete directory if it exists
       try {
         final backupDir = Directory(task.backupDirPath!);
@@ -168,7 +183,9 @@ class _MonitPageState extends State<MonitPage> {
         print("Error deleting backup directory ${task.backupDirPath}: $e");
         // Optionally show a message to the user
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting backup: ${e.toString()}")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error deleting backup: ${e.toString()}")),
+          );
         }
       }
     }
@@ -178,14 +195,19 @@ class _MonitPageState extends State<MonitPage> {
     List<FileMonitTask> invalidTasks = [];
     for (var task in _allMonitTasks) {
       if (!File(task.filePath).existsSync() ||
-          (task.backupDirPath != null && !Directory(task.backupDirPath!).existsSync())) {
+          (task.backupDirPath != null &&
+              !Directory(task.backupDirPath!).existsSync())) {
         invalidTasks.add(task);
       }
     }
 
     if (invalidTasks.isEmpty) {
       if (mounted) {
-        showToast(appLocale.getText(LocaleKey.monit_cleanInvalidTaskDialogNoInvalidTasks));
+        showToast(
+          appLocale.getText(
+            LocaleKey.monit_cleanInvalidTaskDialogNoInvalidTasks,
+          ),
+        );
       }
       return;
     }
@@ -194,18 +216,22 @@ class _MonitPageState extends State<MonitPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(appLocale.getText(LocaleKey.monit_cleanInvalidTasksDialogTitle)),
+          title: Text(
+            appLocale.getText(LocaleKey.monit_cleanInvalidTasksDialogTitle),
+          ),
           content: SingleChildScrollView(
             child: ListBody(
-              children:
-                  invalidTasks.map((task) {
-                    return Text(
-                      appLocale.getText(LocaleKey.monit_invalidTaskDialogItem).tr([
-                        task.filePath,
-                        task.backupDirPath ?? appLocale.getText(LocaleKey.monit_cleanInvalidTaskDialogBackupDirNotSet),
-                      ]),
-                    );
-                  }).toList(),
+              children: invalidTasks.map((task) {
+                return Text(
+                  appLocale.getText(LocaleKey.monit_invalidTaskDialogItem).tr([
+                    task.filePath,
+                    task.backupDirPath ??
+                        appLocale.getText(
+                          LocaleKey.monit_cleanInvalidTaskDialogBackupDirNotSet,
+                        ),
+                  ]),
+                );
+              }).toList(),
             ),
           ),
           actions: <Widget>[
@@ -240,9 +266,9 @@ class _MonitPageState extends State<MonitPage> {
           print("Error deleting backup directory ${task.backupDirPath}: $e");
           // Optionally show a message to the user
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Error deleting backup: ${e.toString()}")));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Error deleting backup: ${e.toString()}")),
+            );
           }
         }
       }
@@ -253,16 +279,21 @@ class _MonitPageState extends State<MonitPage> {
       });
 
       if (mounted) {
-        showToast(appLocale.getText(LocaleKey.monit_cleanInvalidTaskDialogCleaned));
+        showToast(
+          appLocale.getText(LocaleKey.monit_cleanInvalidTaskDialogCleaned),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
       appBar: VAppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.monitor_heart_rounded, size: 20),
             const SizedBox(width: 8),
@@ -271,80 +302,83 @@ class _MonitPageState extends State<MonitPage> {
         ),
         showMaximize: false,
       ),
-      body: Column(
-        // Use Column to stack Search Bar and List
-        children: [
-          // --- Search Bar ---
-          Padding(
-            padding: const EdgeInsets.only(left: 18.0, right: 18.0, top: 8, bottom: 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: appLocale.getText(LocaleKey.monit_searchHint),
-                // Add a locale string for hint
-                hintText: appLocale.getText(LocaleKey.monit_searchHint),
-                prefixIcon: Padding(padding: const EdgeInsets.only(left: 12.0), child: const Icon(Icons.search)),
-                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(25.0))),
-                // Add a clear button
-                suffixIcon:
-                    _searchQuery.isNotEmpty
-                        ? Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              // _onSearchChanged will be triggered by the controller listener
-                            },
-                          ),
-                        )
-                        : null,
+      body: AppPageBackground(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.text,
+                child: SearchBar(
+                  controller: _searchController,
+                  hintText: appLocale.getText(LocaleKey.monit_searchHint),
+                  leading: const Icon(Icons.search_rounded),
+                  trailing: [
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-          // --- Task List ---
-          Expanded(
-            // Make the ListView take remaining space
-            child:
-                _filteredMonitTasks.isEmpty
-                    ? Center(
-                      child: Text(
-                        _searchQuery.isEmpty
-                            ? appLocale.getText(LocaleKey.monit_empty) // No tasks at all
-                            : appLocale.getText(
-                              LocaleKey.monit_noResults,
-                            ), // No tasks match search - Add this locale string
+            Expanded(
+              child: _filteredMonitTasks.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _searchQuery.isEmpty
+                                ? Icons.monitor_heart_outlined
+                                : Icons.search_off_rounded,
+                            size: 42,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? appLocale.getText(LocaleKey.monit_empty)
+                                : appLocale.getText(LocaleKey.monit_noResults),
+                            style: theme.textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
-                    : ListView.builder(
-                  key: UniqueKey(),
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(top: 4, bottom: 92),
                       itemCount: _filteredMonitTasks.length,
                       itemBuilder: (context, index) {
                         final task = _filteredMonitTasks[index];
-
-                        if (index == _filteredMonitTasks.length - 1) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 68.0),
-                            child: MonitTaskCard(task: task, removeTask: _removeTask),
-                          );
-                        }
-                        // Build the list using the filtered tasks
                         return MonitTaskCard(task: task, removeTask: _removeTask);
                       },
                     ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: Row(
+      floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          FloatingActionButton(
+          FloatingActionButton.small(
+            heroTag: 'clean_invalid_tasks',
+            tooltip: appLocale.getText(LocaleKey.monit_cleanInvalidAction),
             onPressed: _cleanInvalidTask,
             child: const Icon(Icons.cleaning_services_rounded, size: 18),
           ),
-          SizedBox(width: 10),
-          FloatingActionButton(onPressed: _addNewTask, child: const Icon(Icons.add)),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'add_monitor_task',
+            tooltip: appLocale.getText(LocaleKey.monit_addTaskAction),
+            onPressed: _addNewTask,
+            icon: const Icon(Icons.add),
+            label: Text(appLocale.getText(LocaleKey.monit_addTaskAction)),
+          ),
         ],
       ),
     );

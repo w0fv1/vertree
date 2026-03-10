@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:vertree/component/I18nLang.dart';
-import 'package:vertree/component/Notifier.dart';
-import 'package:vertree/main.dart';
 
 class AppVersionDisplay extends StatefulWidget {
   final String appVersion;
@@ -49,37 +46,31 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
   }
 
   Future<void> _openLink() async {
-    final url = _hasNewVersion && _newVersionDownloadUrl != null ? _newVersionDownloadUrl! : widget.defaultLink;
+    final url = _hasNewVersion && _newVersionDownloadUrl != null
+        ? _newVersionDownloadUrl!
+        : widget.defaultLink;
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
-      // 可以添加一些错误处理逻辑，例如显示一个SnackBar
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法打开链接')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('无法打开链接')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return FilledButton.tonalIcon(
       onPressed: _openLink,
-      child: Stack(
-        clipBehavior: Clip.none, // 允许子widget超出Stack的范围
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.update_rounded, size: 23),
-              SizedBox(width: 6),
-              Text('${widget.appVersion}', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          if (_hasNewVersion)
-            Positioned(
-              top: -14, // 调整垂直位置
-              right: -20, // 调整水平位置
-              child: const Icon(Icons.fiber_new_outlined, size: 28.0, color: Colors.deepOrange),
-            ),
-        ],
+      icon: Badge(
+        isLabelVisible: _hasNewVersion,
+        alignment: Alignment.topRight,
+        child: const Icon(Icons.update_rounded, size: 20),
+      ),
+      label: Text(
+        widget.appVersion,
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/view/component/AppBar.dart';
+import 'package:vertree/view/component/AppPageBackground.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
 
@@ -31,65 +32,94 @@ class _BrandPageState extends State<BrandPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
       appBar: VAppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             themedLogoImage(context: context, width: 20, height: 20),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(appLocale.getText(LocaleKey.brand_title)),
           ],
         ),
         showMaximize: false,
         goHome: false,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(18.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              themedLogoImage(context: context, width: 240, height: 180),
-              SizedBox(height: 16),
-              Text(
-                appLocale.getText(LocaleKey.brand_title),
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                appLocale.getText(LocaleKey.brand_slogan),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    tooltip: appLocale.getText(LocaleKey.brand_monitorPage),
-                    onPressed: () async {
-                      go(MonitPage());
-                    },
-                    icon: Icon(Icons.monitor_heart_rounded),
+      body: AppPageBackground(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Card.filled(
+                color: scheme.surfaceContainerLowest,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 32,
                   ),
-                  IconButton(
-                    tooltip: appLocale.getText(LocaleKey.brand_settingPage),
-                    onPressed: () async {
-                      go(SettingPage());
-                    },
-                    icon: Icon(Icons.settings_rounded),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      themedLogoImage(context: context, width: 240, height: 180),
+                      const SizedBox(height: 12),
+                      Text(
+                        appLocale.getText(LocaleKey.brand_title),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: Text(
+                          appLocale.getText(LocaleKey.brand_slogan),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: () async {
+                              go(MonitPage());
+                            },
+                            icon: const Icon(Icons.monitor_heart_rounded),
+                            label: Text(
+                              appLocale.getText(LocaleKey.brand_monitorPage),
+                            ),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: () async {
+                              go(SettingPage());
+                            },
+                            icon: const Icon(Icons.settings_rounded),
+                            label: Text(
+                              appLocale.getText(LocaleKey.brand_settingPage),
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              exit(0);
+                            },
+                            icon: const Icon(Icons.exit_to_app_rounded),
+                            label: Text(appLocale.getText(LocaleKey.brand_exit)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: appLocale.getText(LocaleKey.brand_exit),
-                    onPressed: () async {
-                      exit(0);
-                    },
-                    icon: Icon(Icons.exit_to_app_rounded),
-                  ),
-                ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),

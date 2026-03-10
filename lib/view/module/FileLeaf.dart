@@ -23,7 +23,12 @@ class FileLeaf extends CanvasComponent {
   final FileNode fileNode;
   final bool isFocused; // 判断是否为焦点模式
 
-  final void Function(FileNode parentNode, Offset parentPosition, GlobalKey<CanvasComponentState> parentKey) sprout;
+  final void Function(
+    FileNode parentNode,
+    Offset parentPosition,
+    GlobalKey<CanvasComponentState> parentKey,
+  )
+  sprout;
 
   @override
   _FileNodeState createState() => _FileNodeState();
@@ -55,11 +60,19 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           Text(
             "${StringUtils.truncate(fileNode.mate.name, 12)} ${fileNode.version}",
             textAlign: TextAlign.center,
-            style: TextStyle(color: (widget.isFocused ? Colors.black : Colors.white)),
+            style: TextStyle(
+              color: (widget.isFocused ? Colors.black : Colors.white),
+            ),
           ),
           IconButton(
             iconSize: 20,
-            icon: Center(child: Icon(Icons.save, color: (widget.isFocused ? Colors.black : Colors.white), size: 14)),
+            icon: Center(
+              child: Icon(
+                Icons.save,
+                color: (widget.isFocused ? Colors.black : Colors.white),
+                size: 14,
+              ),
+            ),
             onPressed: () {
               widget.sprout(fileNode, position, widget.canvasComponentKey);
             },
@@ -73,7 +86,9 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       content = Container(
         decoration: BoxDecoration(
           // 这里使用 LinearGradient 实现渐变效果，颜色可根据需求调整
-          gradient: const LinearGradient(colors: [Colors.red, Colors.orange, Colors.yellow]),
+          gradient: const LinearGradient(
+            colors: [Colors.red, Colors.orange, Colors.yellow],
+          ),
           borderRadius: BorderRadius.circular(12), // 外层圆角要比内层大
         ),
         padding: const EdgeInsets.all(2), // 设定边框宽度
@@ -84,17 +99,23 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
     return Tooltip(
       message: _getTooltipMessage(),
       textStyle: const TextStyle(color: Colors.white),
-      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(8),
+      ),
       padding: const EdgeInsets.all(8),
       waitDuration: const Duration(milliseconds: 200),
-      child: GestureDetector(
-        onTap: () {
-          _showOpenFileDialog();
-        },
-        onSecondaryTapDown: (details) {
-          _showContextMenu(details.globalPosition);
-        },
-        child: content,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            _showOpenFileDialog();
+          },
+          onSecondaryTapDown: (details) {
+            _showContextMenu(details.globalPosition);
+          },
+          child: content,
+        ),
       ),
     );
   }
@@ -104,7 +125,10 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
     String label = fileNode.mate.label?.isNotEmpty == true
         ? fileNode.mate.label!
         : appLocale.getText(LocaleKey.fileleaf_noLabel);
-    String lastModified = fileNode.mate.lastModifiedTime.toLocal().toString().split('.')[0];
+    String lastModified = fileNode.mate.lastModifiedTime
+        .toLocal()
+        .toString()
+        .split('.')[0];
     return "${appLocale.getText(LocaleKey.fileleaf_propertyLabel)}: $label\n"
         "${appLocale.getText(LocaleKey.fileleaf_lastModified)}: $lastModified";
   }
@@ -116,10 +140,19 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(appLocale.getText(LocaleKey.fileleaf_openTitle)
-              .tr([fileNode.mate.name, fileNode.mate.extension])),
-          content: Text(appLocale.getText(LocaleKey.fileleaf_openContent)
-              .tr([fileNode.mate.name, fileNode.mate.extension, fileNode.mate.version.toString()])),
+          title: Text(
+            appLocale.getText(LocaleKey.fileleaf_openTitle).tr([
+              fileNode.mate.name,
+              fileNode.mate.extension,
+            ]),
+          ),
+          content: Text(
+            appLocale.getText(LocaleKey.fileleaf_openContent).tr([
+              fileNode.mate.name,
+              fileNode.mate.extension,
+              fileNode.mate.version.toString(),
+            ]),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -142,7 +175,11 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
     final result = await showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
-          globalPosition.dx, globalPosition.dy, globalPosition.dx, globalPosition.dy),
+        globalPosition.dx,
+        globalPosition.dy,
+        globalPosition.dx,
+        globalPosition.dy,
+      ),
       items: [
         PopupMenuItem(
           value: 'backup',
@@ -167,8 +204,12 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text(appLocale.getText(LocaleKey.fileleaf_monitTitle)),
-            content: Text(appLocale.getText(LocaleKey.fileleaf_monitContent)
-                .tr([fileNode.mate.name, fileNode.mate.extension])),
+            content: Text(
+              appLocale.getText(LocaleKey.fileleaf_monitContent).tr([
+                fileNode.mate.name,
+                fileNode.mate.extension,
+              ]),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -177,7 +218,9 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  monitService.addFileMonitTask(fileNode.mate.fullPath).then((result) {
+                  monitService.addFileMonitTask(fileNode.mate.fullPath).then((
+                    result,
+                  ) {
                     if (result.isErr) {
                       showWindowsNotification(
                         appLocale.getText(LocaleKey.fileleaf_notifyFailed),
@@ -245,80 +288,183 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
         child: SingleChildScrollView(
           child: Table(
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-            columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
             children: [
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyFullname))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.fullName)),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyName))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.name)),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyLabel))),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: isEditingLabel
-                      ? Row(children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _labelController,
-                        decoration: InputDecoration(
-                          hintText: appLocale.getText(LocaleKey.fileleaf_propertyInputLabel),
-                        ),
-                      ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyFullname),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.check_rounded, size: 18),
-                      onPressed: () async {
-                        await widget.meta.renameFile(_labelController.text);
-                        setState(() => isEditingLabel = false);
-                      },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.fullName),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyName),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel_outlined, size: 18),
-                      onPressed: () {
-                        setState(() {
-                          isEditingLabel = false;
-                          _labelController.text = widget.meta.label ?? "";
-                        });
-                      },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.name),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyLabel),
                     ),
-                  ])
-                      : Row(children: [
-                    Expanded(child: Text(widget.meta.label ?? "")),
-                    IconButton(
-                      icon: const Icon(Icons.edit_rounded, size: 18),
-                      onPressed: () => setState(() => isEditingLabel = true),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: isEditingLabel
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _labelController,
+                                  decoration: InputDecoration(
+                                    hintText: appLocale.getText(
+                                      LocaleKey.fileleaf_propertyInputLabel,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.check_rounded, size: 18),
+                                onPressed: () async {
+                                  await widget.meta.renameFile(
+                                    _labelController.text,
+                                  );
+                                  setState(() => isEditingLabel = false);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.cancel_outlined,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isEditingLabel = false;
+                                    _labelController.text =
+                                        widget.meta.label ?? "";
+                                  });
+                                },
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(child: Text(widget.meta.label ?? "")),
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, size: 18),
+                                onPressed: () =>
+                                    setState(() => isEditingLabel = true),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyVersion),
                     ),
-                  ]),
-                ),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyVersion))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.version.toString())),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyExt))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.extension)),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyPath))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.fullPath)),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertySize))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text("${widget.meta.fileSize} bytes")),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyCreated))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.creationTime.toString())),
-              ]),
-              TableRow(children: [
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(appLocale.getText(LocaleKey.fileleaf_propertyModified))),
-                Padding(padding: const EdgeInsets.all(4.0), child: Text(widget.meta.lastModifiedTime.toString())),
-              ]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.version.toString()),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyExt),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.extension),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyPath),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.fullPath),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertySize),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text("${widget.meta.fileSize} bytes"),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyCreated),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.creationTime.toString()),
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      appLocale.getText(LocaleKey.fileleaf_propertyModified),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(widget.meta.lastModifiedTime.toString()),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -331,5 +477,4 @@ class _FilePropertiesDialogState extends State<FilePropertiesDialog> {
       ],
     );
   }
-
 }

@@ -33,33 +33,164 @@ Configer configer = Configer();
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.7.1", // 替换为你的实际当前版本
+  currentVersion: "V0.8.0-alpha3", // 替换为你的实际当前版本
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
 
-/// 统一定义全局明暗主题，默认跟随系统。
-ThemeData _buildLightTheme() {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF2E7D32), // 稍偏「树」的绿色
-      brightness: Brightness.light,
+ThemeData _applyDesktopInteractionTheme(ThemeData theme) {
+  final clickCursor = WidgetStateProperty.resolveWith<MouseCursor?>(
+    (states) => states.contains(WidgetState.disabled)
+        ? SystemMouseCursors.basic
+        : SystemMouseCursors.click,
+  );
+
+  return theme.copyWith(
+    filledButtonTheme: FilledButtonThemeData(
+      style:
+          theme.filledButtonTheme.style?.copyWith(mouseCursor: clickCursor) ??
+          ButtonStyle(mouseCursor: clickCursor),
     ),
-    scaffoldBackgroundColor: const Color(0xFFF7F7F7),
+    textButtonTheme: TextButtonThemeData(
+      style:
+          theme.textButtonTheme.style?.copyWith(mouseCursor: clickCursor) ??
+          ButtonStyle(mouseCursor: clickCursor),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style:
+          theme.elevatedButtonTheme.style?.copyWith(mouseCursor: clickCursor) ??
+          ButtonStyle(mouseCursor: clickCursor),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style:
+          theme.outlinedButtonTheme.style?.copyWith(mouseCursor: clickCursor) ??
+          ButtonStyle(mouseCursor: clickCursor),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style:
+          theme.segmentedButtonTheme.style?.copyWith(
+            mouseCursor: clickCursor,
+          ) ??
+          ButtonStyle(mouseCursor: clickCursor),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style:
+          theme.iconButtonTheme.style?.copyWith(mouseCursor: clickCursor) ??
+          ButtonStyle(mouseCursor: clickCursor),
+    ),
+    floatingActionButtonTheme: theme.floatingActionButtonTheme.copyWith(
+      mouseCursor: clickCursor,
+    ),
+    switchTheme: theme.switchTheme.copyWith(mouseCursor: clickCursor),
+    checkboxTheme: theme.checkboxTheme.copyWith(mouseCursor: clickCursor),
+    radioTheme: theme.radioTheme.copyWith(mouseCursor: clickCursor),
+    popupMenuTheme: theme.popupMenuTheme.copyWith(mouseCursor: clickCursor),
+  );
+}
+
+ThemeData _buildTheme({
+  required Brightness brightness,
+  required Color seedColor,
+  required Color scaffoldBackgroundColor,
+}) {
+  final base = ThemeData(
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: seedColor,
+      brightness: brightness,
+    ),
+    scaffoldBackgroundColor: scaffoldBackgroundColor,
     fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
     useMaterial3: true,
+  );
+  final scheme = base.colorScheme;
+
+  return _applyDesktopInteractionTheme(
+    base.copyWith(
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+      searchBarTheme: SearchBarThemeData(
+        elevation: const WidgetStatePropertyAll(0),
+        backgroundColor: WidgetStatePropertyAll(
+          scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        ),
+        side: WidgetStatePropertyAll(BorderSide(color: scheme.outlineVariant)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      listTileTheme: base.listTileTheme.copyWith(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    ),
+  );
+}
+
+/// 统一定义全局明暗主题，默认跟随系统。
+ThemeData _buildLightTheme() {
+  return _buildTheme(
+    brightness: Brightness.light,
+    seedColor: const Color(0xFF2E7D32),
+    scaffoldBackgroundColor: const Color(0xFFF4F8F2),
   );
 }
 
 ThemeData _buildDarkTheme() {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF81C784), // 与浅色主题同色系的柔和绿
-      brightness: Brightness.dark,
-    ),
-    scaffoldBackgroundColor: const Color(0xFF121212),
-    fontFamily: Platform.isMacOS ? 'SF Pro Text' : 'Microsoft YaHei',
-    useMaterial3: true,
+  return _buildTheme(
+    brightness: Brightness.dark,
+    seedColor: const Color(0xFF81C784),
+    scaffoldBackgroundColor: const Color(0xFF101412),
   );
 }
 
@@ -130,8 +261,9 @@ void toggleLightDarkTheme() {
   if (currentThemeSetting == AppThemeSetting.system) {
     return;
   }
-  final next =
-      currentThemeSetting == AppThemeSetting.light ? AppThemeSetting.dark : AppThemeSetting.light;
+  final next = currentThemeSetting == AppThemeSetting.light
+      ? AppThemeSetting.dark
+      : AppThemeSetting.light;
   updateThemeSetting(next);
 }
 

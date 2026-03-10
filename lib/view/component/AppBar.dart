@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/page/BrandPage.dart';
@@ -53,31 +55,34 @@ class _VAppBarState extends State<VAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMacOS = Theme.of(context).platform == TargetPlatform.macOS;
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onPanUpdate: (_) async => await windowManager.startDragging(),
-      onDoubleTap: () async {
-        if (isMaximized) {
-          await windowManager.restore();
-          isMaximized = false;
-          if (widget.onRestore != null) {
-            widget.onRestore!();
+    final bool isMacOS = Platform.isMacOS;
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanUpdate: (_) async => await windowManager.startDragging(),
+        onDoubleTap: () async {
+          if (isMaximized) {
+            await windowManager.restore();
+            isMaximized = false;
+            if (widget.onRestore != null) {
+              widget.onRestore!();
+            }
+          } else {
+            await windowManager.maximize();
+            isMaximized = true;
+            if (widget.onMaximize != null) {
+              widget.onMaximize!();
+            }
           }
-        } else {
-          await windowManager.maximize();
-          isMaximized = true;
-          if (widget.onMaximize != null) {
-            widget.onMaximize!();
-          }
-        }
-        setState(() {});
-      },
-      child: Container(
-        height: 40,
-        padding: EdgeInsets.all(4),
-        color: Colors.transparent,
-        child: isMacOS ? _buildMacLayout() : _buildDefaultLayout(),
+          setState(() {});
+        },
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.all(4),
+          color: Colors.transparent,
+          child: isMacOS ? _buildMacLayout() : _buildDefaultLayout(),
+        ),
       ),
     );
   }
@@ -86,31 +91,33 @@ class _VAppBarState extends State<VAppBar> {
     const double trafficLightInset = 72;
     final bool showThemeToggle = currentThemeSetting != AppThemeSetting.system;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final IconData themeIcon =
-        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
+    final IconData themeIcon = isDark
+        ? Icons.light_mode_rounded
+        : Icons.dark_mode_rounded;
 
     return Row(
       children: [
         const SizedBox(width: trafficLightInset),
         const Spacer(),
-        if (widget.goHome)
+        if (widget.goHome) ...[
           _buildAppBarButton(Icons.arrow_back_rounded, () async {
             go(BrandPage());
           }),
-        if (widget.goHome)
           _buildAppBarButton(Icons.home_rounded, () async {
             go(BrandPage());
           }),
-        if (widget.goHome) const SizedBox(width: 4),
+          const SizedBox(width: 4),
+        ],
         if (showThemeToggle)
           _buildAppBarButton(themeIcon, () {
             toggleLightDarkTheme();
           }),
         const SizedBox(width: 8),
-        Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 12),
-          child: widget.title,
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Align(alignment: Alignment.centerRight, child: widget.title),
+          ),
         ),
       ],
     );
@@ -119,11 +126,13 @@ class _VAppBarState extends State<VAppBar> {
   Widget _buildDefaultLayout() {
     final bool showThemeToggle = currentThemeSetting != AppThemeSetting.system;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final IconData themeIcon =
-        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
+    final IconData themeIcon = isDark
+        ? Icons.light_mode_rounded
+        : Icons.dark_mode_rounded;
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     final windowButtons = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (widget.showMinimize)
           _buildAppBarButton(Icons.remove, () async {
@@ -135,60 +144,59 @@ class _VAppBarState extends State<VAppBar> {
         if (widget.showMinimize) const SizedBox(width: 6),
         if (widget.showMaximize)
           _buildAppBarButton(
-              isMaximized ? Icons.filter_none : Icons.crop_square, () async {
-            if (isMaximized) {
-              await windowManager.restore();
-              isMaximized = false;
-              if (widget.onRestore != null) {
-                widget.onRestore!();
+            isMaximized ? Icons.filter_none : Icons.crop_square,
+            () async {
+              if (isMaximized) {
+                await windowManager.restore();
+                isMaximized = false;
+                if (widget.onRestore != null) {
+                  widget.onRestore!();
+                }
+              } else {
+                await windowManager.maximize();
+                isMaximized = true;
+                if (widget.onMaximize != null) {
+                  widget.onMaximize!();
+                }
               }
-            } else {
-              await windowManager.maximize();
-              isMaximized = true;
-              if (widget.onMaximize != null) {
-                widget.onMaximize!();
-              }
-            }
-            setState(() {});
-          }),
+              setState(() {});
+            },
+          ),
         if (widget.showMaximize) const SizedBox(width: 6),
         if (widget.showClose)
-          _buildAppBarButton(
-            Icons.close,
-            () async {
-              await windowManager.hide(); // 仅隐藏窗口
-              if (widget.onClose != null) {
-                widget.onClose!();
-              }
-            },
-            color: scheme.error,
-          ),
+          _buildAppBarButton(Icons.close, () async {
+            await windowManager.hide(); // 仅隐藏窗口
+            if (widget.onClose != null) {
+              widget.onClose!();
+            }
+          }, color: scheme.error),
       ],
     );
 
     return Row(
       children: [
-        if (widget.goHome)
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8, right: 12),
+            child: Align(alignment: Alignment.centerLeft, child: widget.title),
+          ),
+        ),
+        const Spacer(),
+        if (widget.goHome) ...[
           _buildAppBarButton(Icons.arrow_back_rounded, () async {
             go(BrandPage());
           }),
-        if (widget.goHome)
           _buildAppBarButton(Icons.home_rounded, () async {
             go(BrandPage());
           }),
-        const Spacer(),
-        windowButtons,
-        const SizedBox(width: 8),
+          const SizedBox(width: 4),
+        ],
         if (showThemeToggle)
           _buildAppBarButton(themeIcon, () {
             toggleLightDarkTheme();
           }),
-        const SizedBox(width: 4),
-        Container(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.only(right: 12),
-          child: widget.title,
-        ),
+        if (showThemeToggle) const SizedBox(width: 8),
+        windowButtons,
       ],
     );
   }
@@ -204,13 +212,12 @@ class _VAppBarState extends State<VAppBar> {
     final Color effectiveColor =
         color ?? scheme.onSurfaceVariant.withOpacity(0.9);
     double size = widget.height - 4;
-    return IconButton(
-      padding: EdgeInsets.all(padding),
-      onPressed: onPressed,
-      icon: Icon(
-        icon,
-        size: size / 3 * 2 - padding,
-        color: effectiveColor,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: IconButton(
+        padding: EdgeInsets.all(padding),
+        onPressed: onPressed,
+        icon: Icon(icon, size: size / 3 * 2 - padding, color: effectiveColor),
       ),
     );
   }
