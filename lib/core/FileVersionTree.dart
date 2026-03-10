@@ -345,6 +345,13 @@ class FileNode {
     originalFile = fileMeta.originalFile;
   }
 
+  String? _validateVersionableSource() {
+    if (FileMeta.isSupportedTreeFilePath(mate.fullPath)) {
+      return null;
+    }
+    return "当前文件命名不支持版本备份";
+  }
+
   bool noChildren() {
     return child == null && topBranches.isEmpty && bottomBranches.isEmpty;
   }
@@ -446,6 +453,11 @@ class FileNode {
   }
 
   Future<Result<FileNode, String>> safeBackup([String? label]) async {
+    final unsupportedMessage = _validateVersionableSource();
+    if (unsupportedMessage != null) {
+      return Result.eMsg(unsupportedMessage);
+    }
+
     try {
       final newVersion = mate.version.nextVersion();
       if (!_hasVersionConflict(newVersion)) {
@@ -459,6 +471,11 @@ class FileNode {
   }
 
   Future<Result<FileNode, String>> backup([String? label]) async {
+    final unsupportedMessage = _validateVersionableSource();
+    if (unsupportedMessage != null) {
+      return Result.eMsg(unsupportedMessage);
+    }
+
     if (child != null) {
       return Result.eMsg("当前版本已有长子，不允许备份");
     }
@@ -478,6 +495,11 @@ class FileNode {
   }
 
   Future<Result<FileNode, String>> branch([String? label]) async {
+    final unsupportedMessage = _validateVersionableSource();
+    if (unsupportedMessage != null) {
+      return Result.eMsg(unsupportedMessage);
+    }
+
     try {
       final branchedVersion = mate.version.branchVersion(branchIndex + 1);
       final newFileName =

@@ -299,6 +299,27 @@ void main() {
       );
     });
 
+    test('rejects backup and branch for dot-leading file names', () async {
+      final hiddenFile = await _writeFile(
+        tempDir,
+        '.gitignore',
+        'node_modules',
+      );
+      final hiddenNode = FileNode(hiddenFile.path);
+
+      final backupResult = await hiddenNode.backup();
+      final branchResult = await hiddenNode.branch();
+      final safeBackupResult = await hiddenNode.safeBackup();
+
+      expect(backupResult.isErr, isTrue);
+      expect(branchResult.isErr, isTrue);
+      expect(safeBackupResult.isErr, isTrue);
+      expect(backupResult.msg, contains('当前文件命名不支持版本备份'));
+      expect(branchResult.msg, contains('当前文件命名不支持版本备份'));
+      expect(safeBackupResult.msg, contains('当前文件命名不支持版本备份'));
+      expect(Directory(tempDir.path).listSync(), hasLength(1));
+    });
+
     test('computes heights for mixed child and branch trees', () async {
       final root = FileNode(
         (await _writeFile(tempDir, 'storyboard.0.0.txt')).path,
