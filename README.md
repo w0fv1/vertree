@@ -1,247 +1,100 @@
-# Vertree - 维树 🌲
+# Vertree
 
-**Vertree (维树)：一款轻量级、可视化的单文件版本管理系统，让您的每一次迭代都有备无患！**
+Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，尽量不改变你原本的使用习惯。
 
-[![许可证](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-<!-- 在这里可以添加其他徽章，如构建状态、最新版本等 -->
+## 0.8.0 现状
 
----
+- 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、监控页、版本树、设置页。
+- 支持 macOS 桌面运行，提供菜单栏/托盘、Finder Services、设置页快捷操作、开机自启。
+- GitHub Actions 当前只自动构建 Windows 发布产物；macOS 仍以本地构建为主。
 
-你是否曾为找回一个文件的旧版本而烦恼？是否希望在修改重要文件时，能有一个简单的“后悔药”？
+## 核心能力
 
-Vertree 旨在解决**单个文件**的版本管理难题。它不同于 Git 等复杂的代码版本控制系统，专注于设计师、写作者、学生等需要频繁修改单个文件（如设计稿、文档、配置文件）的用户场景。通过直观的树状视图和便捷的操作，Vertree 让版本管理变得前所未有的简单。
+- 树状版本管理：主线版本、分支版本、备注标签都能直接体现在文件名和界面里。
+- 自动监控备份：监控文件变化，按配置频率自动写入 `*_bak` 目录。
+- 快速入口：Windows 右键菜单、macOS Finder Services、托盘菜单、应用菜单都可以直接触发操作。
+- 设置集中管理：语言、主题、监控频率、最大备份数、上下文菜单、自启动都可以在设置页调整。
+- 单实例与启动优化：避免重复打开，改善启动显示和托盘恢复体验。
 
-> Vertree 不仅仅是一个工具，它是一种对创作过程的尊重。我们相信，每一个创作者都应该专注于自己的作品，而不是被版本管理的复杂性所困扰。Vertree 的出现，是为了让创作变得更加自由和高效。—— 源自 BrandPage.dart
+## 使用方式
 
-## ✨ 功能亮点
+### Windows
 
-*   **🌳 树状版本管理**:
-    *   可视化文件的修改历史，分支、迭代一目了然。
-    *   轻松创建新版本（备份）或从某个历史版本创建分支。
-    *   支持为每个版本添加备注（Label），方便追溯修改内容。
-*   **⏱️ 文件变更监控**:
-    *   自动监控指定文件的修改。
-    *   在文件发生变化时，根据设定的时间间隔自动创建备份。
-    *   可配置最大备份数量，自动清理旧备份，节省空间。
-*   **🖱️ 右键菜单集成 (Windows)**:
-    *   **备份文件 VerTree**: 创建当前文件的一个新版本，并允许添加备注。
-    *   **快速备份文件 VerTree**: 无需备注，快速创建当前文件的新版本。
-    *   **监控文件变动 VerTree**: 将文件添加到监控列表，自动备份后续修改。
-    *   **查看文件版本树 VerTree**: 直接打开该文件的版本历史树状图。
-*   **⚙️ 系统托盘管理**:
-    *   应用可最小化到系统托盘，在后台安静运行监控任务。
-    *   通过托盘图标快速访问设置或退出应用。
-*   **🚀 版本更新检查**:
-    *   启动时自动检查 GitHub Releases，提示用户有无新版本。
-*   **🌐 国际化支持**:
-    *   内置简体中文、English、日本語支持，并可根据系统语言自动选择（或在设置中手动切换）。
-*   **🔧 配置灵活**:
-    *   通过 `config.json` 文件自定义应用行为，如监控频率、最大备份数、界面语言、右键菜单项开关等。
-*   **📄 日志记录**:
-    *   记录详细的操作日志，方便排查问题。自动清理旧日志文件。
-*   **💡 其他**:
-    *   单实例运行，防止重复打开。
-    *   简洁的通知系统（系统通知 + Toast）。
-    *   内置文件/文件夹打开工具。
+1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `Vertree_Setup.zip`
+2. 解压并运行 `Vertree_Setup.exe`
+3. 首次启动完成初始化
+4. 通过文件右键菜单或托盘开始使用
 
+### macOS
 
-
-## 🚀 快速开始 (Windows)
-
-**环境要求:**
-
-*   Flutter SDK (请参考 [Flutter Get started](https://docs.flutter.dev/get-started/install))
-*   Git
-
-**步骤:**
-
-1.  **启用 Windows 开发支持 (如果尚未启用):**
-    ```bash
-    flutter config --enable-windows-desktop
-    ```
-2.  **克隆仓库:**
-    ```bash
-    git clone https://github.com/w0fv1/vertree.git
-    ```
-3.  **进入项目目录:**
-    ```bash
-    cd vertree
-    ```
-4.  **安装依赖:**
-    ```bash
-    flutter pub get
-    ```
-5.  **运行项目:**
-    ```bash
-    flutter run -d windows
-    ```
-
-## 🚀 快速开始 (macOS)
-
-> macOS 版本目前提供「托盘菜单 + 设置页快捷操作 + 开机自启」的原生适配；Finder 右键菜单仍在规划中。
-
-1.  **启用 macOS 桌面支持 (如果尚未启用):**
-
-    ```
-    flutter config --enable-macos-desktop
-    ```
-
-2.  **安装 CocoaPods (首次需要):**
-
-    ```
-    brew install cocoapods
-    ```
-
-3.  **（重要）避免 iCloud Desktop/Documents 目录:**
-
-    如果项目在 iCloud 同步的 `Desktop` / `Documents` 下，Xcode 可能会因文件扩展属性导致 `CodeSign` 失败。
-
-    推荐做法：把项目移动到非 iCloud 同步目录后再运行。
-
-4.  **拉取依赖:**
-
-    ```
-    flutter pub get
-    ```
-
-5.  **运行项目:**
-
-    ```
-    flutter run -d macos
-    ```
-    首次运行时，可能会提示进行初始化设置（添加右键菜单、设置开机自启）。
-
-## 📖 如何使用
-
-1.  **版本管理 (通过右键菜单):**
-    *   在文件上右键，选择 "备份文件 VerTree" 创建一个带备注的新版本。
-    *   选择 "快速备份文件 VerTree" 创建一个无备注的新版本。
-    *   选择 "查看文件版本树 VerTree" 打开该文件的可视化版本历史。
-2.  **文件监控:**
-    *   在文件上右键，选择 "监控文件变动 VerTree" 开始监控。
-    *   打开 Vertree 应用，进入 "监控页"，可以查看、暂停/恢复、删除监控任务，或手动添加新任务。
-    *   监控任务会在文件修改时，按设置 (`setting_monitRate`) 自动在原文件同目录下创建 `*_bak` 文件夹并备份。
-3.  **查看版本树:**
-    *   通过右键菜单或在备份文件后自动跳转。
-    *   在版本树界面，可以：
-        *   点击节点打开对应版本的文件。
-        *   右键点击节点进行备份、添加到监控或查看属性。
-        *   点击节点上的保存图标，从此版本创建新版本或分支。
-        *   拖动、缩放画布以更好地查看复杂的版本历史。
-4.  **设置:**
-    *   通过托盘菜单或主界面进入 "设置页"。
-    *   配置语言、右键菜单项、开机自启、监控参数等。
-    *   可以快速打开配置文件 (`config.json`) 或日志文件夹。
-    *   检查应用更新。
-
-## ⚙️ 配置说明
-
-应用的配置存储在用户支持目录下的 `config.json` 文件中。通常路径为 `C:\Users\<你的用户名>\AppData\Roaming\dev.w0fv1.vertree\config.json`。
-
-**注意，请不要直接手动修改配置项，而是通过设置界面进行配置。**
-
-主要配置项包括：
-
-*   `locale`: 界面语言 ("ZH_CN", "EN", "JA", "OTHER")。
-*   `monitFiles`: 监控任务列表 (由程序自动管理)。
-*   `monitorRate`: 监控任务的备份时间间隔（分钟，默认 1）。
-*   `monitorMaxSize`: 每个监控任务最多保留的备份文件数量（默认 9999）。
-*   `launch2Tray`: 启动时是否直接最小化到托盘 (默认 true)。
-*   `isSetupDone`: 是否已完成首次初始化设置 (默认 false)。
-*   (设置页中对应的右键菜单、开机自启开关也会反映在此，但建议通过设置界面修改)。
-
-## 📂 项目结构
-
-```plaintext
-vertree/
-├── lib/
-│   ├── component/      # 通用组件 (日志, 配置, 通知, 托盘, 注册表助手, i18n等)
-│   ├── core/           # 核心逻辑 (版本树数据结构, 监控管理, 树构建器等)
-│   ├── utils/          # 工具类 (字符串处理, Windows注册表底层操作)
-│   ├── view/           # 视图层 (UI页面和自定义UI组件)
-│   │   ├── component/  # UI通用组件 (AppBar, Loading, 版本按钮, 画布相关)
-│   │   ├── module/     # 特定功能的UI模块 (文件节点, 监控卡片)
-│   │   └── page/       # 应用页面 (品牌页, 监控页, 设置页, 版本树页)
-│   └── main.dart       # 应用入口与全局逻辑
-├── assets/             # 资源文件 (图标, 图片)
-├── pubspec.yaml        # 项目依赖与元数据配置
-└── README.md           # 项目说明文档
-```
-
-## 📦 主要依赖
-
-Vertree 依赖以下优秀的开源库 (部分列举)：
-
-*   `flutter`: Flutter 框架核心。
-*   `window_manager`: 强大的窗口管理库。
-*   `tray_manager`: 系统托盘功能实现。
-*   `win32_registry`: Windows 注册表操作。
-*   `local_notifier`: 本地通知发送。
-*   `http`: 用于进行网络请求 (版本检查)。
-*   `path_provider`: 获取系统标准目录路径。
-*   `file_picker`: 文件选择器。
-*   `toastification`: 美观的 Toast 通知。
-*   `url_launcher`: 打开外部链接。
-*   `windows_single_instance`: 实现Windows下单实例运行。
-*   `loading_indicator`: 加载动画指示器。
-*   `intl`: 国际化支持。
-*   `path`: 路径处理。
-*   `uuid`: 生成唯一ID。
-*   `flutter_vector_icons`: 提供额外的图标。
-
-*完整依赖列表请查看 `pubspec.yaml` 文件。*
-
-## 🎨 图标生成
-
-Launcher Icon（macOS/Windows）统一由 `flutter_launcher_icons` 生成，源图标为 `assets/icon/app_icon.png`。
+当前仓库已包含 macOS 工程，但 CI 还没有自动产出 macOS 安装包。可用方式是本地构建运行：
 
 ```bash
-# 1. 基于透明 Logo 生成 canonical 1024x1024 图标 + 托盘 / Dock 刷新用资源
-#    - 输入：assets/img/logo/logo.png
-#    - 输出：
-#      - assets/icon/app_icon.png              # 作为 flutter_launcher_icons 输入
-#      - macos/Runner/Assets.xcassets/DockIcon.imageset/dock_icon_1024.png
-#      - assets/img/logo/tray_template.png     # macOS 托盘 Template 图标（跟随系统深浅色）
-#      - assets/img/logo/tray_colored.png      # 菜单栏圆形镂空图标
-python3 tools/generate_macos_icons.py
-
-# 2. 基于 app_icon.png 生成各平台 Launcher Icon
-dart run flutter_launcher_icons
+flutter config --enable-macos-desktop
+flutter pub get
+flutter run -d macos
 ```
 
-## ⚠️ 已知问题
+已支持的 macOS 入口：
 
-1.  **权限管理**: 在某些不需要管理员权限的操作中，可能仍会触发权限请求（与Windows注册表和开机自启交互相关）。
-2.  **版本树绘制**: 版本树视图中的连接线有时需要用户手动拖动一下画布才能正确显示。
-3.  *欢迎通过 [Issues](https://github.com/w0fv1/vertree/issues) 反馈您遇到的其他问题！*
+- Finder Services: 备份、快速备份、监控、查看版本树
+- 应用菜单: 设置、备份、快速备份、监控、查看版本树
+- 菜单栏图标: 打开设置、执行常用操作
 
-## 🚀 未来规划
+## 开发运行
 
-1.  **跨平台支持**: 增加对 macOS 和 Linux 系统的原生支持（主要是注册表、托盘、通知部分的适配）。
-2.  **细节优化**:
-    *   更精细化的管理员权限控制。
-    *   改进版本树的绘制逻辑和性能。
-    *   UI/UX 持续改进。
-3.  **功能增强**:
-    *   (可能) 文件对比功能。
-    *   (可能) 支持文件夹的版本管理或监控。
+### Windows
 
-## 🤝 贡献指南
+```bash
+flutter config --enable-windows-desktop
+flutter pub get
+flutter run -d windows
+```
 
-我们非常欢迎您为 Vertree 贡献代码或提出建议！请遵循以下步骤：
+### macOS
 
-1.  **Fork** 本仓库。
-2.  基于 `main` 分支创建您的特性分支 (`git checkout -b feature/AmazingFeature`)。
-3.  提交您的代码 (`git commit -m 'Add some AmazingFeature'`)。
-4.  将您的分支推送到远程仓库 (`git push origin feature/AmazingFeature`)。
-5.  **提交 Pull Request** 到 `main` 分支，并详细说明您的改动。
+```bash
+flutter config --enable-macos-desktop
+brew install cocoapods
+flutter pub get
+flutter run -d macos
+```
 
-您也可以通过提交 [Issues](https://github.com/w0fv1/vertree/issues) 来报告 Bug 或提出功能需求。
+如果项目位于 iCloud 同步的 `Desktop` 或 `Documents` 下，macOS 可能在签名阶段失败，建议移到非 iCloud 目录。
 
-## 📜 许可协议
+## 配置文件
 
-本项目基于 **MIT** 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+配置保存在应用支持目录下的 `config.json` 中。常用字段包括：
 
-## 💬 联系
+- `locale`: 语言
+- `themeMode`: `system` / `light` / `dark`
+- `monitorRate`: 监控备份最小间隔（分钟）
+- `monitorMaxSize`: 单任务最多保留的备份数量
+- `monitFiles`: 监控任务列表
+- `launch2Tray`: 启动后是否进入托盘
+- `isSetupDone`: 是否完成首次初始化
+- `win11MenuEnabled`: 是否启用 Windows 11 新菜单集成
 
-如果您有任何问题或建议，请通过 GitHub [Issues](https://github.com/w0fv1/vertree/issues) 与我们联系。
+建议通过设置页修改，而不是手动编辑。
+
+## 文档
+
+- 用户文档: [docs/](https://w0fv1.github.io/vertree/)
+- 本地文档开发: [docs/README.md](docs/README.md)
+
+## 已知限制
+
+- Windows 11 新菜单依赖 Sparse Package / MSIX 身份，没有打包身份时只能使用旧版右键菜单。
+- macOS 目前没有官方自动构建的发布包，主要通过本地构建使用。
+- 版本树画线仍有继续优化空间，复杂树下的布局和交互还会继续调整。
+
+## 后续方向
+
+- Linux 支持
+- 更稳定的版本树布局与画布体验
+- 更细的权限控制与平台集成
+- 文件差异展示与搜索能力
+
+## 许可
+
+MIT. See [LICENSE](LICENSE).

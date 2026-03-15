@@ -86,7 +86,9 @@ class MonitManager {
 
   /// 切换文件监视任务的运行状态
   /// 切换文件监视任务的运行状态
-  Future<Result<FileMonitTask, String>> toggleFileMonitTaskStatus(FileMonitTask task) async {
+  Future<Result<FileMonitTask, String>> toggleFileMonitTaskStatus(
+    FileMonitTask task,
+  ) async {
     final index = monitFileTasks.indexWhere((t) => t.filePath == task.filePath);
     if (index == -1) {
       final errMsg = "Task not found for: ${task.filePath}";
@@ -94,12 +96,17 @@ class MonitManager {
       return Result.err(errMsg);
     }
 
+    final storedTask = monitFileTasks[index];
     Result<FileMonitTask, String> result;
 
-    if (task.isRunning) {
-      result = _pauseMonitor(task);
+    if (storedTask.isRunning) {
+      result = _pauseMonitor(storedTask);
     } else {
-      result = _startMonitor(task);
+      result = _startMonitor(storedTask);
+    }
+
+    if (result.isOk) {
+      await _saveMonitFiles();
     }
 
     return result;
@@ -108,8 +115,12 @@ class MonitManager {
   /// 启动监视
   Result<FileMonitTask, String> _startMonitor(FileMonitTask task) {
     if (!File(task.filePath).existsSync()) {
-      logger.error("Cannot start monitor: File does not exist: ${task.filePath}");
-      return Result.eMsg("Cannot start monitor: File does not exist: ${task.filePath}");
+      logger.error(
+        "Cannot start monitor: File does not exist: ${task.filePath}",
+      );
+      return Result.eMsg(
+        "Cannot start monitor: File does not exist: ${task.filePath}",
+      );
     }
 
     task.monitor ??= Monitor.fromTask(task);
@@ -137,7 +148,8 @@ class FileMonitTask {
   late File file;
   Monitor? monitor;
 
-  FileMonitTask({required this.filePath, this.isRunning = false}) : fileExists = File(filePath).existsSync() {
+  FileMonitTask({required this.filePath, this.isRunning = false})
+    : fileExists = File(filePath).existsSync() {
     if (!fileExists) {
       print("File does not exist: $filePath");
       isRunning = false;
@@ -162,7 +174,10 @@ class FileMonitTask {
 
   // 从 Map（JSON 反序列化）创建对象
   factory FileMonitTask.fromJson(Map<String, dynamic> json) {
-    final task = FileMonitTask(filePath: json["filePath"], isRunning: json["isRunning"] ?? false);
+    final task = FileMonitTask(
+      filePath: json["filePath"],
+      isRunning: json["isRunning"] ?? false,
+    );
     task.fileExists = File(task.filePath).existsSync();
 
     if (!task.fileExists) {

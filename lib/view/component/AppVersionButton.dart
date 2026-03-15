@@ -30,18 +30,17 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
       try {
         final hasNewVersion = await widget.checkNewVersion();
         if (hasNewVersion) {
-          widget.getNewVersionDownloadUrl().then((onValue) {
-            if (onValue == null || onValue.isEmpty) {
-              return;
-            }
+          final downloadUrl = await widget.getNewVersionDownloadUrl();
+          if (!mounted || downloadUrl == null || downloadUrl.isEmpty) {
+            return;
+          }
 
-            setState(() {
-              _hasNewVersion = true;
-            });
-            _newVersionDownloadUrl = onValue;
+          setState(() {
+            _hasNewVersion = true;
+            _newVersionDownloadUrl = downloadUrl;
           });
         }
-      } catch (e) {}
+      } catch (_) {}
     });
   }
 
@@ -53,6 +52,7 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('无法打开链接')));

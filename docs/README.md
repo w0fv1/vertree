@@ -1,41 +1,35 @@
-# Website
+# Vertree Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Vertree 的文档站使用 Docusaurus 构建，源码在 `docs/docs`，静态产物输出到 `docs/build`。
 
-### Installation
+## 环境
 
-```
-$ yarn
-```
+- Node.js 18+
+- npm
 
-### Local Development
+## 安装依赖
 
-```
-$ yarn start
-```
-
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-### Build
-
-```
-$ yarn build
+```bash
+npm install
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+## 本地预览
 
-### Deployment
-
-Using SSH:
-
-```
-$ USE_SSH=true yarn deploy
+```bash
+npm start
 ```
 
-Not using SSH:
+## 构建静态站点
 
-```
-$ GIT_USER=<Your GitHub username> yarn deploy
+```bash
+npm run build
 ```
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+## 这次需要重点维护的文档
+
+- `docs/docs/intro.md`
+- `docs/docs/tutorial-usage/install.md`
+- `docs/docs/tutorial-usage/usage.md`
+- `docs/docs/macos.md`
+
+如果发布内容有变更，优先先改这几处，再重新构建 `docs/build`。

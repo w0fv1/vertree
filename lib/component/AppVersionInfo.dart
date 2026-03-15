@@ -33,10 +33,6 @@ class AppVersionInfo {
     return '$y-$m-$d';
   }
 
-  bool _isSameDay(String? value) {
-    return value != null && value == _todayKey();
-  }
-
   bool _isSkipTodayError(String? msg) {
     return msg != null && msg.startsWith('今日已检查更新');
   }
@@ -51,7 +47,9 @@ class AppVersionInfo {
   /// - `0`: 如果 version1 == version2
   static int compareVersions(String version1, String version2) {
     // 清理版本号：去除首尾空格，去除开头的 'v' (不区分大小写)
-    String cleanVersion(String v) => v.trim().toLowerCase().startsWith('v') ? v.trim().substring(1) : v.trim();
+    String cleanVersion(String v) => v.trim().toLowerCase().startsWith('v')
+        ? v.trim().substring(1)
+        : v.trim();
 
     String cleanV1 = cleanVersion(version1);
     String cleanV2 = cleanVersion(version2);
@@ -95,8 +93,6 @@ class AppVersionInfo {
       return Result.err('今日已检查更新，跳过网络请求');
     }
 
-    configer.set<String>(_lastUpdateCheckKey, today);
-
     try {
       logger.info('正在从 $releaseApiUrl 获取最新版本信息...');
       final response = await http.get(Uri.parse(releaseApiUrl));
@@ -109,6 +105,7 @@ class AppVersionInfo {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           _cachedReleaseInfo = data;
           _cachedReleaseDate = today;
+          configer.set<String>(_lastUpdateCheckKey, today);
           return Result.ok(data);
         } catch (e) {
           logger.error('解析 JSON 失败: $e');
@@ -154,23 +151,36 @@ class AppVersionInfo {
     if (latestVersionTag is String && latestVersionTag.isNotEmpty) {
       logger.info('获取到的最新版本标签: $latestVersionTag');
       // 使用静态方法比较版本号
-      int comparisonResult = AppVersionInfo.compareVersions(currentVersion, latestVersionTag);
+      int comparisonResult = AppVersionInfo.compareVersions(
+        currentVersion,
+        latestVersionTag,
+      );
 
       // comparisonResult < 0 表示 latestVersionTag 更新
       if (comparisonResult < 0) {
         logger.info('发现新版本！($latestVersionTag > $currentVersion)');
-        return Result.ok(UpdateInfo(hasUpdate: true, latestHtmlUrl: latestHtmlUrl,latestVersionTag: latestVersionTag));
+        return Result.ok(
+          UpdateInfo(
+            hasUpdate: true,
+            latestHtmlUrl: latestHtmlUrl,
+            latestVersionTag: latestVersionTag,
+          ),
+        );
       } else if (comparisonResult == 0) {
         logger.info('当前版本 ($currentVersion) 已是最新。');
         return Result.ok(UpdateInfo(hasUpdate: false));
       } else {
         // comparisonResult > 0 表示 currentVersion 比 latestVersionTag 还新
-        logger.info('当前版本 ($currentVersion) 比 GitHub 最新版本 ($latestVersionTag) 还新？检查 API URL 或版本号规则。也可能是在内测。');
+        logger.info(
+          '当前版本 ($currentVersion) 比 GitHub 最新版本 ($latestVersionTag) 还新？检查 API URL 或版本号规则。也可能是在内测。',
+        );
         return Result.ok(UpdateInfo(hasUpdate: false));
       }
     } else {
       logger.error('未能从 API 响应中找到有效的 "tag_name"。');
-      logger.error('API 响应相关部分: ${releaseInfo['tag_name']}'); // 打印 tag_name 值以供调试
+      logger.error(
+        'API 响应相关部分: ${releaseInfo['tag_name']}',
+      ); // 打印 tag_name 值以供调试
       return Result.err('未能从 API 响应中找到有效的 "tag_name"。'); // tag_name 无效
     }
   }
@@ -233,5 +243,9 @@ class UpdateInfo {
   final String? latestVersionTag;
   final String? latestHtmlUrl;
 
-  UpdateInfo({required this.hasUpdate, this.latestHtmlUrl, this.latestVersionTag});
+  UpdateInfo({
+    required this.hasUpdate,
+    this.latestHtmlUrl,
+    this.latestVersionTag,
+  });
 }

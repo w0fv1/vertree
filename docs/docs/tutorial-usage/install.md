@@ -2,82 +2,54 @@
 sidebar_position: 1
 ---
 
-# 🚀 VerTree 安装指南
+# 安装
 
-## **下载 VerTree**
-VerTree 目前支持 Windows，**macOS 和 Linux 版本将在未来推出，敬请期待！**
+## Windows
 
-👉 **[下载 VerTree 最新版本](https://github.com/w0fv1/vertree/releases)**
+0.8.0 的官方发布产物目前以 Windows 为主。
 
-在 GitHub **Releases 页面**，找到最新版本并下载 **`Vertree_Setup.zip`**。
+1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
+2. 下载最新版本的 `Vertree_Setup.zip`
+3. 解压得到 `Vertree_Setup.exe`
+4. 运行安装程序并完成安装
+5. 首次启动后完成初始化
 
----
+初始化通常会完成这些动作：
 
-## **Windows 安装步骤**
+- 注册右键菜单
+- 写入开机自启
+- 准备托盘运行环境
 
-👉 **[下载 VerTree 最新版本](https://github.com/w0fv1/vertree/releases)**
+后续都可以在设置页里再开关。
 
-![下载](/img/tutorial/download.png) 
+## macOS
 
-### **1. 解压安装包**
-下载完成后，**右键解压 `Vertree_Setup.zip`**，得到 **`Vertree_Setup.exe`** 安装程序。
+仓库已经包含 macOS 工程和平台接入，但当前 GitHub Action 还没有自动发布 macOS 安装包。使用方式以本地构建为主。
 
-### **2. 运行安装程序**
-双击 **`Vertree_Setup.exe`** 运行安装向导。
+### 前置条件
 
-### **3. 选择安装路径**
-在安装向导中，**选择安装位置**（推荐默认安装到 `C:\Program Files\Vertree`），然后点击 **Next**。
+- Flutter 已启用 macOS 桌面支持
+- 已安装 CocoaPods
 
-### **4. 开始安装**
-点击 **Install** 按钮，等待安装完成。
+```bash
+flutter config --enable-macos-desktop
+brew install cocoapods
+```
 
-### **5. 初次启动**
-安装完成后，**打开 VerTree**，软件会进行 **初始化**，请点击 **“确定”** 继续。
+### 运行
 
-![setup](/img/tutorial/setup.png)
+```bash
+flutter pub get
+flutter run -d macos
+```
 
-setup会设置功能菜单和开机自启，您随时可以在设置中关闭。
+### 注意
 
-![setup](/img/tutorial/menu.png)
+- 如果项目在 iCloud 同步的 `Desktop` / `Documents` 目录下，可能出现签名失败，建议移到非 iCloud 目录。
+- Finder Services、菜单栏和应用菜单需要在应用首次正常启动后才能完整接入。
 
+## 版本号与发布
 
----
-
-## **VerTree 使用介绍**
-
-安装完成后，你可以 **选中文件 -> 右键菜单** 来使用 VerTree 的功能。
-
-### **🔹 备份文件**
-- 右键文件，选择 **“备份”**。
-- 输入备注信息，这将为未来提供参考。
-- VerTree **自动创建版本副本**，并管理版本历史。
-- 你可以随时回溯到旧版本，无需手动重命名文件！
-
-### **🔹 监控文件**
-- 右键文件，选择 **“监控”**。
-- VerTree **实时检测文件修改**，自动创建小版本备份。
-- 适用于设计稿、文档编辑等需要频繁修改的文件。
-
-### **🔹 版本树查看**
-- 右键文件，选择 **“查看版本树”**。
-- 可视化查看 **文件的历史版本**，支持分支管理。
-- 轻松回溯到任何一个版本！
-
----
-
-## **VerTree 的无侵入设计**
-- VerTree **不会修改你的原始文件**，它仅仅是帮你复制备份。
-- **无版本冲突**，你可以随时停止使用 VerTree，文件仍然可以正常使用。
-- **不影响你的工作流**，只需右键即可完成备份和管理。
-
----
-
-## **卸载 VerTree**
-如果你不再需要 VerTree，可以随时卸载：
-- 通过 **“Windows 设置” -> “应用” -> “Vertree”** 进行卸载。
-- VerTree **不会残留任何注册表项或额外文件**，保证系统干净整洁。
-
----
-
-VerTree 让你的文件管理更轻松，让每次修改都有迹可循！🚀  
-有任何问题或建议，欢迎加入我们的社区讨论！💬
+- `pubspec.yaml` 中的 `version` 决定发布版本
+- GitHub Windows Release workflow 要求 tag 与 `pubspec.yaml` 版本完全一致
+- 例如发布 `0.8.0` 时，应使用 tag `V0.8.0`
