@@ -10,6 +10,7 @@ import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
+import 'package:vertree/component/LaunchCounter.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
@@ -33,7 +34,7 @@ Configer configer = Configer();
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.8.0", // 替换为你的实际当前版本
+  currentVersion: "V0.8.1", // 替换为你的实际当前版本
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
@@ -421,6 +422,7 @@ void main(List<String> args) async {
 
     TrayManager().init();
     runApp(const MainPage());
+    LaunchCounter.trackLaunchIfNeeded(configer: configer, logger: logger);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       processArgs(args);
     });

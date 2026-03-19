@@ -73,6 +73,19 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
           pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -BuildMode $mode
 
+      - name: Resolve release notes file
+        id: notes
+        shell: pwsh
+        run: |
+          $version = "${{ steps.pubspec.outputs.version }}"
+          $notesFile = Join-Path $env:GITHUB_WORKSPACE ".github/release-$version.md"
+          if (Test-Path $notesFile) {
+            "notes_file=$notesFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "Using release notes file: $notesFile"
+          } else {
+            Write-Host "No release notes file found for version $version"
+          }
+
       - name: Upload build artifacts
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
@@ -89,6 +102,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           prerelease: ${{ contains(steps.pubspec.outputs.version, '-') }}
+          body_path: ${{ steps.notes.outputs.notes_file }}
           files: |
             windows/Vertree_Setup.exe
             windows/Vertree_Setup.zip
