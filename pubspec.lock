@@ -516,10 +516,10 @@ packages:
     dependency: transitive
     description:
       name: native_toolchain_c
-      sha256: "92b2ca62c8bd2b8d2f267cdfccf9bfbdb7322f778f8f91b3ce5b5cda23a3899f"
+      sha256: "6ba77bb18063eebe9de401f5e6437e95e1438af0a87a3a39084fbd37c90df572"
       url: "https://pub.dev"
     source: hosted
-    version: "0.17.5"
+    version: "0.17.6"
   node_preamble:
     dependency: transitive
     description:
@@ -864,12 +864,11 @@ packages:
   tray_manager:
     dependency: "direct main"
     description:
-      path: "packages/tray_manager"
-      ref: main
-      resolved-ref: "4eb50ad3b8a359deec0181330b644ad2bdc7aeaf"
-      url: "https://github.com/w0fv1/tray_manager.git"
-    source: git
-    version: "0.3.2"
+      name: tray_manager
+      sha256: c5fd83b0ae4d80be6eaedfad87aaefab8787b333b8ebd064b0e442a81006035b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.2"
   typed_data:
     dependency: transitive
     description:

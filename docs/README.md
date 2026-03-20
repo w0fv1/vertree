@@ -31,5 +31,6 @@ npm run build
 - `docs/docs/tutorial-usage/install.md`
 - `docs/docs/tutorial-usage/usage.md`
 - `docs/docs/macos.md`
+- `docs/docs/linux.md`
 
 如果发布内容有变更，优先先改这几处，再重新构建 `docs/build`。
