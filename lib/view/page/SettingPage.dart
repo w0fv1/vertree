@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vertree/api/LocalHttpApiServer.dart';
 import 'package:vertree/component/AppVersionInfo.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/I18nLang.dart';
@@ -25,6 +26,7 @@ class SettingPage extends StatefulWidget {
 class _SettingPageState extends State<SettingPage> {
   late final TextEditingController _monitorRateController;
   late final TextEditingController _monitorMaxSizeController;
+  late final ScrollController _settingsScrollController;
 
   bool backupFile = false;
   bool expressBackupFile = false;
@@ -33,6 +35,7 @@ class _SettingPageState extends State<SettingPage> {
   bool autoStart = false;
   bool legacyMenuEnabled = false;
   bool win11MenuEnabled = false;
+  bool localHttpApiEnabled = true;
   bool _showLegacyMenuDetails = false;
   bool isLoading = false;
   String _themeModeSetting = 'system';
@@ -52,6 +55,7 @@ class _SettingPageState extends State<SettingPage> {
     _monitorMaxSizeController = TextEditingController(
       text: configer.get("monitorMaxSize", 50).toString(),
     );
+    _settingsScrollController = ScrollController();
     _restoreIfMaximized();
     _loadPlatformState();
   }
@@ -60,6 +64,7 @@ class _SettingPageState extends State<SettingPage> {
   void dispose() {
     _monitorRateController.dispose();
     _monitorMaxSizeController.dispose();
+    _settingsScrollController.dispose();
     super.dispose();
   }
 
@@ -77,6 +82,7 @@ class _SettingPageState extends State<SettingPage> {
     if (PlatformIntegration.supportsAutoStart) {
       autoStart = await PlatformIntegration.isAutoStartEnabled();
     }
+    localHttpApiEnabled = configer.get<bool>('localHttpApiEnabled', true);
     _themeModeSetting = configer.get<String>('themeMode', 'system');
     _syncMonitorControllers();
     if (!mounted) return;
@@ -264,6 +270,24 @@ class _SettingPageState extends State<SettingPage> {
       }
       isLoading = false;
     });
+  }
+
+  Future<void> _toggleLocalHttpApi(bool? value) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    configer.set<bool>('localHttpApiEnabled', value);
+    try {
+      await localHttpApiServer.syncWithConfig();
+    } catch (e) {
+      logger.error('Local HTTP API toggle failed: $e');
+      showToast('Local HTTP API 启停失败: $e');
+      configer.set<bool>('localHttpApiEnabled', !value);
+    }
+
+    await _loadPlatformState();
+    if (!mounted) return;
+    setState(() => isLoading = false);
   }
 
   Future<void> _toggleExpressBackupFile(bool? value) async {
@@ -564,7 +588,9 @@ class _SettingPageState extends State<SettingPage> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Scrollbar(
+                  controller: _settingsScrollController,
                   child: ListView(
+                    controller: _settingsScrollController,
                     children: [
                       _buildSection(
                         icon: Icons.palette_outlined,
@@ -752,6 +778,69 @@ class _SettingPageState extends State<SettingPage> {
                             controller: _monitorMaxSizeController,
                             configKey: "monitorMaxSize",
                             fallback: 50,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSection(
+                        icon: Icons.hub_outlined,
+                        title: appLocale.getText(LocaleKey.setting_httpApiGroup),
+                        children: [
+                          _buildSwitchTile(
+                            icon: Icons.lan_rounded,
+                            title: appLocale.getText(
+                              LocaleKey.setting_enableLocalHttpApi,
+                            ),
+                            value: localHttpApiEnabled,
+                            onChanged: _toggleLocalHttpApi,
+                          ),
+                          ListTile(
+                            mouseCursor: SystemMouseCursors.basic,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            leading: const Icon(Icons.info_outline_rounded),
+                            title: Text(
+                              appLocale
+                                  .getText(LocaleKey.setting_httpApiStatus)
+                                  .tr([
+                                    localHttpApiServer.isRunning
+                                        ? appLocale
+                                              .getText(
+                                                LocaleKey
+                                                    .setting_httpApiRunning,
+                                              )
+                                              .tr([
+                                                localHttpApiServer.baseUrl ??
+                                                    'http://127.0.0.1:${localHttpApiServer.port ?? LocalHttpApiServer.defaultPort}/api/v1',
+                                              ])
+                                        : appLocale.getText(
+                                              LocaleKey
+                                                  .setting_httpApiStopped,
+                                            ),
+                                  ]),
+                            ),
+                            subtitle: localHttpApiServer.isRunning
+                                ? Text(
+                                    'Port ${localHttpApiServer.port} · 127.0.0.1 only',
+                                  )
+                                : const Text(
+                                    'Default port 31414, auto-increment on conflict',
+                                  ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: FilledButton.tonalIcon(
+                              onPressed: localHttpApiServer.docsUrl == null
+                                  ? null
+                                  : () => _openUrl(localHttpApiServer.docsUrl!),
+                              icon: const Icon(Icons.open_in_browser_rounded),
+                              label: Text(
+                                appLocale.getText(
+                                  LocaleKey.setting_httpApiDocs,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),

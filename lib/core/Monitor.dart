@@ -10,8 +10,25 @@ class Monitor {
   late File file;
   late Directory backupDir;
 
+  DateTime? _startedAt;
+  DateTime? _lastObservedEventAt;
   DateTime? _lastBackupTime;
+  String? _lastObservedEventPath;
+  String? _lastBackupPath;
+  String? _lastError;
+  int _observedEventCount = 0;
+  int _createdBackupCount = 0;
   StreamSubscription<FileSystemEvent>? _subscription;
+
+  DateTime? get startedAt => _startedAt;
+  DateTime? get lastObservedEventAt => _lastObservedEventAt;
+  DateTime? get lastBackupTime => _lastBackupTime;
+  String? get lastObservedEventPath => _lastObservedEventPath;
+  String? get lastBackupPath => _lastBackupPath;
+  String? get lastError => _lastError;
+  int get observedEventCount => _observedEventCount;
+  int get createdBackupCount => _createdBackupCount;
+  bool get isHandlingFileChange => _isHandlingFileChange;
 
   Monitor(this.filePath) {
     file = File(filePath);
@@ -53,9 +70,13 @@ class Monitor {
   }
 
   void start() {
+    _startedAt = DateTime.now();
     _subscription = file.parent.watch(events: FileSystemEvent.all).listen((event) {
       print("事件触发: ${event.type} -> ${event.path}");
       if (event.path == file.absolute.path) {
+        _observedEventCount += 1;
+        _lastObservedEventAt = DateTime.now();
+        _lastObservedEventPath = event.path;
         _handleFileChange(file, backupDir);
       }
     });
@@ -113,8 +134,12 @@ class Monitor {
       final backupPath = p.join(backupDir.path, '${p.basename(file.path)}_$timestamp.bak${p.extension(file.path)}');
       logger.info("Backup to: $backupPath");
       file.copySync(backupPath);
+      _lastBackupPath = backupPath;
+      _createdBackupCount += 1;
+      _lastError = null;
       logger.info("Backup created: $backupPath");
     } catch (e) {
+      _lastError = e.toString();
       logger.error("Error creating backup: $e");
     }
   }

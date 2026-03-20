@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## Windows
 
-0.8.1 的官方发布产物目前以 Windows 为主。
+0.9.0 的官方发布产物目前以 Windows 为主。
 
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
 2. 下载最新版本的 `Vertree_Setup.zip`
@@ -52,4 +52,4 @@ flutter run -d macos
 
 - `pubspec.yaml` 中的 `version` 决定发布版本
 - GitHub Windows Release workflow 要求 tag 与 `pubspec.yaml` 版本完全一致
-- 例如发布 `0.8.1` 时，应使用 tag `V0.8.1`
+- 例如发布 `0.9.0` 时，应使用 tag `V0.9.0`

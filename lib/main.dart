@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
+import 'package:vertree/api/LocalHttpApiServer.dart';
 import 'package:vertree/component/AppLogger.dart';
 import 'package:vertree/component/Configer.dart';
 import 'package:vertree/component/LaunchCounter.dart';
@@ -16,6 +17,7 @@ import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/platform/platform_integration.dart';
+import 'package:vertree/service/LocalHttpApiService.dart';
 import 'package:vertree/platform/windows_registry_bridge.dart';
 import 'package:vertree/platform/windows_single_instance_bridge.dart';
 import 'package:vertree/view/page/BrandPage.dart';
@@ -29,12 +31,13 @@ import 'component/AppVersionInfo.dart';
 final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitManager monitService;
+late LocalHttpApiServer localHttpApiServer;
 Configer configer = Configer();
 
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.8.1", // 替换为你的实际当前版本
+  currentVersion: "V0.9.0", // 替换为你的实际当前版本
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
@@ -342,6 +345,15 @@ void main(List<String> args) async {
   await PlatformIntegration.init();
 
   monitService = MonitManager();
+  localHttpApiServer = LocalHttpApiServer(
+    apiService: LocalHttpApiService(
+      configer: configer,
+      monitManager: monitService,
+      currentVersion: appVersionInfo.currentVersion,
+      startedAt: DateTime.now(),
+      currentPortResolver: () => localHttpApiServer.port,
+    ),
+  );
   logger.info("启动参数: $args");
 
   try {
@@ -372,6 +384,11 @@ void main(List<String> args) async {
       bringWindowToFront: false,
     );
     await initLocalNotifier();
+    try {
+      await localHttpApiServer.syncWithConfig();
+    } catch (e) {
+      logger.error('Local HTTP API startup failed: $e');
+    }
 
     windowManager.waitUntilReadyToShow(
       const WindowOptions(

@@ -1,0 +1,477 @@
+#!/usr/bin/env python3
+"""Local development control server for Vertree.
+
+This service owns a `flutter run` subprocess and exposes a small loopback-only
+HTTP API that can:
+
+- start the app
+- hot reload
+- hot restart
+- fully restart the process
+- stop the app
+- wait until the app HTTP API is ready
+- stream recent logs/status
+
+It is intended to be used by local agents that need to iterate on the app
+without manual terminal interaction.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import queue
+import re
+import signal
+import subprocess
+import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+from collections import deque
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+
+
+API_BASE_PATTERN = re.compile(r"(http://127\.0\.0\.1:(\d+)/api/v1)")
+
+
+@dataclass
+class ControllerConfig:
+  project_root: Path
+  flutter_bin: str = "flutter"
+  device: str = "windows"
+  controller_host: str = "127.0.0.1"
+  controller_port: int = 32500
+  log_tail_size: int = 400
+  startup_timeout_seconds: int = 120
+  api_port_start: int = 31414
+  api_port_end: int = 31614
+  extra_flutter_args: list[str] = field(default_factory=list)
+
+
+class FlutterAppController:
+  def __init__(self, config: ControllerConfig) -> None:
+    self.config = config
+    self._lock = threading.RLock()
+    self._process: subprocess.Popen[str] | None = None
+    self._reader_thread: threading.Thread | None = None
+    self._logs: deque[str] = deque(maxlen=config.log_tail_size)
+    self._api_base_url: str | None = None
+    self._api_port: int | None = None
+    self._last_command: str | None = None
+    self._last_started_at: float | None = None
+    self._last_exited_at: float | None = None
+    self._last_exit_code: int | None = None
+    self._run_count = 0
+
+  def status(self) -> dict[str, Any]:
+    with self._lock:
+      process = self._process
+      running = process is not None and process.poll() is None
+      return {
+        "running": running,
+        "pid": process.pid if running and process else None,
+        "projectRoot": str(self.config.project_root),
+        "flutterCommand": self._build_flutter_command(),
+        "device": self.config.device,
+        "controllerUrl": f"http://{self.config.controller_host}:{self.config.controller_port}",
+        "appApiBaseUrl": self._api_base_url,
+        "appApiPort": self._api_port,
+        "lastCommand": self._last_command,
+        "lastStartedAt": _iso_or_none(self._last_started_at),
+        "lastExitedAt": _iso_or_none(self._last_exited_at),
+        "lastExitCode": self._last_exit_code,
+        "runCount": self._run_count,
+        "recentLogs": list(self._logs),
+      }
+
+  def start(self) -> dict[str, Any]:
+    with self._lock:
+      if self._is_running_locked():
+        self._last_command = "start(no-op)"
+        return self.status()
+
+      command = self._build_flutter_command()
+      env = os.environ.copy()
+      process = subprocess.Popen(
+        command,
+        cwd=str(self.config.project_root),
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+      )
+      self._process = process
+      self._api_base_url = None
+      self._api_port = None
+      self._last_started_at = time.time()
+      self._last_exited_at = None
+      self._last_exit_code = None
+      self._last_command = "start"
+      self._run_count += 1
+      self._append_log(f"[controller] started process pid={process.pid}")
+      self._reader_thread = threading.Thread(
+        target=self._reader_loop,
+        args=(process,),
+        name="vertree-log-reader",
+        daemon=True,
+      )
+      self._reader_thread.start()
+      return self.status()
+
+  def reload(self) -> dict[str, Any]:
+    self._send_stdin_command("r", "reload")
+    return self.status()
+
+  def hot_restart(self) -> dict[str, Any]:
+    self._send_stdin_command("R", "hot-restart")
+    return self.status()
+
+  def stop(self) -> dict[str, Any]:
+    process = self._get_running_process()
+    self._last_command = "stop"
+    self._append_log("[controller] stopping app")
+    self._write_to_process(process, "q\n")
+    if not self._wait_for_exit(process, timeout_seconds=12):
+      self._append_log("[controller] graceful stop timed out, terminating")
+      process.terminate()
+      if not self._wait_for_exit(process, timeout_seconds=6):
+        self._append_log("[controller] terminate timed out, killing")
+        process.kill()
+        self._wait_for_exit(process, timeout_seconds=3)
+    return self.status()
+
+  def restart_process(self) -> dict[str, Any]:
+    with self._lock:
+      running = self._is_running_locked()
+    if running:
+      self.stop()
+    self.start()
+    return self.status()
+
+  def ensure_ready(
+    self,
+    timeout_seconds: int | float | None = None,
+    start_if_needed: bool = True,
+  ) -> dict[str, Any]:
+    if start_if_needed and not self._is_running():
+      self.start()
+
+    timeout_seconds = (
+      float(timeout_seconds)
+      if timeout_seconds is not None
+      else float(self.config.startup_timeout_seconds)
+    )
+    deadline = time.time() + timeout_seconds
+    last_error: str | None = None
+
+    while time.time() < deadline:
+      base_url = self._discover_api_base_url()
+      if base_url is not None:
+        health_url = f"{base_url}/health"
+        try:
+          payload = _http_json("GET", health_url)
+          return {
+            "ready": True,
+            "appApiBaseUrl": base_url,
+            "health": payload,
+            "status": self.status(),
+          }
+        except Exception as exc:  # noqa: BLE001
+          last_error = str(exc)
+      time.sleep(1)
+
+    return {
+      "ready": False,
+      "appApiBaseUrl": self._api_base_url,
+      "lastError": last_error,
+      "status": self.status(),
+    }
+
+  def logs(self, tail: int = 120) -> dict[str, Any]:
+    with self._lock:
+      lines = list(self._logs)[-tail:]
+    return {
+      "count": len(lines),
+      "items": lines,
+    }
+
+  def _build_flutter_command(self) -> list[str]:
+    return [
+      self.config.flutter_bin,
+      "run",
+      "-d",
+      self.config.device,
+      *self.config.extra_flutter_args,
+    ]
+
+  def _reader_loop(self, process: subprocess.Popen[str]) -> None:
+    assert process.stdout is not None
+    try:
+      for raw_line in iter(process.stdout.readline, ""):
+        line = raw_line.rstrip("\r\n")
+        if not line:
+          continue
+        self._append_log(line)
+        match = API_BASE_PATTERN.search(line)
+        if match:
+          with self._lock:
+            self._api_base_url = match.group(1)
+            self._api_port = int(match.group(2))
+    finally:
+      exit_code = process.poll()
+      with self._lock:
+        self._last_exited_at = time.time()
+        self._last_exit_code = exit_code
+        if self._process is process:
+          self._process = None
+      self._append_log(f"[controller] process exited code={exit_code}")
+
+  def _send_stdin_command(self, command: str, label: str) -> None:
+    process = self._get_running_process()
+    self._last_command = label
+    self._append_log(f"[controller] sending command={label}")
+    self._write_to_process(process, f"{command}\n")
+
+  def _write_to_process(self, process: subprocess.Popen[str], value: str) -> None:
+    if process.stdin is None:
+      raise RuntimeError("app process stdin is not available")
+    process.stdin.write(value)
+    process.stdin.flush()
+
+  def _get_running_process(self) -> subprocess.Popen[str]:
+    with self._lock:
+      if not self._is_running_locked():
+        raise RuntimeError("app process is not running")
+      assert self._process is not None
+      return self._process
+
+  def _wait_for_exit(self, process: subprocess.Popen[str], timeout_seconds: int) -> bool:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+      if process.poll() is not None:
+        return True
+      time.sleep(0.25)
+    return process.poll() is not None
+
+  def _discover_api_base_url(self) -> str | None:
+    with self._lock:
+      candidate = self._api_base_url
+    if candidate is not None:
+      return candidate
+
+    for port in range(self.config.api_port_start, self.config.api_port_end + 1):
+      url = f"http://127.0.0.1:{port}/api/v1/health"
+      try:
+        payload = _http_json("GET", url, timeout_seconds=1)
+        if payload.get("success") is True:
+          base_url = f"http://127.0.0.1:{port}/api/v1"
+          with self._lock:
+            self._api_base_url = base_url
+            self._api_port = port
+          return base_url
+      except Exception:  # noqa: BLE001
+        continue
+    return None
+
+  def _is_running(self) -> bool:
+    with self._lock:
+      return self._is_running_locked()
+
+  def _is_running_locked(self) -> bool:
+    return self._process is not None and self._process.poll() is None
+
+  def _append_log(self, line: str) -> None:
+    with self._lock:
+      self._logs.append(line)
+
+
+class ControllerRequestHandler(BaseHTTPRequestHandler):
+  controller: FlutterAppController | None = None
+  request_queue: "queue.Queue[None]" = queue.Queue()
+
+  def do_GET(self) -> None:  # noqa: N802
+    try:
+      if self.path == "/" or self.path == "":
+        self._write_json(
+          200,
+          {
+            "name": "Vertree Dev Control Server",
+            "routes": [
+              "GET /status",
+              "GET /logs?tail=120",
+              "POST /start",
+              "POST /reload",
+              "POST /hot-restart",
+              "POST /restart-process",
+              "POST /stop",
+              "POST /ensure-ready",
+            ],
+          },
+        )
+        return
+
+      if self.path.startswith("/status"):
+        self._write_json(200, self._controller().status())
+        return
+
+      if self.path.startswith("/logs"):
+        tail = 120
+        if "?" in self.path:
+          query = self.path.split("?", 1)[1]
+          for part in query.split("&"):
+            if part.startswith("tail="):
+              try:
+                tail = max(1, int(part.split("=", 1)[1]))
+              except ValueError:
+                tail = 120
+        self._write_json(200, self._controller().logs(tail=tail))
+        return
+
+      self._write_json(404, {"error": "not found", "path": self.path})
+    except Exception as exc:  # noqa: BLE001
+      self._write_json(500, {"error": str(exc)})
+
+  def do_POST(self) -> None:  # noqa: N802
+    try:
+      body = self._read_json_body()
+      if self.path == "/start":
+        self._write_json(200, self._controller().start())
+        return
+      if self.path == "/reload":
+        self._write_json(200, self._controller().reload())
+        return
+      if self.path == "/hot-restart":
+        self._write_json(200, self._controller().hot_restart())
+        return
+      if self.path == "/restart-process":
+        self._write_json(200, self._controller().restart_process())
+        return
+      if self.path == "/stop":
+        self._write_json(200, self._controller().stop())
+        return
+      if self.path == "/ensure-ready":
+        timeout_seconds = body.get("timeoutSeconds")
+        start_if_needed = body.get("startIfNeeded", True)
+        self._write_json(
+          200,
+          self._controller().ensure_ready(
+            timeout_seconds=timeout_seconds,
+            start_if_needed=bool(start_if_needed),
+          ),
+        )
+        return
+
+      self._write_json(404, {"error": "not found", "path": self.path})
+    except Exception as exc:  # noqa: BLE001
+      self._write_json(500, {"error": str(exc)})
+
+  def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+    return
+
+  def _controller(self) -> FlutterAppController:
+    if self.controller is None:
+      raise RuntimeError("controller not configured")
+    return self.controller
+
+  def _read_json_body(self) -> dict[str, Any]:
+    length = int(self.headers.get("Content-Length", "0") or "0")
+    if length <= 0:
+      return {}
+    raw = self.rfile.read(length).decode("utf-8")
+    if not raw.strip():
+      return {}
+    decoded = json.loads(raw)
+    if isinstance(decoded, dict):
+      return decoded
+    raise ValueError("JSON body must be an object")
+
+  def _write_json(self, status: int, payload: dict[str, Any]) -> None:
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    self.send_response(status)
+    self.send_header("Content-Type", "application/json; charset=utf-8")
+    self.send_header("Cache-Control", "no-store")
+    self.send_header("Content-Length", str(len(encoded)))
+    self.end_headers()
+    self.wfile.write(encoded)
+
+
+def _http_json(method: str, url: str, timeout_seconds: int | float = 5) -> dict[str, Any]:
+  request = urllib.request.Request(url=url, method=method)
+  with urllib.request.urlopen(request, timeout=float(timeout_seconds)) as response:
+    raw = response.read().decode("utf-8")
+  decoded = json.loads(raw)
+  if isinstance(decoded, dict):
+    return decoded
+  raise ValueError(f"Expected JSON object from {url}")
+
+
+def _iso_or_none(timestamp: float | None) -> str | None:
+  if timestamp is None:
+    return None
+  return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(timestamp))
+
+
+def parse_args() -> argparse.Namespace:
+  parser = argparse.ArgumentParser(description="Vertree development control server")
+  parser.add_argument("--host", default="127.0.0.1")
+  parser.add_argument("--port", type=int, default=32500)
+  parser.add_argument("--flutter-bin", default="flutter")
+  parser.add_argument("--device", default="windows")
+  parser.add_argument("--project-root", default=str(Path(__file__).resolve().parents[1]))
+  parser.add_argument("--startup-timeout", type=int, default=120)
+  parser.add_argument("--extra-flutter-arg", action="append", default=[])
+  return parser.parse_args()
+
+
+def main() -> int:
+  args = parse_args()
+  config = ControllerConfig(
+    project_root=Path(args.project_root).resolve(),
+    flutter_bin=args.flutter_bin,
+    device=args.device,
+    controller_host=args.host,
+    controller_port=args.port,
+    startup_timeout_seconds=args.startup_timeout,
+    extra_flutter_args=list(args.extra_flutter_arg),
+  )
+  controller = FlutterAppController(config)
+  ControllerRequestHandler.controller = controller
+
+  server = ThreadingHTTPServer((config.controller_host, config.controller_port), ControllerRequestHandler)
+  print(
+    json.dumps(
+      {
+        "message": "Vertree dev control server started",
+        "controllerUrl": f"http://{config.controller_host}:{config.controller_port}",
+        "projectRoot": str(config.project_root),
+        "flutterCommand": controller.status()["flutterCommand"],
+      },
+      ensure_ascii=False,
+    )
+  )
+
+  try:
+    server.serve_forever()
+  except KeyboardInterrupt:
+    pass
+  finally:
+    try:
+      controller.stop()
+    except Exception:  # noqa: BLE001
+      pass
+    server.server_close()
+  return 0
+
+
+if __name__ == "__main__":
+  raise SystemExit(main())
