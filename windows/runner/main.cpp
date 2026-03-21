@@ -53,7 +53,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 }
 
 BOOL isAlreadyRunning() {
-    HANDLE hMutex = CreateMutex(NULL, TRUE, L"w0fv1.dev.vertree");
+    HANDLE hMutex = CreateMutex(NULL, TRUE, L"dev.w0fv1.vertree");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         CloseHandle(hMutex);
         return TRUE;

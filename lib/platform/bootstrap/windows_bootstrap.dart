@@ -20,7 +20,7 @@ class WindowsBootstrap extends PlatformBootstrap {
   }) {
     return WindowsSingleInstanceBridge.ensureSingleInstance(
       args,
-      "w0fv1.dev.vertree",
+      "dev.w0fv1.vertree",
       onSecondWindow: onSecondInstanceArgs,
       bringWindowToFront: false,
     );

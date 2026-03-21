@@ -1142,7 +1142,7 @@ class _SettingPageState extends State<SettingPage> {
                                 ),
                                 FilledButton.tonalIcon(
                                   onPressed: () => _openUrl(
-                                    "https://w0fv1.github.io/vertree/",
+                                    "https://vertree.w0fv1.dev/",
                                   ),
                                   icon: const Icon(Icons.language_rounded),
                                   label: Text(

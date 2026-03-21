@@ -138,7 +138,7 @@ linux/build_linux_rpm.sh
 
 ## 文档
 
-- 用户文档: [docs/](https://w0fv1.github.io/vertree/)
+- 用户文档: [docs/](https://vertree.w0fv1.dev/)
 - 本地文档开发: [docs/README.md](docs/README.md)
 
 ## 已知限制

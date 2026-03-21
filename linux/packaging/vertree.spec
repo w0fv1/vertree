@@ -1,4 +1,4 @@
-%global app_id io.github.w0fv1.vertree
+%global app_id dev.w0fv1.vertree
 %global debug_package %{nil}
 
 Name:           vertree
@@ -7,7 +7,7 @@ Release:        @RPM_RELEASE@
 Summary:        Single-file version manager for backup, monitoring, and version trees
 
 License:        MIT
-URL:            https://github.com/w0fv1/vertree
+URL:            https://vertree.w0fv1.dev
 Source0:        %{name}-%{version}.tar.gz
 Source1:        vertree.desktop
 Source2:        vertree.png

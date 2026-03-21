@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.w0fv1.vertree.desktop</id>
+  <id>dev.w0fv1.vertree.desktop</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
   <name>Vertree</name>
@@ -18,7 +18,7 @@
       <li>Use the built-in local API for automation and verification.</li>
     </ul>
   </description>
-  <launchable type="desktop-id">io.github.w0fv1.vertree.desktop</launchable>
+  <launchable type="desktop-id">dev.w0fv1.vertree.desktop</launchable>
   <provides>
     <binary>vertree</binary>
   </provides>
@@ -26,7 +26,7 @@
     <category>Utility</category>
     <category>FileTools</category>
   </categories>
-  <url type="homepage">https://github.com/w0fv1/vertree</url>
+  <url type="homepage">https://vertree.w0fv1.dev</url>
   <url type="bugtracker">https://github.com/w0fv1/vertree/issues</url>
   <developer id="w0fv1.dev">
     <name>w0fv1</name>

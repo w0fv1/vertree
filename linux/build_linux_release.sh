@@ -25,8 +25,8 @@ rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR" "$DIST_DIR"
 
 cp -a "$RELEASE_BUNDLE_DIR" "$STAGE_DIR/bundle"
-cp "$ROOT_DIR/linux/packaging/vertree.desktop" "$STAGE_DIR/io.github.w0fv1.vertree.desktop"
-cp "$ROOT_DIR/linux/packaging/vertree.metainfo.xml" "$STAGE_DIR/io.github.w0fv1.vertree.metainfo.xml"
+cp "$ROOT_DIR/linux/packaging/vertree.desktop" "$STAGE_DIR/dev.w0fv1.vertree.desktop"
+cp "$ROOT_DIR/linux/packaging/vertree.metainfo.xml" "$STAGE_DIR/dev.w0fv1.vertree.metainfo.xml"
 cp "$ROOT_DIR/linux/packaging/vertree_nautilus.py" "$STAGE_DIR/vertree_nautilus.py"
 cp "$ROOT_DIR/assets/icon/app_icon.png" "$STAGE_DIR/vertree.png"
 
@@ -39,8 +39,8 @@ exec "$SCRIPT_DIR/bundle/vertree" "$@"
 EOF
 chmod +x "$STAGE_DIR/vertree"
 
-sed -i "s/@VERSION@/$VERSION/g" "$STAGE_DIR/io.github.w0fv1.vertree.metainfo.xml"
-sed -i "s/@RELEASE_DATE@/$(date -u +%F)/g" "$STAGE_DIR/io.github.w0fv1.vertree.metainfo.xml"
+sed -i "s/@VERSION@/$VERSION/g" "$STAGE_DIR/dev.w0fv1.vertree.metainfo.xml"
+sed -i "s/@RELEASE_DATE@/$(date -u +%F)/g" "$STAGE_DIR/dev.w0fv1.vertree.metainfo.xml"
 
 tar -C "$DIST_DIR" -czf "$ARCHIVE_PATH" "$(basename "$STAGE_DIR")"
 
