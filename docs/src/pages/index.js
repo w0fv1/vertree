@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
@@ -9,6 +10,7 @@ import styles from './index.module.css';
 
 function HomepageHeader() {
     const { siteConfig } = useDocusaurusContext();
+    const heroImageUrl = useBaseUrl('/img/vertree_brand.png');
     return (
         <header className={clsx('hero hero--primary', styles.heroBanner)}>
             <div className={styles.heroContainer}>
@@ -29,7 +31,7 @@ function HomepageHeader() {
                 </div>
 
                 {/* 右侧图片 */}
-                <img src="/vertree/img/vertree_brand.png" alt="Logo" className={styles.heroImage} />
+                <img src={heroImageUrl} alt="Logo" className={styles.heroImage} />
             </div>
         </header>
     );

@@ -31,12 +31,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Install docs dependencies
+        working-directory: ./docs
+        run: npm ci
+      - name: Build docs
+        working-directory: ./docs
+        run: npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
+          # Upload the built Docusaurus site
           path: './docs/build'
       - name: Deploy to GitHub Pages
         id: deployment

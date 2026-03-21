@@ -3,8 +3,22 @@ import FlutterMacOS
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  private static let finderAppGroup = "group.dev.w0fv1.vertree"
+  private static let finderRequestPrefix = "finderAction."
+
+  private struct PendingFinderActionItem: Codable {
+    let path: String
+    let bookmarkBase64: String
+  }
+
+  private struct PendingFinderAction: Codable {
+    let action: String
+    let items: [PendingFinderActionItem]
+  }
+
   private var pendingServiceActions: [(action: String, path: String)] = []
   private var dockChannel: FlutterMethodChannel?
+  private var activeSecurityScopedURLs: [String: URL] = [:]
 
   private func scheduleDockIconRefresh() {
     DispatchQueue.main.async { [weak self] in
@@ -125,6 +139,88 @@ class AppDelegate: FlutterAppDelegate {
     ])
   }
 
+  private func finderRequestKey(_ requestID: String) -> String {
+    "\(Self.finderRequestPrefix)\(requestID)"
+  }
+
+  private func consumePendingFinderAction(requestID: String) -> PendingFinderAction? {
+    guard let defaults = UserDefaults(suiteName: Self.finderAppGroup) else {
+      return nil
+    }
+    let key = finderRequestKey(requestID)
+    guard let data = defaults.data(forKey: key) else {
+      return nil
+    }
+    defaults.removeObject(forKey: key)
+    defaults.synchronize()
+    return try? JSONDecoder().decode(PendingFinderAction.self, from: data)
+  }
+
+  private func resolveSecurityScopedURL(
+    from item: PendingFinderActionItem
+  ) -> URL? {
+    guard let bookmarkData = Data(base64Encoded: item.bookmarkBase64) else {
+      return URL(fileURLWithPath: item.path)
+    }
+
+    do {
+      var isStale = false
+      let resolvedURL = try URL(
+        resolvingBookmarkData: bookmarkData,
+        options: [.withSecurityScope, .withoutUI],
+        relativeTo: nil,
+        bookmarkDataIsStale: &isStale
+      )
+
+      if resolvedURL.startAccessingSecurityScopedResource() {
+        activeSecurityScopedURLs[resolvedURL.path] = resolvedURL
+      }
+
+      return resolvedURL
+    } catch {
+      return URL(fileURLWithPath: item.path)
+    }
+  }
+
+  private func queryValue(
+    named name: String,
+    in components: URLComponents
+  ) -> String? {
+    components.queryItems?.first(where: { $0.name == name })?.value
+  }
+
+  private func handleVertreeURL(_ url: URL) -> Bool {
+    guard url.scheme?.lowercased() == "vertree" else {
+      return false
+    }
+
+    let components = URLComponents(url: url, resolvingAgainstBaseURL: false) ?? URLComponents()
+    let action = queryValue(named: "action", in: components)
+    guard let action, !action.isEmpty else {
+      return true
+    }
+
+    if let requestID = queryValue(
+      named: "request",
+      in: components
+    ), let request = consumePendingFinderAction(requestID: requestID) {
+      for item in request.items {
+        let resolvedURL = resolveSecurityScopedURL(from: item)
+        invokeServiceAction(request.action, path: resolvedURL?.path ?? item.path)
+      }
+      return true
+    }
+
+    if let path = queryValue(
+      named: "path",
+      in: components
+    ), !path.isEmpty {
+      invokeServiceAction(action, path: path)
+    }
+
+    return true
+  }
+
   @IBAction func openSettings(_ sender: Any?) {
     invokeMenuAction("openSettings")
   }
@@ -210,6 +306,26 @@ class AppDelegate: FlutterAppDelegate {
     setupDockChannelIfNeeded()
     scheduleDockIconRefresh()
     flushPendingServiceActions()
+  }
+
+  override func application(_ application: NSApplication, open urls: [URL]) {
+    var handled = false
+
+    for url in urls {
+      if url.isFileURL {
+        invokeServiceAction("viewtree", path: url.path)
+        handled = true
+        continue
+      }
+
+      if handleVertreeURL(url) {
+        handled = true
+      }
+    }
+
+    if !handled {
+      super.application(application, open: urls)
+    }
   }
 
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {
