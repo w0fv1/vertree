@@ -29,8 +29,8 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
           task = updatedTask;
         });
         final status = updatedTask.isRunning
-            ? "开启"
-            : "关闭"; // 这里只是标记文字，建议也可做成i18n key
+            ? appLocale.getText(LocaleKey.monitcard_statusEnabled)
+            : appLocale.getText(LocaleKey.monitcard_statusDisabled);
         showToast(
           appLocale.getText(LocaleKey.monitcard_monitorStatus).tr([
             task.file.path,
@@ -188,7 +188,10 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                     message: appLocale.getText(LocaleKey.monitcard_clean),
                     child: IconButton.filledTonal(
                       onPressed: _cleanBackupFolder,
-                      icon: const Icon(Icons.cleaning_services_rounded, size: 20),
+                      icon: const Icon(
+                        Icons.cleaning_services_rounded,
+                        size: 20,
+                      ),
                     ),
                   ),
                   Tooltip(

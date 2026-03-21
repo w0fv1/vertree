@@ -9,6 +9,7 @@ import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
+import 'package:vertree/platform/linux_gnome_integration.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/component/AppPageBackground.dart';
@@ -33,12 +34,86 @@ class _SettingPageState extends State<SettingPage> {
   bool monitorFile = false;
   bool viewTreeFile = false;
   bool autoStart = false;
+  bool launchToTray = PlatformIntegration.defaultLaunchToTray;
   bool legacyMenuEnabled = false;
   bool win11MenuEnabled = false;
   bool localHttpApiEnabled = true;
   bool _showLegacyMenuDetails = false;
   bool isLoading = false;
   String _themeModeSetting = 'system';
+  bool? _windowsWin11PackageReady;
+  GnomeSupportInfo? _gnomeFilesSupportInfo;
+  GnomeSupportInfo? _gnomeTraySupportInfo;
+
+  bool get _launchToTrayAvailable =>
+      PlatformIntegration.supportsTrayOnlyBackgroundMode;
+  bool get _shouldShowGnomeTraySupportCard =>
+      PlatformIntegration.isLinuxGnome &&
+      (_gnomeTraySupportInfo?.isAvailable == false);
+  bool get _shouldShowWindowsWin11IdentityCard =>
+      PlatformIntegration.isWindows && (_windowsWin11PackageReady == false);
+  bool get _shouldShowEnvironmentInfoSection =>
+      _shouldShowGnomeTraySupportCard || _shouldShowWindowsWin11IdentityCard;
+  String get _launchBehaviorTitle => PlatformIntegration.isLinuxGnome
+      ? appLocale.getText(LocaleKey.setting_launchMinimized)
+      : appLocale.getText(LocaleKey.setting_launchToTray);
+  String get _linuxContextMenuToggleTitle =>
+      _gnomeFilesSupportInfo?.isAvailable == false
+      ? appLocale.getText(LocaleKey.setting_linuxContextMenuToggleInstallHint)
+      : appLocale.getText(LocaleKey.setting_linuxContextMenuToggle);
+  GnomeSupportInfo get _windowsWin11IdentityInfo => GnomeSupportInfo(
+    status: GnomeSupportStatus.missingDependency,
+    message: appLocale.getText(LocaleKey.setting_win11IdentityRequired),
+    installCommand:
+        r'powershell -ExecutionPolicy Bypass -File windows\packaging\install_sparse_package.ps1 -Force',
+    installCommandLabel: appLocale.getText(
+      LocaleKey.setting_copyRegisterCommand,
+    ),
+    restartCommand:
+        r'powershell -ExecutionPolicy Bypass -File windows\packaging\refresh_win11_menu.ps1',
+    restartCommandLabel: appLocale.getText(
+      LocaleKey.setting_copyRefreshCommand,
+    ),
+  );
+
+  Future<void> _showLinuxMenuToggleResult(bool success) async {
+    if (!PlatformIntegration.isLinux) return;
+    showToast(
+      success
+          ? appLocale.getText(LocaleKey.setting_gnomeMenuUpdated)
+          : appLocale.getText(LocaleKey.setting_gnomeMenuUnavailable),
+    );
+  }
+
+  Future<void> _applyContextMenuToggle({
+    required bool? value,
+    required Future<bool> Function() enableAction,
+    required Future<bool> Function() disableAction,
+    required String enableNotification,
+    required String disableNotification,
+    required void Function(bool nextValue) updateState,
+  }) async {
+    if (value == null) return;
+    setState(() => isLoading = true);
+
+    final success = value ? await enableAction() : await disableAction();
+    await showWindowsNotification(
+      "Vertree",
+      value ? enableNotification : disableNotification,
+    );
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    setState(() {
+      if (success) {
+        updateState(value);
+      }
+      isLoading = false;
+      legacyMenuEnabled =
+          backupFile && expressBackupFile && monitorFile && viewTreeFile;
+    });
+    await _showLinuxMenuToggleResult(success);
+  }
 
   Future<void> _restoreIfMaximized() async {
     if (await windowManager.isMaximized()) {
@@ -69,7 +144,22 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> _loadPlatformState() async {
+    await PlatformIntegration.refreshLinuxCapabilityCache();
+    if (PlatformIntegration.isLinuxGnome) {
+      _gnomeFilesSupportInfo =
+          await LinuxGnomeIntegration.getFilesMenuSupportInfo();
+      _gnomeTraySupportInfo = await LinuxGnomeIntegration.getTraySupportInfo();
+    } else {
+      _gnomeFilesSupportInfo = null;
+      _gnomeTraySupportInfo = null;
+    }
     if (PlatformIntegration.isWindows) {
+      _windowsWin11PackageReady =
+          await PlatformIntegration.isWin11PackagedOrRegistered();
+    } else {
+      _windowsWin11PackageReady = null;
+    }
+    if (PlatformIntegration.supportsContextMenus) {
       backupFile = await PlatformIntegration.checkBackupKeyExists();
       expressBackupFile =
           await PlatformIntegration.checkExpressBackupKeyExists();
@@ -77,10 +167,20 @@ class _SettingPageState extends State<SettingPage> {
       viewTreeFile = await PlatformIntegration.checkViewTreeKeyExists();
       legacyMenuEnabled =
           backupFile && expressBackupFile && monitorFile && viewTreeFile;
-      win11MenuEnabled = configer.get("win11MenuEnabled", true);
+      if (PlatformIntegration.isWindows) {
+        win11MenuEnabled = configer.get("win11MenuEnabled", true);
+      }
     }
     if (PlatformIntegration.supportsAutoStart) {
       autoStart = await PlatformIntegration.isAutoStartEnabled();
+    }
+    launchToTray = configer.get<bool>(
+      'launch2Tray',
+      PlatformIntegration.defaultLaunchToTray,
+    );
+    if (!_launchToTrayAvailable && launchToTray) {
+      launchToTray = false;
+      configer.set<bool>('launch2Tray', false);
     }
     localHttpApiEnabled = configer.get<bool>('localHttpApiEnabled', true);
     _themeModeSetting = configer.get<String>('themeMode', 'system');
@@ -116,10 +216,17 @@ class _SettingPageState extends State<SettingPage> {
     if (value == null) return;
     setState(() => isLoading = true);
 
-    await PlatformIntegration.applyLegacyMenus(value);
+    final success = await PlatformIntegration.applyLegacyMenus(value);
 
     await Future.delayed(const Duration(milliseconds: 200));
     await _refreshLegacyMenuState();
+    if (PlatformIntegration.isLinux) {
+      showToast(
+        success
+            ? appLocale.getText(LocaleKey.setting_gnomeMenuRestartHint)
+            : appLocale.getText(LocaleKey.setting_gnomeMenuUnavailable),
+      );
+    }
     if (mounted) {
       setState(() => isLoading = false);
     }
@@ -133,7 +240,7 @@ class _SettingPageState extends State<SettingPage> {
       final packaged = await PlatformIntegration.isWin11PackagedOrRegistered();
       logger.info('Win11 menu packagedOrRegistered=$packaged');
       if (!packaged) {
-        showToast('Win11 新菜单需要 Sparse Package/MSIX 身份');
+        showToast(appLocale.getText(LocaleKey.setting_win11MenuNeedsIdentity));
         await _refreshLegacyMenuState();
         return;
       }
@@ -153,94 +260,42 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> _toggleBackupFile(bool? value) async {
-    if (value == null) return;
-    setState(() => isLoading = true);
-
-    late final bool success;
-    if (value) {
-      success = await PlatformIntegration.addBackupContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyAddBackup),
-      );
-    } else {
-      success = await PlatformIntegration.removeBackupContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyRemoveBackup),
-      );
-    }
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    setState(() {
-      if (success) {
-        backupFile = value;
-      }
-      isLoading = false;
-      legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
-    });
+    await _applyContextMenuToggle(
+      value: value,
+      enableAction: PlatformIntegration.addBackupContextMenu,
+      disableAction: PlatformIntegration.removeBackupContextMenu,
+      enableNotification: appLocale.getText(LocaleKey.setting_notifyAddBackup),
+      disableNotification: appLocale.getText(
+        LocaleKey.setting_notifyRemoveBackup,
+      ),
+      updateState: (nextValue) => backupFile = nextValue,
+    );
   }
 
   Future<void> _toggleMonitorFile(bool? value) async {
-    if (value == null) return;
-    setState(() => isLoading = true);
-
-    late final bool success;
-    if (value) {
-      success = await PlatformIntegration.addMonitorContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyAddMonitor),
-      );
-    } else {
-      success = await PlatformIntegration.removeMonitorContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyRemoveMonitor),
-      );
-    }
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    setState(() {
-      if (success) {
-        monitorFile = value;
-      }
-      isLoading = false;
-      legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
-    });
+    await _applyContextMenuToggle(
+      value: value,
+      enableAction: PlatformIntegration.addMonitorContextMenu,
+      disableAction: PlatformIntegration.removeMonitorContextMenu,
+      enableNotification: appLocale.getText(LocaleKey.setting_notifyAddMonitor),
+      disableNotification: appLocale.getText(
+        LocaleKey.setting_notifyRemoveMonitor,
+      ),
+      updateState: (nextValue) => monitorFile = nextValue,
+    );
   }
 
   Future<void> _toggleViewTreeFile(bool? value) async {
-    if (value == null) return;
-    setState(() => isLoading = true);
-
-    late final bool success;
-    if (value) {
-      success = await PlatformIntegration.addViewTreeContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyAddView),
-      );
-    } else {
-      success = await PlatformIntegration.removeViewTreeContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyRemoveView),
-      );
-    }
-
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    setState(() {
-      if (success) {
-        viewTreeFile = value;
-      }
-      isLoading = false;
-      legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
-    });
+    await _applyContextMenuToggle(
+      value: value,
+      enableAction: PlatformIntegration.addViewTreeContextMenu,
+      disableAction: PlatformIntegration.removeViewTreeContextMenu,
+      enableNotification: appLocale.getText(LocaleKey.setting_notifyAddView),
+      disableNotification: appLocale.getText(
+        LocaleKey.setting_notifyRemoveView,
+      ),
+      updateState: (nextValue) => viewTreeFile = nextValue,
+    );
   }
 
   Future<void> _toggleAutoStart(bool? value) async {
@@ -272,6 +327,68 @@ class _SettingPageState extends State<SettingPage> {
     });
   }
 
+  Future<void> _toggleLaunchToTray(bool? value) async {
+    if (value == null) return;
+    if (value && !_launchToTrayAvailable) {
+      final suggestion = _gnomeTraySupportInfo?.installCommand;
+      showToast(
+        suggestion == null
+            ? appLocale.getText(LocaleKey.setting_launchToTrayUnsupported)
+            : appLocale.getText(LocaleKey.setting_launchToTraySetupHint),
+      );
+      setState(() {
+        launchToTray = false;
+      });
+      configer.set<bool>('launch2Tray', false);
+      return;
+    }
+    setState(() {
+      launchToTray = value;
+    });
+    configer.set<bool>('launch2Tray', value);
+  }
+
+  Future<void> _copyCommand(String command, String successMessage) async {
+    await Clipboard.setData(ClipboardData(text: command));
+    showToast(successMessage);
+  }
+
+  String _statusLabel(GnomeSupportInfo? info) {
+    switch (info?.status) {
+      case GnomeSupportStatus.available:
+        return appLocale.getText(LocaleKey.setting_supportStatusAvailable);
+      case GnomeSupportStatus.missingDependency:
+        return appLocale.getText(
+          LocaleKey.setting_supportStatusMissingDependency,
+        );
+      case GnomeSupportStatus.installedButDisabled:
+        return appLocale.getText(
+          LocaleKey.setting_supportStatusInstalledButDisabled,
+        );
+      case GnomeSupportStatus.unavailable:
+        return appLocale.getText(LocaleKey.setting_supportStatusUnavailable);
+      case GnomeSupportStatus.unknown:
+        return appLocale.getText(LocaleKey.setting_supportStatusUnknown);
+      case null:
+        return appLocale.getText(LocaleKey.setting_supportStatusChecking);
+    }
+  }
+
+  Color _statusColor(GnomeSupportInfo? info) {
+    final scheme = Theme.of(context).colorScheme;
+    switch (info?.status) {
+      case GnomeSupportStatus.available:
+        return scheme.primary;
+      case GnomeSupportStatus.missingDependency:
+      case GnomeSupportStatus.installedButDisabled:
+        return scheme.tertiary;
+      case GnomeSupportStatus.unavailable:
+      case GnomeSupportStatus.unknown:
+      case null:
+        return scheme.outline;
+    }
+  }
+
   Future<void> _toggleLocalHttpApi(bool? value) async {
     if (value == null) return;
     setState(() => isLoading = true);
@@ -281,7 +398,11 @@ class _SettingPageState extends State<SettingPage> {
       await localHttpApiServer.syncWithConfig();
     } catch (e) {
       logger.error('Local HTTP API toggle failed: $e');
-      showToast('Local HTTP API 启停失败: $e');
+      showToast(
+        appLocale.getText(LocaleKey.setting_localHttpApiToggleFailed).tr([
+          e.toString(),
+        ]),
+      );
       configer.set<bool>('localHttpApiEnabled', !value);
     }
 
@@ -291,34 +412,16 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> _toggleExpressBackupFile(bool? value) async {
-    if (value == null) return;
-    setState(() => isLoading = true);
-
-    late final bool success;
-    if (value) {
-      success = await PlatformIntegration.addExpressBackupContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyAddExpress),
-      );
-    } else {
-      success = await PlatformIntegration.removeExpressBackupContextMenu();
-      await showWindowsNotification(
-        "Vertree",
-        appLocale.getText(LocaleKey.setting_notifyRemoveExpress),
-      );
-    }
-
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (!mounted) return;
-    setState(() {
-      if (success) {
-        expressBackupFile = value;
-      }
-      isLoading = false;
-      legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
-    });
+    await _applyContextMenuToggle(
+      value: value,
+      enableAction: PlatformIntegration.addExpressBackupContextMenu,
+      disableAction: PlatformIntegration.removeExpressBackupContextMenu,
+      enableNotification: appLocale.getText(LocaleKey.setting_notifyAddExpress),
+      disableNotification: appLocale.getText(
+        LocaleKey.setting_notifyRemoveExpress,
+      ),
+      updateState: (nextValue) => expressBackupFile = nextValue,
+    );
   }
 
   void _updateLanguage(Lang lang) {
@@ -367,7 +470,7 @@ class _SettingPageState extends State<SettingPage> {
   void _openUrl(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      throw '无法打开 $url';
+      throw appLocale.getText(LocaleKey.setting_openUrlFailed).tr([url]);
     }
   }
 
@@ -471,7 +574,7 @@ class _SettingPageState extends State<SettingPage> {
     required IconData icon,
     required String title,
     required bool value,
-    required ValueChanged<bool?> onChanged,
+    required ValueChanged<bool?>? onChanged,
   }) {
     return SwitchListTile(
       mouseCursor: SystemMouseCursors.click,
@@ -512,7 +615,7 @@ class _SettingPageState extends State<SettingPage> {
                       ),
                     ),
                   ),
-                  if (trailing != null) trailing,
+                  if (trailing case final trailing?) trailing,
                 ],
               ),
               const SizedBox(height: 12),
@@ -521,6 +624,64 @@ class _SettingPageState extends State<SettingPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCommandButton({
+    required IconData icon,
+    required String label,
+    required String command,
+  }) {
+    return FilledButton.tonalIcon(
+      onPressed: () => _copyCommand(
+        command,
+        appLocale.getText(LocaleKey.setting_commandCopied),
+      ),
+      icon: Icon(icon),
+      label: Text(label),
+    );
+  }
+
+  Widget _buildGnomeSupportCard({
+    required IconData icon,
+    required String title,
+    required GnomeSupportInfo? info,
+    required List<Widget> commands,
+  }) {
+    final color = _statusColor(info);
+    return _buildSubsectionCard(
+      icon: icon,
+      title: title,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline_rounded, size: 18, color: color),
+              const SizedBox(width: 10),
+              Text(
+                _statusLabel(info),
+                style: TextStyle(fontWeight: FontWeight.w700, color: color),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            (info?.message.isNotEmpty ?? false)
+                ? info!.message
+                : appLocale.getText(
+                    LocaleKey.setting_detectingPlatformIntegration,
+                  ),
+          ),
+        ),
+        if (commands.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(spacing: 12, runSpacing: 12, children: commands),
+          ),
+      ],
     );
   }
 
@@ -567,6 +728,51 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final contextMenuGroupTitle = PlatformIntegration.isLinux
+        ? appLocale.getText(LocaleKey.setting_linuxContextMenuGroup)
+        : appLocale.getText(LocaleKey.setting_contextMenuGroup);
+    final gnomeTrayCommands = <Widget>[
+      if (_gnomeTraySupportInfo?.installCommand case final installCommand?)
+        _buildCommandButton(
+          icon: Icons.content_copy_rounded,
+          label:
+              (_gnomeTraySupportInfo?.installCommandLabel?.isNotEmpty ?? false)
+              ? _gnomeTraySupportInfo!.installCommandLabel!
+              : appLocale.getText(LocaleKey.setting_copyConfigCommand),
+          command: installCommand,
+        ),
+      if (_gnomeTraySupportInfo?.restartCommand case final restartCommand?)
+        _buildCommandButton(
+          icon: Icons.restart_alt_rounded,
+          label:
+              (_gnomeTraySupportInfo?.restartCommandLabel?.isNotEmpty ?? false)
+              ? _gnomeTraySupportInfo!.restartCommandLabel!
+              : appLocale.getText(LocaleKey.setting_copyAssistCommand),
+          command: restartCommand,
+        ),
+    ];
+    final windowsWin11IdentityCommands = <Widget>[
+      if (_windowsWin11IdentityInfo.installCommand case final installCommand?)
+        _buildCommandButton(
+          icon: Icons.content_copy_rounded,
+          label:
+              (_windowsWin11IdentityInfo.installCommandLabel?.isNotEmpty ??
+                  false)
+              ? _windowsWin11IdentityInfo.installCommandLabel!
+              : appLocale.getText(LocaleKey.setting_copyRegisterCommand),
+          command: installCommand,
+        ),
+      if (_windowsWin11IdentityInfo.restartCommand case final restartCommand?)
+        _buildCommandButton(
+          icon: Icons.restart_alt_rounded,
+          label:
+              (_windowsWin11IdentityInfo.restartCommandLabel?.isNotEmpty ??
+                  false)
+              ? _windowsWin11IdentityInfo.restartCommandLabel!
+              : appLocale.getText(LocaleKey.setting_copyRefreshCommand),
+          command: restartCommand,
+        ),
+    ];
     return LoadingWidget(
       isLoading: isLoading,
       child: Scaffold(
@@ -592,6 +798,45 @@ class _SettingPageState extends State<SettingPage> {
                   child: ListView(
                     controller: _settingsScrollController,
                     children: [
+                      if (_shouldShowEnvironmentInfoSection) ...[
+                        _buildSection(
+                          icon: Icons.info_outline_rounded,
+                          title: appLocale.getText(
+                            LocaleKey.setting_environmentGroup,
+                          ),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                appLocale.getText(
+                                  LocaleKey.setting_environmentDescription,
+                                ),
+                              ),
+                            ),
+                            if (_shouldShowGnomeTraySupportCard)
+                              _buildGnomeSupportCard(
+                                icon: Icons.notifications_active_outlined,
+                                title: appLocale.getText(
+                                  LocaleKey.setting_traySupportTitle,
+                                ),
+                                info: _gnomeTraySupportInfo,
+                                commands: gnomeTrayCommands,
+                              ),
+                            if (_shouldShowWindowsWin11IdentityCard)
+                              _buildGnomeSupportCard(
+                                icon: Icons.apps_outlined,
+                                title: appLocale.getText(
+                                  LocaleKey.setting_win11MenuEnvironmentTitle,
+                                ),
+                                info: _windowsWin11IdentityInfo,
+                                commands: windowsWin11IdentityCommands,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       _buildSection(
                         icon: Icons.palette_outlined,
                         title: appLocale.getText(
@@ -662,20 +907,19 @@ class _SettingPageState extends State<SettingPage> {
                             LocaleKey.setting_integrationsGroup,
                           ),
                           children: [
-                            if (PlatformIntegration.supportsContextMenus)
+                            if (PlatformIntegration.isWindows)
                               _buildSwitchTile(
                                 icon: Icons.apps_rounded,
-                                title: appLocale.getText(
-                                  LocaleKey.setting_contextMenuGroup,
-                                ),
+                                title: contextMenuGroupTitle,
                                 value: win11MenuEnabled,
                                 onChanged: _toggleWin11Menu,
                               ),
                             if (PlatformIntegration.supportsContextMenus)
                               _buildSubsectionCard(
                                 icon: Icons.history_toggle_off_rounded,
-                                title:
-                                    "${appLocale.getText(LocaleKey.setting_contextMenuGroup)}（旧版）",
+                                title: PlatformIntegration.isLinux
+                                    ? contextMenuGroupTitle
+                                    : "$contextMenuGroupTitle ${appLocale.getText(LocaleKey.setting_contextMenuLegacySuffix)}",
                                 trailing: IconButton.filledTonal(
                                   onPressed: () {
                                     setState(() {
@@ -692,9 +936,11 @@ class _SettingPageState extends State<SettingPage> {
                                 children: [
                                   _buildSwitchTile(
                                     icon: Icons.toggle_on_rounded,
-                                    title: appLocale.getText(
-                                      LocaleKey.setting_contextMenuToggle,
-                                    ),
+                                    title: PlatformIntegration.isLinux
+                                        ? _linuxContextMenuToggleTitle
+                                        : appLocale.getText(
+                                            LocaleKey.setting_contextMenuToggle,
+                                          ),
                                     value: legacyMenuEnabled,
                                     onChanged: _toggleLegacyMenus,
                                   ),
@@ -746,6 +992,20 @@ class _SettingPageState extends State<SettingPage> {
                               ),
                             if (PlatformIntegration.supportsAutoStart)
                               _buildSwitchTile(
+                                icon: Icons.move_to_inbox_outlined,
+                                title: _launchToTrayAvailable
+                                    ? _launchBehaviorTitle
+                                    : appLocale.getText(
+                                        LocaleKey
+                                            .setting_launchToTrayUnsupported,
+                                      ),
+                                value: launchToTray,
+                                onChanged: _launchToTrayAvailable
+                                    ? _toggleLaunchToTray
+                                    : null,
+                              ),
+                            if (PlatformIntegration.supportsAutoStart)
+                              _buildSwitchTile(
                                 icon: Icons.power_settings_new_rounded,
                                 title: appLocale.getText(
                                   LocaleKey.setting_enableAutostart,
@@ -784,7 +1044,9 @@ class _SettingPageState extends State<SettingPage> {
                       const SizedBox(height: 16),
                       _buildSection(
                         icon: Icons.hub_outlined,
-                        title: appLocale.getText(LocaleKey.setting_httpApiGroup),
+                        title: appLocale.getText(
+                          LocaleKey.setting_httpApiGroup,
+                        ),
                         children: [
                           _buildSwitchTile(
                             icon: Icons.lan_rounded,
@@ -815,9 +1077,8 @@ class _SettingPageState extends State<SettingPage> {
                                                     'http://127.0.0.1:${localHttpApiServer.port ?? LocalHttpApiServer.defaultPort}/api/v1',
                                               ])
                                         : appLocale.getText(
-                                              LocaleKey
-                                                  .setting_httpApiStopped,
-                                            ),
+                                            LocaleKey.setting_httpApiStopped,
+                                          ),
                                   ]),
                             ),
                             subtitle: localHttpApiServer.isRunning

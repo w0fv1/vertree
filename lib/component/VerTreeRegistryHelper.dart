@@ -95,7 +95,7 @@ class VerTreeRegistryService {
       'save.ico',
     );
     final menuText = appLocale.getText(LocaleKey.registry_backupKeyName);
-    final command = '"$exePath" --backup "%1"';
+    final command = '"$exePath" backup "%1"';
 
     bool success = RegistryHelper.addContextMenuOption(
       registry_backupKeyName,
@@ -132,7 +132,7 @@ class VerTreeRegistryService {
       'monit.ico',
     );
     final menuText = appLocale.getText(LocaleKey.registry_monitorKeyName);
-    final command = '"$exePath" --monit "%1"';
+    final command = '"$exePath" monit "%1"';
 
     bool success = RegistryHelper.addContextMenuOption(
       registry_monitorKeyName,
@@ -169,7 +169,7 @@ class VerTreeRegistryService {
       'logo.ico',
     );
     final menuText = appLocale.getText(LocaleKey.registry_viewTreeKeyName);
-    final command = '"$exePath" --viewtree "%1"';
+    final command = '"$exePath" "%1"';
 
     bool success = RegistryHelper.addContextMenuOption(
       registry_viewTreeKeyName,
@@ -206,7 +206,7 @@ class VerTreeRegistryService {
       'express-save.ico',
     );
     final menuText = appLocale.getText(LocaleKey.registry_expressBackupKeyName);
-    final command = '"$exePath" --express-backup "%1"';
+    final command = '"$exePath" express-backup "%1"';
 
     bool success = RegistryHelper.addContextMenuOption(
       registry_expressBackupKeyName,
@@ -510,25 +510,25 @@ class VerTreeRegistryService {
       _contextMenuPayload(
         registry_backupKeyName,
         appLocale.getText(LocaleKey.registry_backupKeyName),
-        '"$exePath" --backup "%1"',
+        '"$exePath" backup "%1"',
         _iconPath('save.ico'),
       ),
       _contextMenuPayload(
         registry_monitorKeyName,
         appLocale.getText(LocaleKey.registry_monitorKeyName),
-        '"$exePath" --monit "%1"',
+        '"$exePath" monit "%1"',
         _iconPath('monit.ico'),
       ),
       _contextMenuPayload(
         registry_viewTreeKeyName,
         appLocale.getText(LocaleKey.registry_viewTreeKeyName),
-        '"$exePath" --viewtree "%1"',
+        '"$exePath" "%1"',
         _iconPath('logo.ico', isLogo: true),
       ),
       _contextMenuPayload(
         registry_expressBackupKeyName,
         appLocale.getText(LocaleKey.registry_expressBackupKeyName),
-        '"$exePath" --express-backup "%1"',
+        '"$exePath" express-backup "%1"',
         _iconPath('express-save.ico'),
       ),
     ];

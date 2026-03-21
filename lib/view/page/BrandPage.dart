@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class BrandPage extends StatefulWidget {
 class _BrandPageState extends State<BrandPage> {
   static const String _expressMenuPromptedKey =
       'expressBackupContextMenuPrompted';
+  Timer? _setupTimer;
 
   Future<void> _restoreIfMaximized() async {
     if (await windowManager.isMaximized()) {
@@ -132,57 +134,66 @@ class _BrandPageState extends State<BrandPage> {
     );
   }
 
-  Future<void> setup(BuildContext context) async {
+  Future<void> setup() async {
+    if (!mounted) return;
+
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
-    if (!PlatformIntegration.isWindows) {
-      if (!isSetupDone) {
-        configer.set<bool>('isSetupDone', true);
-      }
-      return;
-    }
-
     if (isSetupDone) {
-      // 启动时不自动触发管理员授权；仅做必要的兼容/提示。
+      if (PlatformIntegration.isWindows) {
+        // 启动时不自动触发管理员授权；仅做必要的兼容/提示。
+        final alreadyPrompted = configer.get<bool>(
+          _expressMenuPromptedKey,
+          false,
+        );
+        final expressExists =
+            await PlatformIntegration.checkExpressBackupKeyExists();
+        if (!alreadyPrompted && !expressExists) {
+          configer.set<bool>(_expressMenuPromptedKey, true);
 
-      final alreadyPrompted = configer.get<bool>(
-        _expressMenuPromptedKey,
-        false,
-      );
-      final expressExists =
-          await PlatformIntegration.checkExpressBackupKeyExists();
-      if (!alreadyPrompted && !expressExists) {
-        configer.set<bool>(_expressMenuPromptedKey, true);
-
-        Future.delayed(const Duration(milliseconds: 300), () async {
-          if (!mounted) return;
-          final consent = await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) {
-              return AlertDialog(
-                title: const Text('启用“快速备份”右键菜单？'),
-                content: const Text('此操作会修改系统右键菜单，需管理员权限授权。'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: const Text('稍后'),
+          Future.delayed(const Duration(milliseconds: 300), () async {
+            if (!mounted) return;
+            final consent = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) {
+                return AlertDialog(
+                  title: Text(
+                    appLocale.getText(LocaleKey.brand_expressMenuPromptTitle),
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(true),
-                    child: const Text('启用'),
+                  content: Text(
+                    appLocale.getText(LocaleKey.brand_expressMenuPromptContent),
                   ),
-                ],
-              );
-            },
-          );
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(
+                        appLocale.getText(
+                          LocaleKey.brand_expressMenuPromptLater,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      child: Text(
+                        appLocale.getText(
+                          LocaleKey.brand_expressMenuPromptEnable,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
 
-          if (consent == true) {
-            await PlatformIntegration.addExpressBackupContextMenu();
-          }
-        });
+            if (consent == true) {
+              await PlatformIntegration.addExpressBackupContextMenu();
+            }
+          });
+        }
       }
       return;
     }
 
+    if (!mounted) return;
     bool? userConsent = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -215,7 +226,10 @@ class _BrandPageState extends State<BrandPage> {
         configer.set<bool>('isSetupDone', true);
       } else {
         logger.error("初始化未全部成功，请在设置页面重试并完成授权");
-        await showWindowsNotification("Vertree", "初始化部分失败，请在设置页面重试并同意管理员授权。");
+        await showWindowsNotification(
+          "Vertree",
+          appLocale.getText(LocaleKey.brand_setupPartialFailedBody),
+        );
         configer.set<bool>('isSetupDone', false);
       }
     }
@@ -225,6 +239,14 @@ class _BrandPageState extends State<BrandPage> {
   void initState() {
     super.initState();
     _restoreIfMaximized();
-    Future.delayed(Duration(seconds: 1), () => setup(context));
+    _setupTimer = Timer(const Duration(seconds: 1), () {
+      unawaited(setup());
+    });
+  }
+
+  @override
+  void dispose() {
+    _setupTimer?.cancel();
+    super.dispose();
   }
 }

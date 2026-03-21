@@ -201,7 +201,7 @@ class _FileTreeState extends State<FileTree> {
     GlobalKey<CanvasComponentState> parentKey,
   ) {
     if (parentNode.child != null) {
-      showToast("当前版本已有长子，不允许备份");
+      showToast(appLocale.getText(LocaleKey.filetree_backupBlockedHasChild));
       return;
     }
     _runNodeMutation((label) => parentNode.backup(label));

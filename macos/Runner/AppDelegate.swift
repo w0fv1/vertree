@@ -130,19 +130,19 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   @IBAction func menuBackup(_ sender: Any?) {
-    invokeMenuAction("--backup")
+    invokeMenuAction("backup")
   }
 
   @IBAction func menuExpressBackup(_ sender: Any?) {
-    invokeMenuAction("--express-backup")
+    invokeMenuAction("express-backup")
   }
 
   @IBAction func menuMonit(_ sender: Any?) {
-    invokeMenuAction("--monit")
+    invokeMenuAction("monit")
   }
 
   @IBAction func menuViewtree(_ sender: Any?) {
-    invokeMenuAction("--viewtree")
+    invokeMenuAction("viewtree")
   }
 
   private func readFilePaths(from pboard: NSPasteboard) -> [String] {
@@ -164,25 +164,25 @@ class AppDelegate: FlutterAppDelegate {
 
   @objc func vertreeBackup(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
     for path in readFilePaths(from: pboard) {
-      invokeServiceAction("--backup", path: path)
+      invokeServiceAction("backup", path: path)
     }
   }
 
   @objc func vertreeExpressBackup(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
     for path in readFilePaths(from: pboard) {
-      invokeServiceAction("--express-backup", path: path)
+      invokeServiceAction("express-backup", path: path)
     }
   }
 
   @objc func vertreeMonit(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
     for path in readFilePaths(from: pboard) {
-      invokeServiceAction("--monit", path: path)
+      invokeServiceAction("monit", path: path)
     }
   }
 
   @objc func vertreeViewtree(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
     for path in readFilePaths(from: pboard) {
-      invokeServiceAction("--viewtree", path: path)
+      invokeServiceAction("viewtree", path: path)
     }
   }
 
@@ -213,9 +213,9 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {
-    // "Open With -> Vertree" acts as a quick "Backup" trigger for selected files.
+    // Opening files with Vertree should jump directly into the version tree view.
     for path in filenames {
-      invokeServiceAction("--backup", path: path)
+      invokeServiceAction("viewtree", path: path)
     }
     sender.reply(toOpenOrPrint: .success)
   }

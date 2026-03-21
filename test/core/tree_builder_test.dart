@@ -14,7 +14,7 @@ void main() {
         Directory(
           path.join(
             Directory.current.path,
-            'sample',
+            '.sample',
             'file_version_tree',
             'storyboard',
           ),

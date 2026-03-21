@@ -162,7 +162,7 @@ class _VAppBarState extends State<VAppBar> {
         if (widget.showMaximize) const SizedBox(width: 6),
         if (widget.showClose)
           _buildAppBarButton(Icons.close, () async {
-            await windowManager.hide(); // 仅隐藏窗口
+            await hideMainWindowToTray();
             if (widget.onClose != null) {
               widget.onClose!();
             }

@@ -1,10 +1,10 @@
-name: Build (Windows) and Release
+name: Build and Release
 
 on:
   workflow_dispatch:
     inputs:
       build_mode:
-        description: "Build mode"
+        description: "Windows build mode"
         required: true
         default: "Release"
         type: choice
@@ -17,40 +17,59 @@ on:
       - "V*"
       - "v*"
 
-jobs:
-  windows:
-    name: Windows
-    runs-on: windows-latest
-    permissions:
-      contents: write
+permissions:
+  contents: write
 
+jobs:
+  meta:
+    name: Resolve Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pubspec.outputs.version }}
+      notes_file: ${{ steps.notes.outputs.notes_file }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Read version from pubspec.yaml
         id: pubspec
-        shell: pwsh
+        shell: bash
         run: |
-          $pubspec = Join-Path $env:GITHUB_WORKSPACE "pubspec.yaml"
-          $line = Select-String -Path $pubspec -Pattern '^\s*version:\s*(.+?)\s*$' | Select-Object -First 1
-          if (-not $line) { throw "pubspec.yaml missing 'version:'" }
-          $raw = $line.Matches[0].Groups[1].Value
-          $version = $raw.Trim().Trim("'").Trim('"')
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "pubspec version=$version"
+          version="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1)"
+          if [[ -z "$version" ]]; then
+            echo "pubspec.yaml missing version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "pubspec version=$version"
 
-      - name: Verify tag matches pubspec (tag builds only)
+      - name: Verify tag matches pubspec
         if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
+        shell: bash
         run: |
-          $tag = "${{ github.ref_name }}"
-          $tagTrim = $tag
-          if ($tagTrim.StartsWith('V') -or $tagTrim.StartsWith('v')) { $tagTrim = $tagTrim.Substring(1) }
-          $version = "${{ steps.pubspec.outputs.version }}"
-          if ($tagTrim -ne $version) {
-            throw "Tag '$tag' (trim '$tagTrim') does not match pubspec.yaml version '$version'"
-          }
+          tag="${GITHUB_REF_NAME#V}"
+          tag="${tag#v}"
+          if [[ "$tag" != "${{ steps.pubspec.outputs.version }}" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match pubspec version ${{ steps.pubspec.outputs.version }}" >&2
+            exit 1
+          fi
+
+      - name: Resolve release notes file
+        id: notes
+        shell: bash
+        run: |
+          notes_file=".github/release-${{ steps.pubspec.outputs.version }}.md"
+          if [[ -f "$notes_file" ]]; then
+            echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+          fi
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    needs: meta
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -66,43 +85,158 @@ jobs:
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
-      - name: Build Windows installer (EXE)
+      - name: Build Windows artifacts
         shell: pwsh
         run: |
           $mode = "${{ github.event.inputs.build_mode }}"
           if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
           pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -BuildMode $mode
 
-      - name: Resolve release notes file
-        id: notes
-        shell: pwsh
-        run: |
-          $version = "${{ steps.pubspec.outputs.version }}"
-          $notesFile = Join-Path $env:GITHUB_WORKSPACE ".github/release-$version.md"
-          if (Test-Path $notesFile) {
-            "notes_file=$notesFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            Write-Host "Using release notes file: $notesFile"
-          } else {
-            Write-Host "No release notes file found for version $version"
-          }
-
-      - name: Upload build artifacts
-        if: github.event_name == 'workflow_dispatch'
+      - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vertree-windows-${{ steps.pubspec.outputs.version }}
+          name: vertree-windows-${{ needs.meta.outputs.version }}
           path: |
             windows/Vertree_Setup.exe
             windows/Vertree_Setup.zip
 
-      - name: Create GitHub Release (tag builds only)
-        if: startsWith(github.ref, 'refs/tags/')
+  linux:
+    name: Linux (tar.gz + RPM)
+    runs-on: ubuntu-24.04
+    needs: meta
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            libblkid-dev \
+            liblzma-dev \
+            rpm \
+            desktop-file-utils \
+            appstream
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Linux desktop
+        shell: bash
+        run: flutter config --enable-linux-desktop
+
+      - name: Flutter pub get
+        shell: bash
+        run: flutter pub get
+
+      - name: Build Linux release archive
+        shell: bash
+        run: |
+          chmod +x linux/build_linux_release.sh linux/build_linux_rpm.sh
+          linux/build_linux_release.sh
+
+      - name: Build Linux RPM
+        shell: bash
+        run: |
+          SKIP_FLUTTER_BUILD=1 linux/build_linux_rpm.sh
+
+      - name: Upload Linux archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertree-linux-archive-${{ needs.meta.outputs.version }}
+          path: build/dist/vertree-linux-x64-${{ needs.meta.outputs.version }}.tar.gz
+
+      - name: Upload Linux RPM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertree-linux-rpm-${{ needs.meta.outputs.version }}
+          path: build/dist/*.rpm
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    needs: meta
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable macOS desktop
+        shell: bash
+        run: flutter config --enable-macos-desktop
+
+      - name: Install CocoaPods
+        shell: bash
+        run: brew install cocoapods
+
+      - name: Flutter pub get
+        shell: bash
+        run: flutter pub get
+
+      - name: Build macOS artifacts
+        shell: bash
+        run: |
+          chmod +x macos/build_macos_release.sh
+          macos/build_macos_release.sh
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertree-macos-${{ needs.meta.outputs.version }}
+          path: |
+            build/dist/vertree-macos-${{ needs.meta.outputs.version }}.zip
+            build/dist/vertree-macos-${{ needs.meta.outputs.version }}.dmg
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - windows
+      - linux
+      - macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release notes
+        id: notes
+        shell: bash
+        run: |
+          notes_file=".github/release-${{ needs.meta.outputs.version }}.md"
+          if [[ -f "$notes_file" ]]; then
+            echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+          else
+            : > /tmp/vertree-release-notes.md
+            echo "notes_file=/tmp/vertree-release-notes.md" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          prerelease: ${{ contains(steps.pubspec.outputs.version, '-') }}
+          prerelease: ${{ contains(needs.meta.outputs.version, '-') }}
           body_path: ${{ steps.notes.outputs.notes_file }}
-          files: |
-            windows/Vertree_Setup.exe
-            windows/Vertree_Setup.zip
+          files: release-assets/**/*

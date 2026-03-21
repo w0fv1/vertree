@@ -2,22 +2,44 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
+import 'package:vertree/platform/linux_gnome_integration.dart';
 import 'package:vertree/platform/windows_registry_bridge.dart';
 
 class PlatformIntegration {
-  static const MethodChannel _autoStartChannel =
-      MethodChannel('vertree/auto_start');
+  static const MethodChannel _autoStartChannel = MethodChannel(
+    'vertree/auto_start',
+  );
   static const MethodChannel _dockChannel = MethodChannel('vertree/dock');
   static bool get isWindows => Platform.isWindows;
   static bool get isMacOS => Platform.isMacOS;
+  static bool get isLinux => Platform.isLinux;
+  static bool get isLinuxGnome =>
+      isLinux && LinuxGnomeIntegration.isGnomeSession;
+  static bool? _linuxGnomeTrayAvailable;
 
-  static bool get supportsContextMenus => isWindows;
+  static bool get supportsContextMenus => isWindows || isLinuxGnome;
   static bool get supportsWin11Menu => isWindows;
-  static bool get supportsAutoStart => isWindows || isMacOS;
+  static bool get supportsAutoStart => isWindows || isMacOS || isLinux;
+  static bool get defaultLaunchToTray => !isLinux;
+  static bool get supportsTrayOnlyBackgroundMode =>
+      !isLinuxGnome || (_linuxGnomeTrayAvailable ?? false);
 
   static Future<void> init() async {
-    // No-op for now. macOS auto-start uses a native channel instead of
-    // launch_at_startup, which doesn't register on macOS in this project.
+    if (isLinux) {
+      launchAtStartup.setup(
+        appName: 'vertree',
+        appPath: Platform.resolvedExecutable,
+      );
+    }
+    await refreshLinuxCapabilityCache();
+  }
+
+  static Future<void> refreshLinuxCapabilityCache() async {
+    if (!isLinuxGnome) {
+      _linuxGnomeTrayAvailable = null;
+      return;
+    }
+    _linuxGnomeTrayAvailable = await LinuxGnomeIntegration.isTrayAvailable();
   }
 
   static Future<void> reAddContextMenu() async {
@@ -26,68 +48,158 @@ class PlatformIntegration {
   }
 
   static Future<bool> checkBackupKeyExists() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.checkBackupKeyExists();
+    if (isWindows) {
+      return WindowsRegistryBridge.checkBackupKeyExists();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.hasAction(
+        LinuxGnomeIntegration.actionBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> checkExpressBackupKeyExists() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.checkExpressBackupKeyExists();
+    if (isWindows) {
+      return WindowsRegistryBridge.checkExpressBackupKeyExists();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.hasAction(
+        LinuxGnomeIntegration.actionExpressBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> checkMonitorKeyExists() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.checkMonitorKeyExists();
+    if (isWindows) {
+      return WindowsRegistryBridge.checkMonitorKeyExists();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.hasAction(
+        LinuxGnomeIntegration.actionMonitor,
+      );
+    }
+    return false;
   }
 
   static Future<bool> checkViewTreeKeyExists() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.checkViewTreeKeyExists();
+    if (isWindows) {
+      return WindowsRegistryBridge.checkViewTreeKeyExists();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.hasAction(
+        LinuxGnomeIntegration.actionViewTree,
+      );
+    }
+    return false;
   }
 
   static Future<bool> addBackupContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.addBackupContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.addBackupContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.addAction(
+        LinuxGnomeIntegration.actionBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> removeBackupContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.removeBackupContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.removeBackupContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.removeAction(
+        LinuxGnomeIntegration.actionBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> addExpressBackupContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.addExpressBackupContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.addExpressBackupContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.addAction(
+        LinuxGnomeIntegration.actionExpressBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> removeExpressBackupContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.removeExpressBackupContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.removeExpressBackupContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.removeAction(
+        LinuxGnomeIntegration.actionExpressBackup,
+      );
+    }
+    return false;
   }
 
   static Future<bool> addMonitorContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.addMonitorContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.addMonitorContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.addAction(
+        LinuxGnomeIntegration.actionMonitor,
+      );
+    }
+    return false;
   }
 
   static Future<bool> removeMonitorContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.removeMonitorContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.removeMonitorContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.removeAction(
+        LinuxGnomeIntegration.actionMonitor,
+      );
+    }
+    return false;
   }
 
   static Future<bool> addViewTreeContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.addViewTreeContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.addViewTreeContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.addAction(
+        LinuxGnomeIntegration.actionViewTree,
+      );
+    }
+    return false;
   }
 
   static Future<bool> removeViewTreeContextMenu() async {
-    if (!isWindows) return false;
-    return WindowsRegistryBridge.removeViewTreeContextMenu();
+    if (isWindows) {
+      return WindowsRegistryBridge.removeViewTreeContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.removeAction(
+        LinuxGnomeIntegration.actionViewTree,
+      );
+    }
+    return false;
   }
 
-  static Future<void> applyLegacyMenus(bool enabled) async {
-    if (!isWindows) return;
-    await WindowsRegistryBridge.applyLegacyMenus(enabled);
+  static Future<bool> applyLegacyMenus(bool enabled) async {
+    if (isWindows) {
+      await WindowsRegistryBridge.applyLegacyMenus(enabled);
+      return true;
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.applyAll(enabled);
+    }
+    return false;
   }
 
   static Future<bool> isAutoStartEnabled() async {
@@ -96,6 +208,9 @@ class PlatformIntegration {
     }
     if (isMacOS) {
       return _invokeMacAutoStart('isEnabled');
+    }
+    if (isLinux) {
+      return launchAtStartup.isEnabled();
     }
     return false;
   }
@@ -107,6 +222,9 @@ class PlatformIntegration {
     if (isMacOS) {
       return _invokeMacAutoStart('enable');
     }
+    if (isLinux) {
+      return launchAtStartup.enable();
+    }
     return false;
   }
 
@@ -116,6 +234,9 @@ class PlatformIntegration {
     }
     if (isMacOS) {
       return _invokeMacAutoStart('disable');
+    }
+    if (isLinux) {
+      return launchAtStartup.disable();
     }
     return false;
   }
@@ -146,7 +267,25 @@ class PlatformIntegration {
     if (isWindows) {
       return WindowsRegistryBridge.applyInitialSetup();
     }
-    return true;
+    var success = true;
+
+    if (supportsAutoStart) {
+      success = await enableAutoStart() && success;
+    }
+
+    if (isLinux) {
+      final gnomeSupported = await LinuxGnomeIntegration.isSupported();
+      if (gnomeSupported) {
+        success = await LinuxGnomeIntegration.applyAll(true) && success;
+      }
+      return success;
+    }
+
+    if (isMacOS) {
+      return success;
+    }
+
+    return false;
   }
 
   static Future<bool> isWin11PackagedOrRegistered() async {

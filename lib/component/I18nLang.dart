@@ -49,6 +49,7 @@ enum LocaleKey {
   registry_viewTreeKeyName,
 
   // App General Keys
+  app_title,
   app_confirmExitTitle,
   app_confirmExitContent,
   app_minimize,
@@ -87,6 +88,11 @@ enum LocaleKey {
   brand_confirm,
   brand_initDoneTitle,
   brand_initDoneBody,
+  brand_expressMenuPromptTitle,
+  brand_expressMenuPromptContent,
+  brand_expressMenuPromptLater,
+  brand_expressMenuPromptEnable,
+  brand_setupPartialFailedBody,
 
   // Monitor Page Keys
   monit_title,
@@ -112,20 +118,28 @@ enum LocaleKey {
   // Setting Page Keys
   setting_title,
   setting_titleBar,
+  setting_environmentGroup,
+  setting_environmentDescription,
+  setting_traySupportTitle,
+  setting_win11MenuEnvironmentTitle,
   setting_appearanceGroup,
   setting_integrationsGroup,
   setting_resourcesGroup,
   setting_language,
   setting_contextMenuGroup,
+  setting_linuxContextMenuGroup,
   setting_themeModeLabel,
   setting_themeModeSystem,
   setting_themeModeLight,
   setting_themeModeDark,
   setting_contextMenuToggle,
+  setting_contextMenuLegacySuffix,
   setting_addBackupMenu,
   setting_addExpressBackupMenu,
   setting_addMonitorMenu,
   setting_addViewtreeMenu,
+  setting_linuxContextMenuToggle,
+  setting_linuxContextMenuToggleInstallHint,
   setting_monitGroup,
   setting_monitRate,
   setting_monitMaxSize,
@@ -135,12 +149,35 @@ enum LocaleKey {
   setting_httpApiRunning,
   setting_httpApiStopped,
   setting_httpApiDocs,
+  setting_launchToTray,
+  setting_launchMinimized,
+  setting_launchToTrayUnsupported,
+  setting_launchToTraySetupHint,
   setting_enableAutostart,
   setting_openConfig,
   setting_openLogs,
   setting_visitWebsite,
   setting_versionInfo,
   setting_openGithub,
+  setting_commandCopied,
+  setting_detectingPlatformIntegration,
+  setting_supportStatusAvailable,
+  setting_supportStatusMissingDependency,
+  setting_supportStatusInstalledButDisabled,
+  setting_supportStatusUnavailable,
+  setting_supportStatusUnknown,
+  setting_supportStatusChecking,
+  setting_gnomeMenuUpdated,
+  setting_gnomeMenuUnavailable,
+  setting_gnomeMenuRestartHint,
+  setting_win11MenuNeedsIdentity,
+  setting_win11IdentityRequired,
+  setting_copyRegisterCommand,
+  setting_copyRefreshCommand,
+  setting_copyConfigCommand,
+  setting_copyAssistCommand,
+  setting_openUrlFailed,
+  setting_localHttpApiToggleFailed,
   setting_notifyAddBackup,
   setting_notifyRemoveBackup,
   setting_notifyAddMonitor,
@@ -178,11 +215,14 @@ enum LocaleKey {
   monitcard_cleanDialogConfirm,
   monitcard_statusRunning,
   monitcard_statusStopped,
+  monitcard_statusEnabled,
+  monitcard_statusDisabled,
   // File Tree Keys
   filetree_inputLabelTitle,
   filetree_inputLabelHint,
   filetree_inputCancel,
   filetree_inputConfirm,
+  filetree_backupBlockedHasChild,
 
   // File Leaf Keys
   fileleaf_noLabel,
@@ -214,6 +254,24 @@ enum LocaleKey {
   fileleaf_propertyClose,
   fileleaf_branchLabel,
   fileleaf_revisionLabel,
+
+  // Tray Keys
+  tray_toggleHide,
+  tray_toggleHideTooltip,
+  tray_toggleShow,
+  tray_toggleShowTooltip,
+  tray_backup,
+  tray_backupTooltip,
+  tray_expressBackup,
+  tray_expressBackupTooltip,
+  tray_monit,
+  tray_monitTooltip,
+  tray_viewTree,
+  tray_viewTreeTooltip,
+  tray_setting,
+  tray_settingTooltip,
+  tray_exit,
+  tray_exitTooltip,
 }
 
 // --- AppLocale Class ---
@@ -245,7 +303,7 @@ class AppLocale {
     } else {
       lang = configLang;
     }
-    print("AppLocale Initialized. Language set to: ${lang.name}");
+    logger.info("AppLocale initialized. Language set to: ${lang.name}");
   }
 
   void changeLang(Lang newLang) {
@@ -258,7 +316,7 @@ class AppLocale {
     unawaited(PlatformIntegration.reAddContextMenu());
     // If you use flutter_localization or intl, refresh here
     // Example: LocalizationService().setLocale(newLang.toLocale());
-    print("AppLocale Language changed to: ${lang.name}");
+    logger.info("AppLocale language changed to: ${lang.name}");
     // You might need to trigger a UI rebuild here if using Flutter UI framework
   }
 
@@ -293,6 +351,7 @@ class AppLocale {
   // --- Translation Maps using LocaleKey ---
   // Made private (_EN, _ZH_CN, _JA) as they are internal implementation details
   static const Map<LocaleKey, String> _EN = {
+    LocaleKey.app_title: "Vertree",
     LocaleKey.registry_backupKeyName: "Backup Files VerTree",
     LocaleKey.registry_expressBackupKeyName: "Quick Backup Files VerTree",
     LocaleKey.registry_monitorKeyName: "Monitor File Changes VerTree",
@@ -349,6 +408,14 @@ class AppLocale {
     LocaleKey.brand_confirm: 'Confirm',
     LocaleKey.brand_initDoneTitle: 'Vertree setup complete!',
     LocaleKey.brand_initDoneBody: 'Let’s get started!',
+    LocaleKey.brand_expressMenuPromptTitle:
+        'Enable "Quick Backup" context menu?',
+    LocaleKey.brand_expressMenuPromptContent:
+        'This changes the system context menu and may require administrator permission.',
+    LocaleKey.brand_expressMenuPromptLater: 'Later',
+    LocaleKey.brand_expressMenuPromptEnable: 'Enable',
+    LocaleKey.brand_setupPartialFailedBody:
+        'Setup completed partially. Please retry in Settings and review platform integration support.',
 
     LocaleKey.monit_title: 'Vertree Monitor',
     LocaleKey.monit_empty: 'No monitoring tasks yet',
@@ -377,38 +444,81 @@ class AppLocale {
 
     LocaleKey.setting_title: "Settings",
     LocaleKey.setting_titleBar: "Vertree Settings",
+    LocaleKey.setting_environmentGroup: "Environment setup",
+    LocaleKey.setting_environmentDescription:
+        "Install dependencies, complete desktop integration, and finish any manual setup here. These guidance cards disappear automatically once the environment is ready.",
+    LocaleKey.setting_traySupportTitle: "Tray support",
+    LocaleKey.setting_win11MenuEnvironmentTitle:
+        "Windows 11 context menu environment",
     LocaleKey.setting_appearanceGroup: "Appearance",
     LocaleKey.setting_integrationsGroup: "System Integration",
     LocaleKey.setting_resourcesGroup: "Resources",
     LocaleKey.setting_language: "Language",
     LocaleKey.setting_contextMenuGroup: "Context Menu Options",
+    LocaleKey.setting_linuxContextMenuGroup: "GNOME Files context menu",
     LocaleKey.setting_themeModeLabel: "Theme mode",
     LocaleKey.setting_themeModeSystem: "Follow system",
     LocaleKey.setting_themeModeLight: "Light",
     LocaleKey.setting_themeModeDark: "Dark",
     LocaleKey.setting_contextMenuToggle: "Context menu options",
+    LocaleKey.setting_contextMenuLegacySuffix: "Legacy",
     LocaleKey.setting_addBackupMenu: "Add 'Backup this file' to context menu",
     LocaleKey.setting_addExpressBackupMenu:
         "Add 'Express backup this file' to context menu",
     LocaleKey.setting_addMonitorMenu: "Add 'Monitor this file' to context menu",
     LocaleKey.setting_addViewtreeMenu:
         "Add 'View version tree' to context menu",
+    LocaleKey.setting_linuxContextMenuToggle: "Enable GNOME Files context menu",
+    LocaleKey.setting_linuxContextMenuToggleInstallHint:
+        "Enable GNOME Files context menu (requires nautilus-python)",
     LocaleKey.setting_monitGroup: "File Monitoring",
     LocaleKey.setting_monitRate: "Backup interval (minutes)",
     LocaleKey.setting_monitMaxSize:
         "Maximum backups to keep (oldest files are removed first)",
     LocaleKey.setting_httpApiGroup: "Local HTTP API",
-    LocaleKey.setting_enableLocalHttpApi:
-        "Enable loopback-only local HTTP API",
+    LocaleKey.setting_enableLocalHttpApi: "Enable loopback-only local HTTP API",
     LocaleKey.setting_httpApiStatus: "API status: %a",
     LocaleKey.setting_httpApiRunning: "Running at %a",
     LocaleKey.setting_httpApiStopped: "Stopped",
     LocaleKey.setting_httpApiDocs: "Open API docs",
+    LocaleKey.setting_launchToTray: "Launch to tray on startup",
+    LocaleKey.setting_launchMinimized: "Launch minimized",
+    LocaleKey.setting_launchToTrayUnsupported:
+        "Launch minimized to tray (tray support required)",
+    LocaleKey.setting_launchToTraySetupHint:
+        "Tray support is not ready in the current GNOME session yet. Please complete the suggested setup first.",
     LocaleKey.setting_enableAutostart:
         "Enable Vertree on startup (Recommended)",
     LocaleKey.setting_openConfig: "Open config.json",
     LocaleKey.setting_openLogs: "Open logs folder",
     LocaleKey.setting_visitWebsite: "Visit official website",
+    LocaleKey.setting_commandCopied: "Command copied",
+    LocaleKey.setting_detectingPlatformIntegration:
+        "Detecting desktop integration support...",
+    LocaleKey.setting_supportStatusAvailable: "Available",
+    LocaleKey.setting_supportStatusMissingDependency: "Missing dependency",
+    LocaleKey.setting_supportStatusInstalledButDisabled:
+        "Installed but disabled",
+    LocaleKey.setting_supportStatusUnavailable: "Unavailable in this session",
+    LocaleKey.setting_supportStatusUnknown: "Unknown",
+    LocaleKey.setting_supportStatusChecking: "Checking",
+    LocaleKey.setting_gnomeMenuUpdated:
+        "GNOME Files context menu has been updated",
+    LocaleKey.setting_gnomeMenuUnavailable:
+        "GNOME Files extension is unavailable. Install nautilus-python first.",
+    LocaleKey.setting_gnomeMenuRestartHint:
+        "GNOME Files integration was updated. You may need to restart Files for the change to appear.",
+    LocaleKey.setting_win11MenuNeedsIdentity:
+        "The Windows 11 menu requires Sparse Package / MSIX identity.",
+    LocaleKey.setting_win11IdentityRequired:
+        "The Windows 11 menu requires Sparse Package / MSIX identity. Run the registration command first. If the menu still does not refresh, then run the refresh command.",
+    LocaleKey.setting_copyRegisterCommand: "Copy register command",
+    LocaleKey.setting_copyRefreshCommand: "Copy refresh command",
+    LocaleKey.setting_copyConfigCommand: "Copy setup command",
+    LocaleKey.setting_copyAssistCommand: "Copy helper command",
+    LocaleKey.setting_openUrlFailed: "Unable to open %a",
+    LocaleKey.setting_localHttpApiToggleFailed:
+        "Failed to toggle Local HTTP API: %a",
     LocaleKey.setting_openGithub: "View GitHub repo",
     LocaleKey.setting_notifyAddBackup:
         "Added 'Backup this file version' to context menu",
@@ -452,11 +562,15 @@ class AppLocale {
         "Are you sure you want to clean all files in backup folder %a? This action cannot be undone.",
     LocaleKey.monitcard_cleanDialogCancel: "Cancel",
     LocaleKey.monitcard_cleanDialogConfirm: "Confirm",
+    LocaleKey.monitcard_statusEnabled: "enabled",
+    LocaleKey.monitcard_statusDisabled: "disabled",
 
     LocaleKey.filetree_inputLabelTitle: "Enter a label",
     LocaleKey.filetree_inputLabelHint: "Enter a label (optional)",
     LocaleKey.filetree_inputCancel: "Cancel",
     LocaleKey.filetree_inputConfirm: "Confirm",
+    LocaleKey.filetree_backupBlockedHasChild:
+        "This version already has a direct child, so backup is not allowed",
 
     LocaleKey.fileleaf_noLabel: "No label",
     LocaleKey.fileleaf_lastModified: "Last modified",
@@ -489,9 +603,27 @@ class AppLocale {
     LocaleKey.fileleaf_propertyClose: "Close",
     LocaleKey.fileleaf_branchLabel: "Branch",
     LocaleKey.fileleaf_revisionLabel: "Revision",
+
+    LocaleKey.tray_toggleHide: "Hide to tray",
+    LocaleKey.tray_toggleHideTooltip: "Hide the window to the tray",
+    LocaleKey.tray_toggleShow: "Show main window",
+    LocaleKey.tray_toggleShowTooltip: "Show the main window",
+    LocaleKey.tray_backup: "Back up file",
+    LocaleKey.tray_backupTooltip: "Choose a file to back up",
+    LocaleKey.tray_expressBackup: "Quick backup",
+    LocaleKey.tray_expressBackupTooltip: "Choose a file for quick backup",
+    LocaleKey.tray_monit: "Monitor file",
+    LocaleKey.tray_monitTooltip: "Choose a file to add to monitoring",
+    LocaleKey.tray_viewTree: "View version tree",
+    LocaleKey.tray_viewTreeTooltip: "Choose a file to inspect its version tree",
+    LocaleKey.tray_setting: "Settings",
+    LocaleKey.tray_settingTooltip: "Open app settings",
+    LocaleKey.tray_exit: "Exit",
+    LocaleKey.tray_exitTooltip: "Quit the app",
   };
 
   static const Map<LocaleKey, String> _ZH_CN = {
+    LocaleKey.app_title: "Vertree维树",
     LocaleKey.registry_backupKeyName: "备份文件 VerTree",
     LocaleKey.registry_expressBackupKeyName: "快速备份文件 VerTree",
     LocaleKey.registry_monitorKeyName: "监控文件变动 VerTree",
@@ -542,6 +674,11 @@ class AppLocale {
     LocaleKey.brand_confirm: '确定',
     LocaleKey.brand_initDoneTitle: 'Vertree初始设置已完成！',
     LocaleKey.brand_initDoneBody: '开始使用吧！',
+    LocaleKey.brand_expressMenuPromptTitle: '启用“快速备份”右键菜单？',
+    LocaleKey.brand_expressMenuPromptContent: '此操作会修改系统右键菜单，可能需要管理员权限授权。',
+    LocaleKey.brand_expressMenuPromptLater: '稍后',
+    LocaleKey.brand_expressMenuPromptEnable: '启用',
+    LocaleKey.brand_setupPartialFailedBody: '初始化部分失败，请在设置页面重试并检查平台集成能力。',
 
     LocaleKey.monit_title: 'Vertree 监控',
     LocaleKey.monit_empty: '暂无监控任务',
@@ -568,19 +705,29 @@ class AppLocale {
     LocaleKey.setting_title: "设置",
     LocaleKey.setting_language: '语言',
     LocaleKey.setting_titleBar: "Vertree 设置",
+    LocaleKey.setting_environmentGroup: "环境准备",
+    LocaleKey.setting_environmentDescription:
+        "依赖安装、环境配置和需要手动处理的系统集成都集中放在这里。完成后，这些引导卡片会自动消失。",
+    LocaleKey.setting_traySupportTitle: "托盘支持",
+    LocaleKey.setting_win11MenuEnvironmentTitle: "Windows 11 新菜单环境",
     LocaleKey.setting_appearanceGroup: "界面与外观",
     LocaleKey.setting_integrationsGroup: "系统集成",
     LocaleKey.setting_resourcesGroup: "资源与文件",
     LocaleKey.setting_contextMenuGroup: "右键菜单选项设置",
+    LocaleKey.setting_linuxContextMenuGroup: "GNOME Files 右键菜单",
     LocaleKey.setting_themeModeLabel: "主题模式",
     LocaleKey.setting_themeModeSystem: "跟随系统",
     LocaleKey.setting_themeModeLight: "浅色",
     LocaleKey.setting_themeModeDark: "暗色",
     LocaleKey.setting_contextMenuToggle: "右键菜单选项",
+    LocaleKey.setting_contextMenuLegacySuffix: "旧版",
     LocaleKey.setting_addBackupMenu: "将“备份该文件”增加到右键菜单",
     LocaleKey.setting_addExpressBackupMenu: "将“快速备份该文件”增加到右键菜单",
     LocaleKey.setting_addMonitorMenu: "将“监控该文件”增加到右键菜单",
     LocaleKey.setting_addViewtreeMenu: "将“浏览该文件版本树”增加到右键菜单",
+    LocaleKey.setting_linuxContextMenuToggle: "启用 GNOME Files 右键菜单",
+    LocaleKey.setting_linuxContextMenuToggleInstallHint:
+        "启用 GNOME Files 右键菜单（需先安装 nautilus-python）",
 
     LocaleKey.setting_monitGroup: "监控文件设置",
     LocaleKey.setting_monitRate: "备份文件时间间隔（单位分钟）",
@@ -592,12 +739,38 @@ class AppLocale {
     LocaleKey.setting_httpApiStopped: "未启动",
 
     LocaleKey.setting_httpApiDocs: "打开 API 文档",
+    LocaleKey.setting_launchToTray: "启动后直接进入托盘",
+    LocaleKey.setting_launchMinimized: "启动后最小化",
+    LocaleKey.setting_launchToTrayUnsupported: "启动后最小化到托盘（需先启用托盘支持）",
+    LocaleKey.setting_launchToTraySetupHint: "当前 GNOME 会话尚未启用托盘支持，请先按提示完成配置。",
     LocaleKey.setting_enableAutostart: "开机自启 Vertree（推荐）",
     LocaleKey.setting_openConfig: "打开 config.json",
     LocaleKey.setting_openLogs: "打开日志文件夹",
 
     LocaleKey.setting_visitWebsite: "访问官方网站",
     LocaleKey.setting_versionInfo: "版本信息",
+    LocaleKey.setting_commandCopied: "已复制命令",
+    LocaleKey.setting_detectingPlatformIntegration: "正在检测 GNOME 集成能力...",
+    LocaleKey.setting_supportStatusAvailable: "已可用",
+    LocaleKey.setting_supportStatusMissingDependency: "缺少支持组件",
+    LocaleKey.setting_supportStatusInstalledButDisabled: "已安装但未启用",
+    LocaleKey.setting_supportStatusUnavailable: "当前会话不可用",
+    LocaleKey.setting_supportStatusUnknown: "状态未知",
+    LocaleKey.setting_supportStatusChecking: "检测中",
+    LocaleKey.setting_gnomeMenuUpdated: "GNOME Files 右键菜单已更新",
+    LocaleKey.setting_gnomeMenuUnavailable:
+        "GNOME Files 扩展不可用，请先安装 nautilus-python",
+    LocaleKey.setting_gnomeMenuRestartHint: "GNOME Files 扩展已更新，可能需要重启“文件”应用后生效",
+    LocaleKey.setting_win11MenuNeedsIdentity:
+        "Win11 新菜单需要 Sparse Package/MSIX 身份",
+    LocaleKey.setting_win11IdentityRequired:
+        "Windows 11 新菜单需要 Sparse Package / MSIX 身份。先执行注册命令；如果执行后菜单仍未刷新，再执行刷新命令。",
+    LocaleKey.setting_copyRegisterCommand: "复制注册命令",
+    LocaleKey.setting_copyRefreshCommand: "复制刷新命令",
+    LocaleKey.setting_copyConfigCommand: "复制配置命令",
+    LocaleKey.setting_copyAssistCommand: "复制辅助命令",
+    LocaleKey.setting_openUrlFailed: "无法打开 %a",
+    LocaleKey.setting_localHttpApiToggleFailed: "Local HTTP API 启停失败: %a",
     LocaleKey.setting_openGithub: "查看 GitHub 仓库",
     LocaleKey.setting_notifyAddBackup: "已添加 '备份当前文件版本' 到右键菜单",
     LocaleKey.setting_notifyRemoveBackup: "已从右键菜单移除 '备份当前文件版本' 功能按钮",
@@ -634,11 +807,14 @@ class AppLocale {
     LocaleKey.monitcard_cleanDialogConfirm: "确认",
     LocaleKey.monitcard_statusRunning: "监控中..",
     LocaleKey.monitcard_statusStopped: "已暂停",
+    LocaleKey.monitcard_statusEnabled: "开启",
+    LocaleKey.monitcard_statusDisabled: "关闭",
 
     LocaleKey.filetree_inputLabelTitle: "请输入备注",
     LocaleKey.filetree_inputLabelHint: "请输入备注（可选）",
     LocaleKey.filetree_inputCancel: "取消",
     LocaleKey.filetree_inputConfirm: "确认",
+    LocaleKey.filetree_backupBlockedHasChild: "当前版本已有长子，不允许备份",
 
     LocaleKey.fileleaf_noLabel: "无备注",
     LocaleKey.fileleaf_lastModified: "最后修改",
@@ -670,9 +846,27 @@ class AppLocale {
     LocaleKey.fileleaf_propertyClose: "关闭",
     LocaleKey.fileleaf_branchLabel: "分支",
     LocaleKey.fileleaf_revisionLabel: "版本",
+
+    LocaleKey.tray_toggleHide: "隐藏到托盘",
+    LocaleKey.tray_toggleHideTooltip: "将窗口隐藏到托盘",
+    LocaleKey.tray_toggleShow: "显示主窗口",
+    LocaleKey.tray_toggleShowTooltip: "显示主窗口",
+    LocaleKey.tray_backup: "备份文件",
+    LocaleKey.tray_backupTooltip: "选择文件进行备份",
+    LocaleKey.tray_expressBackup: "快速备份",
+    LocaleKey.tray_expressBackupTooltip: "选择文件进行快速备份",
+    LocaleKey.tray_monit: "监控文件",
+    LocaleKey.tray_monitTooltip: "选择文件加入监控",
+    LocaleKey.tray_viewTree: "查看版本树",
+    LocaleKey.tray_viewTreeTooltip: "选择文件查看版本树",
+    LocaleKey.tray_setting: "设置",
+    LocaleKey.tray_settingTooltip: "App设置",
+    LocaleKey.tray_exit: "退出",
+    LocaleKey.tray_exitTooltip: "退出APP",
   };
 
   static const Map<LocaleKey, String> _JA = {
+    LocaleKey.app_title: "Vertree",
     LocaleKey.registry_backupKeyName: "バックアップファイル VerTree",
     LocaleKey.registry_expressBackupKeyName: "クイックバックアップファイル VerTree",
     LocaleKey.registry_monitorKeyName: "ファイル変更監視 VerTree",
@@ -723,6 +917,13 @@ class AppLocale {
     LocaleKey.brand_confirm: '確認',
     LocaleKey.brand_initDoneTitle: 'Vertreeの初期設定が完了しました！',
     LocaleKey.brand_initDoneBody: 'さあ、始めましょう！',
+    LocaleKey.brand_expressMenuPromptTitle: '「クイックバックアップ」右クリックメニューを有効にしますか？',
+    LocaleKey.brand_expressMenuPromptContent:
+        'この操作はシステムの右クリックメニューを変更し、管理者権限が必要になる場合があります。',
+    LocaleKey.brand_expressMenuPromptLater: '後で',
+    LocaleKey.brand_expressMenuPromptEnable: '有効にする',
+    LocaleKey.brand_setupPartialFailedBody:
+        '初期設定の一部に失敗しました。設定画面から再試行し、プラットフォーム連携の状態を確認してください。',
 
     LocaleKey.monit_title: 'Vertree モニター',
     LocaleKey.monit_empty: '監視タスクはありません',
@@ -750,33 +951,71 @@ class AppLocale {
     LocaleKey.setting_title: "設定",
     LocaleKey.setting_language: '言語',
     LocaleKey.setting_titleBar: "Vertree 設定",
+    LocaleKey.setting_environmentGroup: "環境セットアップ",
+    LocaleKey.setting_environmentDescription:
+        "依存関係の導入、デスクトップ連携、手動セットアップが必要な項目をここにまとめています。環境が整うと、これらの案内カードは自動で消えます。",
+    LocaleKey.setting_traySupportTitle: "トレイ対応",
+    LocaleKey.setting_win11MenuEnvironmentTitle: "Windows 11 コンテキストメニュー環境",
     LocaleKey.setting_appearanceGroup: "外観",
     LocaleKey.setting_integrationsGroup: "システム連携",
     LocaleKey.setting_resourcesGroup: "リソース",
     LocaleKey.setting_contextMenuGroup: "右クリックメニューのオプション",
+    LocaleKey.setting_linuxContextMenuGroup: "GNOME Files 右クリックメニュー",
     LocaleKey.setting_themeModeLabel: "テーマモード",
     LocaleKey.setting_themeModeSystem: "システムに従う",
     LocaleKey.setting_themeModeLight: "ライト",
     LocaleKey.setting_themeModeDark: "ダーク",
     LocaleKey.setting_contextMenuToggle: "右クリックメニュー項目",
+    LocaleKey.setting_contextMenuLegacySuffix: "旧版",
     LocaleKey.setting_addBackupMenu: "「このファイルをバックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addExpressBackupMenu: "「このファイルを即時バックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addMonitorMenu: "「このファイルを監視」を右クリックメニューに追加",
     LocaleKey.setting_addViewtreeMenu: "「バージョンツリーを表示」を右クリックメニューに追加",
+    LocaleKey.setting_linuxContextMenuToggle: "GNOME Files の右クリックメニューを有効にする",
+    LocaleKey.setting_linuxContextMenuToggleInstallHint:
+        "GNOME Files の右クリックメニューを有効にする（nautilus-python が必要）",
     LocaleKey.setting_monitGroup: "ファイル監視",
     LocaleKey.setting_monitRate: "バックアップ間隔（分）",
     LocaleKey.setting_monitMaxSize: "保持するバックアップ数の上限（古いファイルから削除）",
     LocaleKey.setting_httpApiGroup: "ローカル HTTP API",
-    LocaleKey.setting_enableLocalHttpApi:
-        "ループバック限定のローカル HTTP API を有効にする",
+    LocaleKey.setting_enableLocalHttpApi: "ループバック限定のローカル HTTP API を有効にする",
     LocaleKey.setting_httpApiStatus: "API 状態: %a",
     LocaleKey.setting_httpApiRunning: "稼働中: %a",
     LocaleKey.setting_httpApiStopped: "停止中",
     LocaleKey.setting_httpApiDocs: "API ドキュメントを開く",
+    LocaleKey.setting_launchToTray: "起動後すぐトレイに格納する",
+    LocaleKey.setting_launchMinimized: "起動時に最小化",
+    LocaleKey.setting_launchToTrayUnsupported: "起動時にトレイへ最小化する（トレイ対応が必要）",
+    LocaleKey.setting_launchToTraySetupHint:
+        "現在の GNOME セッションではまだトレイ対応が有効になっていません。案内に従って先に設定してください。",
     LocaleKey.setting_enableAutostart: "起動時に Vertree を自動実行（推奨）",
     LocaleKey.setting_openConfig: "config.json を開く",
     LocaleKey.setting_openLogs: "ログフォルダを開く",
     LocaleKey.setting_visitWebsite: "公式サイトを訪問",
+    LocaleKey.setting_commandCopied: "コマンドをコピーしました",
+    LocaleKey.setting_detectingPlatformIntegration: "デスクトップ連携の状態を確認しています...",
+    LocaleKey.setting_supportStatusAvailable: "利用可能",
+    LocaleKey.setting_supportStatusMissingDependency: "依存関係が不足",
+    LocaleKey.setting_supportStatusInstalledButDisabled: "導入済みだが無効",
+    LocaleKey.setting_supportStatusUnavailable: "このセッションでは利用不可",
+    LocaleKey.setting_supportStatusUnknown: "状態不明",
+    LocaleKey.setting_supportStatusChecking: "確認中",
+    LocaleKey.setting_gnomeMenuUpdated: "GNOME Files の右クリックメニューを更新しました",
+    LocaleKey.setting_gnomeMenuUnavailable:
+        "GNOME Files 拡張が利用できません。先に nautilus-python をインストールしてください。",
+    LocaleKey.setting_gnomeMenuRestartHint:
+        "GNOME Files 連携を更新しました。反映には「ファイル」アプリの再起動が必要な場合があります。",
+    LocaleKey.setting_win11MenuNeedsIdentity:
+        "Windows 11 メニューには Sparse Package / MSIX ID が必要です",
+    LocaleKey.setting_win11IdentityRequired:
+        "Windows 11 の新しいメニューには Sparse Package / MSIX ID が必要です。まず登録コマンドを実行し、まだ更新されない場合は更新コマンドも実行してください。",
+    LocaleKey.setting_copyRegisterCommand: "登録コマンドをコピー",
+    LocaleKey.setting_copyRefreshCommand: "更新コマンドをコピー",
+    LocaleKey.setting_copyConfigCommand: "設定コマンドをコピー",
+    LocaleKey.setting_copyAssistCommand: "補助コマンドをコピー",
+    LocaleKey.setting_openUrlFailed: "%a を開けませんでした",
+    LocaleKey.setting_localHttpApiToggleFailed:
+        "Local HTTP API の切り替えに失敗しました: %a",
     LocaleKey.setting_openGithub: "GitHub リポジトリを見る",
     LocaleKey.setting_notifyAddBackup: "「このファイルバージョンをバックアップ」が右クリックメニューに追加されました",
     LocaleKey.setting_notifyRemoveBackup:
@@ -815,11 +1054,15 @@ class AppLocale {
         "バックアップフォルダ %a 内のすべてのファイルをクリーンアップしますか？この操作は元に戻せません。",
     LocaleKey.monitcard_cleanDialogCancel: "キャンセル",
     LocaleKey.monitcard_cleanDialogConfirm: "確認",
+    LocaleKey.monitcard_statusEnabled: "有効",
+    LocaleKey.monitcard_statusDisabled: "無効",
 
     LocaleKey.filetree_inputLabelTitle: "ラベルを入力してください",
     LocaleKey.filetree_inputLabelHint: "ラベルを入力してください（任意）",
     LocaleKey.filetree_inputCancel: "キャンセル",
     LocaleKey.filetree_inputConfirm: "確認",
+    LocaleKey.filetree_backupBlockedHasChild:
+        "このバージョンにはすでに直系の子があるため、バックアップできません",
 
     LocaleKey.fileleaf_noLabel: "備考なし",
     LocaleKey.fileleaf_lastModified: "最終更新",
@@ -851,5 +1094,22 @@ class AppLocale {
     LocaleKey.fileleaf_propertyClose: "閉じる",
     LocaleKey.fileleaf_branchLabel: "ブランチ",
     LocaleKey.fileleaf_revisionLabel: "バージョン",
+
+    LocaleKey.tray_toggleHide: "トレイに隠す",
+    LocaleKey.tray_toggleHideTooltip: "ウィンドウをトレイに隠します",
+    LocaleKey.tray_toggleShow: "メインウィンドウを表示",
+    LocaleKey.tray_toggleShowTooltip: "メインウィンドウを表示します",
+    LocaleKey.tray_backup: "ファイルをバックアップ",
+    LocaleKey.tray_backupTooltip: "バックアップするファイルを選択",
+    LocaleKey.tray_expressBackup: "クイックバックアップ",
+    LocaleKey.tray_expressBackupTooltip: "クイックバックアップするファイルを選択",
+    LocaleKey.tray_monit: "ファイルを監視",
+    LocaleKey.tray_monitTooltip: "監視対象に追加するファイルを選択",
+    LocaleKey.tray_viewTree: "バージョンツリーを表示",
+    LocaleKey.tray_viewTreeTooltip: "バージョンツリーを確認するファイルを選択",
+    LocaleKey.tray_setting: "設定",
+    LocaleKey.tray_settingTooltip: "アプリ設定を開く",
+    LocaleKey.tray_exit: "終了",
+    LocaleKey.tray_exitTooltip: "アプリを終了",
   };
 }

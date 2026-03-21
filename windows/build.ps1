@@ -4,7 +4,8 @@ param(
     [switch]$Sparse,
     [switch]$SparseRefresh,
     [string]$Flutter = "",
-    [string]$ISCC = ""
+    [string]$ISCC = "",
+    [string]$Target = "lib/main.dart"
 )
 
 # 设置 Inno Setup 编译器路径（请确认你的 Inno Setup 安装位置）
@@ -70,7 +71,7 @@ Write-Host "pubspec.yaml version=$pubspecVersion"
 Write-Host "VersionInfoVersion=$versionInfoVersion"
 
 Write-Host "正在执行 flutter build windows ($BuildMode)..."
-& $flutterCmd build windows --$($BuildMode.ToLower())
+& $flutterCmd build windows --target $Target --$($BuildMode.ToLower())
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Flutter编译失败，请检查错误日志。"

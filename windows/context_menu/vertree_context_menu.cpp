@@ -16,10 +16,10 @@ namespace {
 constexpr wchar_t kClsid[] = L"{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}";
 constexpr wchar_t kMenuTitle[] = L"Vertree";
 
-constexpr wchar_t kCmdBackup[] = L"--backup";
-constexpr wchar_t kCmdExpressBackup[] = L"--express-backup";
-constexpr wchar_t kCmdMonitor[] = L"--monit";
-constexpr wchar_t kCmdViewTree[] = L"--viewtree";
+constexpr wchar_t kCmdBackup[] = L"backup";
+constexpr wchar_t kCmdExpressBackup[] = L"express-backup";
+constexpr wchar_t kCmdMonitor[] = L"monit";
+constexpr wchar_t kCmdViewTree[] = L"viewtree";
 
 HINSTANCE g_instance = nullptr;
 long g_module_lock = 0;
@@ -341,6 +341,9 @@ bool LaunchAppWithArgs(const std::wstring& args) {
 
 std::wstring BuildArgs(const std::wstring& verb, const std::wstring& path) {
   std::wstring quoted = L"\"" + path + L"\"";
+  if (verb == kCmdViewTree) {
+    return quoted;
+  }
   return std::wstring(verb) + L" " + quoted;
 }
 
