@@ -8,7 +8,7 @@
 
 ## Control Surface
 
-- Dev controller script: [tools/dev_control_server.py](D:/vertree/tools/dev_control_server.py)
+- Dev controller script: [dev_control_server.py](/dev_control_server.py)
 - Default controller URL: `http://127.0.0.1:32500`
 - Controller endpoints:
   - `GET /status`
@@ -33,7 +33,7 @@
 
 ## Testing Data
 
-- Canonical sample data lives under `sample/file_version_tree`.
+- Canonical sample data lives under `.sample/file_version_tree`.
 
 ## Conventions
 
