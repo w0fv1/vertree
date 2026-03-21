@@ -65,6 +65,7 @@ app.*.map.json
 
 
 /testree/*
+/\.tmp/
 
 /windows/Vertree_Setup.exe
 /windows/Vertree_Setup.zip
