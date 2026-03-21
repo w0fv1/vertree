@@ -57,7 +57,7 @@ cp "$ROOT_DIR/linux/packaging/vertree.desktop" "$SOURCES_DIR/"
 cp "$ROOT_DIR/assets/icon/app_icon.png" "$SOURCES_DIR/vertree.png"
 cp "$ROOT_DIR/linux/packaging/vertree.sh" "$SOURCES_DIR/"
 sed \
-  -e "s/@VERSION@/$VERSION/g" \
+  -e "s/@VERSION@/$RAW_VERSION/g" \
   -e "s/@RELEASE_DATE@/$RELEASE_DATE/g" \
   "$ROOT_DIR/linux/packaging/vertree.metainfo.xml" > "$SOURCES_DIR/vertree.metainfo.xml"
 cp "$ROOT_DIR/linux/packaging/vertree_nautilus.py" "$SOURCES_DIR/"
