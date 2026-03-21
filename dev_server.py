@@ -23,12 +23,14 @@ import json
 import os
 import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import deque
 from dataclasses import dataclass, field
@@ -38,6 +40,7 @@ from typing import Any
 
 
 API_BASE_PATTERN = re.compile(r"(http://127\.0\.0\.1:(\d+)/api/v1)")
+LOOPBACK_NO_PROXY_TOKENS = ("127.0.0.1", "localhost")
 
 
 @dataclass
@@ -97,7 +100,7 @@ class FlutterAppController:
         return self.status()
 
       command = self._build_flutter_command()
-      env = os.environ.copy()
+      env = _augment_loopback_no_proxy_env(os.environ.copy())
       process = subprocess.Popen(
         command,
         cwd=str(self.config.project_root),
@@ -407,12 +410,200 @@ class ControllerRequestHandler(BaseHTTPRequestHandler):
 
 def _http_json(method: str, url: str, timeout_seconds: int | float = 5) -> dict[str, Any]:
   request = urllib.request.Request(url=url, method=method)
-  with urllib.request.urlopen(request, timeout=float(timeout_seconds)) as response:
+  parsed = urllib.parse.urlparse(url)
+  if parsed.hostname in LOOPBACK_NO_PROXY_TOKENS:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    response_cm = opener.open(request, timeout=float(timeout_seconds))
+  else:
+    response_cm = urllib.request.urlopen(request, timeout=float(timeout_seconds))
+
+  with response_cm as response:
     raw = response.read().decode("utf-8")
   decoded = json.loads(raw)
   if isinstance(decoded, dict):
     return decoded
   raise ValueError(f"Expected JSON object from {url}")
+
+
+def _http_json_or_none(
+  method: str,
+  url: str,
+  timeout_seconds: int | float = 5,
+) -> dict[str, Any] | None:
+  try:
+    return _http_json(method, url, timeout_seconds=timeout_seconds)
+  except Exception:  # noqa: BLE001
+    return None
+
+
+def _augment_no_proxy_value(existing: str | None) -> str:
+  tokens: list[str] = []
+  seen: set[str] = set()
+
+  def add_token(value: str) -> None:
+    normalized = value.strip()
+    if not normalized:
+      return
+    key = normalized.lower()
+    if key in seen:
+      return
+    seen.add(key)
+    tokens.append(normalized)
+
+  for token in (existing or "").split(","):
+    add_token(token)
+  for token in LOOPBACK_NO_PROXY_TOKENS:
+    add_token(token)
+
+  return ",".join(tokens)
+
+
+def _augment_loopback_no_proxy_env(env: dict[str, str]) -> dict[str, str]:
+  current = env.get("NO_PROXY") or env.get("no_proxy")
+  updated = _augment_no_proxy_value(current)
+  env["NO_PROXY"] = updated
+  env["no_proxy"] = updated
+  return env
+
+
+def _resolve_flutter_bin(flutter_bin: str) -> str:
+  candidate = shutil.which(flutter_bin)
+  if candidate is not None:
+    return candidate
+
+  if os.name == "nt" and "." not in Path(flutter_bin).name:
+    bat_candidate = shutil.which(f"{flutter_bin}.bat")
+    if bat_candidate is not None:
+      return bat_candidate
+
+    cmd_candidate = shutil.which(f"{flutter_bin}.cmd")
+    if cmd_candidate is not None:
+      return cmd_candidate
+
+  return flutter_bin
+
+
+def _controller_base_url(host: str, port: int) -> str:
+  return f"http://{host}:{port}"
+
+
+def _spawn_detached_controller(script_path: Path, args: argparse.Namespace) -> None:
+  env = _augment_loopback_no_proxy_env(os.environ.copy())
+  command = [
+    sys.executable,
+    str(script_path),
+    "--host",
+    args.host,
+    "--port",
+    str(args.port),
+    "--flutter-bin",
+    _resolve_flutter_bin(args.flutter_bin),
+    "--device",
+    args.device,
+    "--project-root",
+    str(Path(args.project_root).resolve()),
+    "--startup-timeout",
+    str(args.startup_timeout),
+  ]
+  for extra_arg in args.extra_flutter_arg:
+    command.extend(["--extra-flutter-arg", extra_arg])
+
+  popen_kwargs: dict[str, Any] = {
+    "cwd": str(Path(args.project_root).resolve()),
+    "stdin": subprocess.DEVNULL,
+    "stdout": subprocess.DEVNULL,
+    "stderr": subprocess.DEVNULL,
+    "env": env,
+  }
+
+  if os.name == "nt":
+    popen_kwargs["creationflags"] = (
+      subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    )
+  else:
+    popen_kwargs["start_new_session"] = True
+
+  subprocess.Popen(command, **popen_kwargs)
+
+
+def _bootstrap_controller(script_path: Path, args: argparse.Namespace) -> int:
+  controller_url = _controller_base_url(args.host, args.port)
+  status_url = f"{controller_url}/status"
+  start_url = f"{controller_url}/start"
+
+  status = _http_json_or_none("GET", status_url, timeout_seconds=2)
+  if status is None:
+    _spawn_detached_controller(script_path, args)
+    deadline = time.time() + 15
+    while time.time() < deadline:
+      status = _http_json_or_none("GET", status_url, timeout_seconds=2)
+      if status is not None:
+        break
+      time.sleep(0.5)
+
+  if status is None:
+    print(
+      json.dumps(
+        {
+          "ok": False,
+          "message": "Controller did not start in time",
+          "controllerUrl": controller_url,
+        },
+        ensure_ascii=False,
+      )
+    )
+    return 1
+
+  if status.get("running") is not True:
+    request = urllib.request.Request(
+      url=start_url,
+      method="POST",
+      data=b"{}",
+      headers={"Content-Type": "application/json"},
+    )
+    parsed = urllib.parse.urlparse(start_url)
+    opener = urllib.request.build_opener(
+      urllib.request.ProxyHandler({} if parsed.hostname in LOOPBACK_NO_PROXY_TOKENS else None)
+    )
+    with opener.open(request, timeout=10) as response:
+      status = json.loads(response.read().decode("utf-8"))
+
+  deadline = time.time() + float(args.startup_timeout)
+  last_error: str | None = None
+  payload: dict[str, Any] | None = None
+  while time.time() < deadline:
+    status = _http_json_or_none("GET", status_url, timeout_seconds=2)
+    if status is None:
+      last_error = "Controller became unreachable"
+      time.sleep(1)
+      continue
+
+    base_url = status.get("appApiBaseUrl")
+    if isinstance(base_url, str) and base_url:
+      health = _http_json_or_none("GET", f"{base_url}/health", timeout_seconds=2)
+      if health is not None and health.get("success") is True:
+        payload = {
+          "ready": True,
+          "appApiBaseUrl": base_url,
+          "health": health,
+          "status": status,
+        }
+        break
+      last_error = f"App API discovered but health check failed at {base_url}/health"
+    else:
+      last_error = "Waiting for app API base URL to appear in controller status"
+    time.sleep(1)
+
+  if payload is None:
+    payload = {
+      "ready": False,
+      "controllerUrl": controller_url,
+      "lastError": last_error,
+      "status": status,
+    }
+
+  print(json.dumps(payload, ensure_ascii=False, indent=2))
+  return 0 if payload.get("ready") is True else 1
 
 
 def _iso_or_none(timestamp: float | None) -> str | None:
@@ -423,21 +614,31 @@ def _iso_or_none(timestamp: float | None) -> str | None:
 
 def parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser(description="Vertree development control server")
+  parser.add_argument(
+    "--bootstrap",
+    action="store_true",
+    help="Start the controller in the background if needed and wait until the app API is ready.",
+  )
   parser.add_argument("--host", default="127.0.0.1")
   parser.add_argument("--port", type=int, default=32500)
   parser.add_argument("--flutter-bin", default="flutter")
   parser.add_argument("--device", default="windows")
-  parser.add_argument("--project-root", default=str(Path(__file__).resolve().parents[1]))
+  parser.add_argument("--project-root", default=str(Path(__file__).resolve().parent))
   parser.add_argument("--startup-timeout", type=int, default=120)
   parser.add_argument("--extra-flutter-arg", action="append", default=[])
   return parser.parse_args()
 
 
 def main() -> int:
+  _augment_loopback_no_proxy_env(os.environ)
+  script_path = Path(__file__).resolve()
   args = parse_args()
+  if args.bootstrap:
+    return _bootstrap_controller(script_path, args)
+
   config = ControllerConfig(
     project_root=Path(args.project_root).resolve(),
-    flutter_bin=args.flutter_bin,
+    flutter_bin=_resolve_flutter_bin(args.flutter_bin),
     device=args.device,
     controller_host=args.host,
     controller_port=args.port,
