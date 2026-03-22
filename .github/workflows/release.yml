@@ -252,7 +252,7 @@ jobs:
           fi
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: release-assets
           merge-multiple: true
@@ -264,10 +264,27 @@ jobs:
           find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          prerelease: ${{ contains(needs.meta.outputs.version, '-') }}
-          body_path: ${{ steps.notes.outputs.notes_file }}
-          files: release-assets/**/*
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          notes_file="${{ steps.notes.outputs.notes_file }}"
+          prerelease_flag=()
+          if [[ "${{ contains(needs.meta.outputs.version, '-') }}" == "true" ]]; then
+            prerelease_flag+=(--prerelease)
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "$tag" \
+              --notes-file "$notes_file" \
+              "${prerelease_flag[@]}"
+          else
+            gh release create "$tag" \
+              --title "$tag" \
+              --notes-file "$notes_file" \
+              "${prerelease_flag[@]}"
+          fi
+
+          gh release upload "$tag" release-assets/* --clobber
