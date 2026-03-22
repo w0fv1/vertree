@@ -94,6 +94,8 @@ jobs:
 
       - name: Build Windows artifacts
         shell: pwsh
+        env:
+          VERTREE_ENABLE_UNSIGNED_MSIX: "1"
         run: |
           $mode = "${{ github.event.inputs.build_mode }}"
           if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
@@ -109,6 +111,13 @@ jobs:
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msi
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-symbols.zip
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-win11-dev.zip
+
+      - name: Upload Windows MSIX artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: vertree-windows-msix-${{ needs.meta.outputs.version }}
+          path: windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msix
+          if-no-files-found: warn
 
   linux:
     name: Linux (tar.gz + RPM)
@@ -272,6 +281,26 @@ jobs:
           cd release-assets
           find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
+      - name: Verify release assets staging
+        shell: bash
+        run: |
+          shopt -s nullglob
+          release_files=(release-assets/*)
+          real_assets=()
+          for file in "${release_files[@]}"; do
+            if [[ "$(basename "$file")" != "SHA256SUMS.txt" ]]; then
+              real_assets+=("$file")
+            fi
+          done
+
+          if [[ ${#real_assets[@]} -eq 0 ]]; then
+            echo "No staged binary release assets were found." >&2
+            exit 1
+          fi
+
+          printf 'Staged release assets:\n'
+          printf ' - %s\n' "${release_files[@]#release-assets/}"
+
       - name: Publish release
         shell: bash
         env:
@@ -284,16 +313,35 @@ jobs:
             prerelease_flag+=(--prerelease)
           fi
 
-          if gh release view "$tag" >/dev/null 2>&1; then
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
               --title "$tag" \
               --notes-file "$notes_file" \
               "${prerelease_flag[@]}"
           else
             gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
               --title "$tag" \
               --notes-file "$notes_file" \
               "${prerelease_flag[@]}"
           fi
 
-          gh release upload "$tag" release-assets/* --clobber
+          mapfile -d '' asset_files < <(find release-assets -maxdepth 1 -type f -print0 | sort -z)
+          if [[ ${#asset_files[@]} -eq 0 ]]; then
+            echo "No release files were found to upload." >&2
+            exit 1
+          fi
+
+          for file in "${asset_files[@]}"; do
+            name="$(basename "$file")"
+            gh release delete-asset "$tag" "$name" --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
+            gh release upload "$tag" "$file" --repo "$GITHUB_REPOSITORY"
+          done
+
+          uploaded_count="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.assets | length')"
+          echo "Uploaded release asset count: $uploaded_count"
+          if (( uploaded_count < ${#asset_files[@]} )); then
+            echo "Release asset upload incomplete: expected at least ${#asset_files[@]}, got $uploaded_count" >&2
+            exit 1
+          fi
