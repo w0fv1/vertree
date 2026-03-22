@@ -426,7 +426,7 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
         & $candleExe `
             -nologo `
             -arch x64 `
-            -dSourceDir=$runnerDir `
+            "-dSourceDir=$runnerDir" `
             -out "$wixObjDir\\" `
             $productGeneratedWxs `
             $harvestWxs
