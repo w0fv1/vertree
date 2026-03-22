@@ -486,9 +486,11 @@ if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
             Write-Host "unsigned MSIX 打包完成：" $msixPath
         } else {
             Write-Warning "unsigned MSIX 打包失败，已跳过。"
+            $global:LASTEXITCODE = 0
         }
     } catch {
         Write-Warning "unsigned MSIX 打包失败：$($_.Exception.Message)"
+        $global:LASTEXITCODE = 0
     }
 }
 
