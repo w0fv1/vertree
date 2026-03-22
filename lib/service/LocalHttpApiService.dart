@@ -9,6 +9,40 @@ import 'package:vertree/core/Result.dart';
 import 'package:vertree/core/TreeBuilder.dart';
 
 typedef CurrentPortResolver = int? Function();
+typedef UiStateResolver = Map<String, dynamic> Function();
+typedef UiNavigateHandler =
+    Future<Result<Map<String, dynamic>, String>> Function({
+      required String page,
+      String? path,
+      int waitMilliseconds,
+      bool ensureWindowVisible,
+      String? windowMode,
+      double? windowWidth,
+      double? windowHeight,
+      bool showInitialSetupDialog,
+      double? fileTreeScale,
+      bool fitFileTreeToViewport,
+    });
+typedef UiScreenshotHandler =
+    Future<Result<Map<String, dynamic>, String>> Function({
+      required String outputPath,
+      double pixelRatio,
+      int waitMilliseconds,
+      bool ensureWindowVisible,
+    });
+typedef UiWindowStateHandler =
+    Future<Result<Map<String, dynamic>, String>> Function({
+      String mode,
+      double? width,
+      double? height,
+      bool focus,
+    });
+typedef FileTreeViewportHandler =
+    Future<Result<Map<String, dynamic>, String>> Function({
+      double? scale,
+      bool fitToViewport,
+    });
+typedef AppQuitHandler = Future<void> Function();
 
 class LocalHttpApiService {
   LocalHttpApiService({
@@ -17,6 +51,12 @@ class LocalHttpApiService {
     required this.currentVersion,
     required this.startedAt,
     required this.currentPortResolver,
+    required this.currentUiStateResolver,
+    required this.navigateUiHandler,
+    required this.captureUiScreenshotHandler,
+    required this.setWindowStateHandler,
+    required this.setFileTreeViewportHandler,
+    required this.quitAppHandler,
   });
 
   final Configer configer;
@@ -24,6 +64,12 @@ class LocalHttpApiService {
   final String currentVersion;
   final DateTime startedAt;
   final CurrentPortResolver currentPortResolver;
+  final UiStateResolver currentUiStateResolver;
+  final UiNavigateHandler navigateUiHandler;
+  final UiScreenshotHandler captureUiScreenshotHandler;
+  final UiWindowStateHandler setWindowStateHandler;
+  final FileTreeViewportHandler setFileTreeViewportHandler;
+  final AppQuitHandler quitAppHandler;
 
   Map<String, dynamic> health() {
     return {
@@ -46,7 +92,84 @@ class LocalHttpApiService {
         'monitorRateMinutes': configer.get<int>('monitorRate', 5),
         'monitorMaxSize': configer.get<int>('monitorMaxSize', 50),
       },
+      'ui': currentUiStateResolver(),
     };
+  }
+
+  Future<Result<Map<String, dynamic>, String>> navigateUi({
+    required String page,
+    String? path,
+    int waitMilliseconds = 400,
+    bool ensureWindowVisible = true,
+    String? windowMode,
+    double? windowWidth,
+    double? windowHeight,
+    bool showInitialSetupDialog = false,
+    double? fileTreeScale,
+    bool fitFileTreeToViewport = false,
+  }) async {
+    return navigateUiHandler(
+      page: page,
+      path: path,
+      waitMilliseconds: waitMilliseconds,
+      ensureWindowVisible: ensureWindowVisible,
+      windowMode: windowMode,
+      windowWidth: windowWidth,
+      windowHeight: windowHeight,
+      showInitialSetupDialog: showInitialSetupDialog,
+      fileTreeScale: fileTreeScale,
+      fitFileTreeToViewport: fitFileTreeToViewport,
+    );
+  }
+
+  Future<Result<Map<String, dynamic>, String>> captureUiScreenshot({
+    required String outputPath,
+    double pixelRatio = 1.5,
+    int waitMilliseconds = 450,
+    bool ensureWindowVisible = true,
+  }) async {
+    return captureUiScreenshotHandler(
+      outputPath: outputPath,
+      pixelRatio: pixelRatio,
+      waitMilliseconds: waitMilliseconds,
+      ensureWindowVisible: ensureWindowVisible,
+    );
+  }
+
+  Future<Result<Map<String, dynamic>, String>> setWindowState({
+    String mode = 'restore',
+    double? width,
+    double? height,
+    bool focus = true,
+  }) async {
+    return setWindowStateHandler(
+      mode: mode,
+      width: width,
+      height: height,
+      focus: focus,
+    );
+  }
+
+  Future<Result<Map<String, dynamic>, String>> setFileTreeViewport({
+    double? scale,
+    bool fitToViewport = false,
+  }) async {
+    return setFileTreeViewportHandler(
+      scale: scale,
+      fitToViewport: fitToViewport,
+    );
+  }
+
+  Result<Map<String, dynamic>, String> prepareQuitApp() {
+    return Result.ok({
+      'requested': true,
+      'message': 'app quit scheduled',
+      'appVersion': currentVersion,
+    });
+  }
+
+  Future<void> quitApp() async {
+    await quitAppHandler();
   }
 
   Map<String, dynamic> listMonitorTasks() {
@@ -148,16 +271,14 @@ class LocalHttpApiService {
     final backupDirPath = _deriveBackupDirectory(normalizedPath);
     final backupDir = Directory(backupDirPath);
     final backups = backupDir.existsSync()
-        ? backupDir
-              .listSync()
-              .whereType<File>()
-              .map(_fileMetadata)
-              .toList()
+        ? backupDir.listSync().whereType<File>().map(_fileMetadata).toList()
         : <Map<String, dynamic>>[];
 
-    backups.sort((a, b) => ((b['lastModifiedAt'] as String?) ?? '').compareTo(
-      ((a['lastModifiedAt'] as String?) ?? ''),
-    ));
+    backups.sort(
+      (a, b) => ((b['lastModifiedAt'] as String?) ?? '').compareTo(
+        ((a['lastModifiedAt'] as String?) ?? ''),
+      ),
+    );
 
     return Result.ok({
       'sourcePath': normalizedPath,
@@ -225,24 +346,16 @@ class LocalHttpApiService {
       return Result.eMsg(afterBackups.msg);
     }
 
-    final beforeBackupCount =
-        (beforeTask['backupFileCount'] as int?) ?? 0;
-    final afterBackupCount =
-        (afterTask['backupFileCount'] as int?) ?? 0;
+    final beforeBackupCount = (beforeTask['backupFileCount'] as int?) ?? 0;
+    final afterBackupCount = (afterTask['backupFileCount'] as int?) ?? 0;
 
     return Result.ok({
       'taskId': taskId,
       'filePath': task.filePath,
       'appendTextLength': marker.length,
       'waitMilliseconds': waitMilliseconds,
-      'before': {
-        'task': beforeTask,
-        'backups': beforeBackups.unwrap(),
-      },
-      'after': {
-        'task': afterTask,
-        'backups': afterBackups.unwrap(),
-      },
+      'before': {'task': beforeTask, 'backups': beforeBackups.unwrap()},
+      'after': {'task': afterTask, 'backups': afterBackups.unwrap()},
       'verification': {
         'backupCountBefore': beforeBackupCount,
         'backupCountAfter': afterBackupCount,
@@ -300,13 +413,11 @@ class LocalHttpApiService {
 
   Map<String, dynamic> _monitorTaskToMap(FileMonitTask task) {
     final file = File(task.filePath);
-    final backupDirPath = task.backupDirPath ?? _deriveBackupDirectory(task.filePath);
+    final backupDirPath =
+        task.backupDirPath ?? _deriveBackupDirectory(task.filePath);
     final backupDir = Directory(backupDirPath);
     final recentBackups = backupDir.existsSync()
-        ? backupDir
-              .listSync()
-              .whereType<File>()
-              .toList()
+        ? backupDir.listSync().whereType<File>().toList()
         : <File>[];
 
     recentBackups.sort(
@@ -376,12 +487,17 @@ class LocalHttpApiService {
         continue;
       }
       final meta = FileMeta(entity.path);
-      if (meta.name == selectedMeta.name && meta.extension == selectedMeta.extension) {
+      if (meta.name == selectedMeta.name &&
+          meta.extension == selectedMeta.extension) {
         files.add(_fileMetadata(entity));
       }
     }
 
-    files.sort((a, b) => ((a['name'] as String?) ?? '').compareTo((b['name'] as String?) ?? ''));
+    files.sort(
+      (a, b) => ((a['name'] as String?) ?? '').compareTo(
+        (b['name'] as String?) ?? '',
+      ),
+    );
     return files;
   }
 
@@ -405,7 +521,8 @@ class LocalHttpApiService {
 
     void walk(FileNode node) {
       totalNodes += 1;
-      latest = latest == null ||
+      latest =
+          latest == null ||
               latest!.mate.version.compareTo(node.mate.version) < 0
           ? node
           : latest;

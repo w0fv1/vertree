@@ -11,6 +11,40 @@ import 'package:vertree/view/component/tree/CanvasManager.dart';
 import 'package:vertree/view/component/tree/EdgePainter.dart';
 import 'package:vertree/view/module/FileLeaf.dart';
 
+class FileTreeViewportController {
+  void Function(double scale)? _setScale;
+  void Function()? _fitScene;
+  double Function()? _getScale;
+
+  void attach({
+    required void Function(double scale) setScale,
+    required void Function() fitScene,
+    required double Function() getScale,
+  }) {
+    _setScale = setScale;
+    _fitScene = fitScene;
+    _getScale = getScale;
+  }
+
+  void detach() {
+    _setScale = null;
+    _fitScene = null;
+    _getScale = null;
+  }
+
+  bool get isAttached => _setScale != null && _fitScene != null;
+
+  void setScale(double scale) {
+    _setScale?.call(scale);
+  }
+
+  void fitScene() {
+    _fitScene?.call();
+  }
+
+  double? get currentScale => _getScale?.call();
+}
+
 class FileTree extends StatefulWidget {
   const FileTree({
     super.key,
@@ -18,12 +52,18 @@ class FileTree extends StatefulWidget {
     required this.height,
     required this.width,
     this.focusNode,
+    this.viewportController,
+    this.initialScale,
+    this.fitToViewportOnLoad = false,
   });
 
   final double height;
   final double width;
   final FileNode rootNode;
   final FileNode? focusNode;
+  final FileTreeViewportController? viewportController;
+  final double? initialScale;
+  final bool fitToViewportOnLoad;
 
   @override
   State<FileTree> createState() => _FileTreeState();
@@ -55,12 +95,17 @@ class _FileTreeState extends State<FileTree> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _hasResolvedDependencies = true;
+    _attachViewportController();
     _refreshTree();
   }
 
   @override
   void didUpdateWidget(covariant FileTree oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.viewportController != widget.viewportController) {
+      oldWidget.viewportController?.detach();
+      _attachViewportController();
+    }
     if (oldWidget.height != widget.height ||
         oldWidget.width != widget.width ||
         oldWidget.rootNode != widget.rootNode ||
@@ -90,6 +135,19 @@ class _FileTreeState extends State<FileTree> {
 
   String _edgeId(String parentNodeId, String childNodeId) {
     return '$parentNodeId->$childNodeId';
+  }
+
+  void _attachViewportController() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.viewportController == null) {
+        return;
+      }
+      widget.viewportController!.attach(
+        setScale: treeCanvasManager.setScale,
+        fitScene: treeCanvasManager.fitScene,
+        getScale: treeCanvasManager.getScale,
+      );
+    });
   }
 
   Future<void> _refreshTreeAnimated() async {
@@ -124,6 +182,18 @@ class _FileTreeState extends State<FileTree> {
 
     setState(() {});
     treeCanvasManager.requestRepaint();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      if (widget.fitToViewportOnLoad) {
+        treeCanvasManager.fitScene();
+        return;
+      }
+      if (widget.initialScale != null) {
+        treeCanvasManager.setScale(widget.initialScale!);
+      }
+    });
   }
 
   void _updateInitPosition() {
@@ -445,6 +515,12 @@ class _FileTreeState extends State<FileTree> {
       _layoutTree(branch, branchPosition, childKey);
       bottomCursor += branchGap + branchSpan.top + branchSpan.bottom;
     }
+  }
+
+  @override
+  void dispose() {
+    widget.viewportController?.detach();
+    super.dispose();
   }
 }
 

@@ -13,9 +13,18 @@ import 'package:vertree/view/module/FileTree.dart';
 import 'package:window_manager/window_manager.dart';
 
 class FileTreePage extends StatefulWidget {
-  const FileTreePage({super.key, required this.path});
+  const FileTreePage({
+    super.key,
+    required this.path,
+    this.viewportController,
+    this.initialScale,
+    this.fitToViewportOnLoad = false,
+  });
 
   final String path;
+  final FileTreeViewportController? viewportController;
+  final double? initialScale;
+  final bool fitToViewportOnLoad;
 
   @override
   State<FileTreePage> createState() => _FileTreePageState();
@@ -237,6 +246,9 @@ class _FileTreePageState extends State<FileTreePage> {
                         focusNode: focusNode,
                         height: constraints.maxHeight,
                         width: constraints.maxWidth,
+                        viewportController: widget.viewportController,
+                        initialScale: widget.initialScale,
+                        fitToViewportOnLoad: widget.fitToViewportOnLoad,
                       );
                     },
                   ),

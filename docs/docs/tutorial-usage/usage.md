@@ -75,7 +75,7 @@ sidebar_position: 5
 - 清理任务对应的备份文件
 - 清理无效任务
 
-![backup-page](/img/usage/backup_page.png)
+![monitor-tasks-page](/img/usage/monitor-tasks-page.png)
 
 ## 设置页能做什么
 
@@ -89,11 +89,27 @@ sidebar_position: 5
 - 查看本机 HTTP API 地址和 OpenAPI 文档
 - 检查版本更新
 
+![settings-page](/img/usage/settings-page.png)
+
+## 版本树页能做什么
+
+- 查看主线与分支结构
+- 聚焦当前版本所在节点
+- 快速理解最新版本、分支数和节点数
+- 从版本树继续回看和整理单文件演进过程
+
+![version-tree-page](/img/usage/version-tree-page.png)
+
 ## 本机 HTTP API 能做什么
 
 如果你要做自动化验证或本地集成，可以通过设置页打开 API 文档，也可以直接访问：
 
 - `GET /api/v1/health`
+- `POST /api/v1/app/quit`
+- `POST /api/v1/ui/navigation`
+- `POST /api/v1/ui/window-state`
+- `POST /api/v1/ui/file-tree/viewport`
+- `POST /api/v1/ui/screenshot`
 - `GET/POST/PATCH/DELETE /api/v1/monitor-tasks`
 - `POST /api/v1/backups`
 - `GET /api/v1/backups`
@@ -101,6 +117,14 @@ sidebar_position: 5
 - `GET /api/v1/version-trees`
 
 默认只监听 `127.0.0.1`，不会暴露到局域网。
+
+如果你要刷新文档图片，可以在开发机上直接运行：
+
+```bash
+python tools/update_doc_images.py
+```
+
+脚本会自动确保应用已启动，跳转页面并导出 PNG。
 
 ## 使用建议
 

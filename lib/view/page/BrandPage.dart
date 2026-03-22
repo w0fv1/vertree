@@ -15,7 +15,14 @@ import 'package:vertree/view/page/SettingPage.dart';
 import 'package:window_manager/window_manager.dart';
 
 class BrandPage extends StatefulWidget {
-  const BrandPage({super.key});
+  const BrandPage({
+    super.key,
+    this.forceShowInitialSetupDialog = false,
+    this.initialSetupDialogDelay = const Duration(seconds: 1),
+  });
+
+  final bool forceShowInitialSetupDialog;
+  final Duration initialSetupDialogDelay;
 
   @override
   State<BrandPage> createState() => _BrandPageState();
@@ -138,7 +145,8 @@ class _BrandPageState extends State<BrandPage> {
     if (!mounted) return;
 
     bool isSetupDone = configer.get<bool>('isSetupDone', false);
-    if (isSetupDone) {
+    final shouldForceInitialSetupDialog = widget.forceShowInitialSetupDialog;
+    if (isSetupDone && !shouldForceInitialSetupDialog) {
       if (PlatformIntegration.isWindows) {
         // 启动时不自动触发管理员授权；仅做必要的兼容/提示。
         final alreadyPrompted = configer.get<bool>(
@@ -239,7 +247,7 @@ class _BrandPageState extends State<BrandPage> {
   void initState() {
     super.initState();
     _restoreIfMaximized();
-    _setupTimer = Timer(const Duration(seconds: 1), () {
+    _setupTimer = Timer(widget.initialSetupDialogDelay, () {
       unawaited(setup());
     });
   }

@@ -28,6 +28,9 @@ class TreeCanvasManager {
   late void Function(String) lowerOneLayer;
 
   late void Function(String startId, String endId) connectPoints;
+  late void Function(double scale) setScale;
+  late void Function() fitScene;
+  late double Function() getScale;
 
   void requestRepaint() {
     repaintNotifier.repaint();

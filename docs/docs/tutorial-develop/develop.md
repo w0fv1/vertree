@@ -83,6 +83,14 @@ python dev_server.py --bootstrap --device windows
 - `POST /stop`
 - `POST /ensure-ready`
 
+应用自己的本机 HTTP API 默认起始端口为 `31414`，除了监控/备份/版本树接口外，现在还支持：
+
+- `POST /api/v1/app/quit`：退出当前桌面应用
+- `POST /api/v1/ui/navigation`：切换到 `brand`、`monitor`、`settings`、`version-tree`
+- `POST /api/v1/ui/window-state`：控制窗口还原、最大化与全屏
+- `POST /api/v1/ui/file-tree/viewport`：让版本树画布自动适配或按比例缩放
+- `POST /api/v1/ui/screenshot`：将当前应用 UI 导出为 PNG
+
 ## 项目结构
 
 ```text
@@ -161,15 +169,24 @@ npm start
 npm run build
 ```
 
+如果你要同步更新文档截图，可以直接在仓库根目录运行：
+
+```bash
+python tools/update_doc_images.py
+```
+
+这个脚本会通过开发控制器调用 `POST /ensure-ready`，然后使用应用本机 HTTP API 的 `ui/navigation` 和 `ui/screenshot` 自动更新 `docs/static/img/usage/` 下的图片。
+
 ## 版本发布流程
 
 1. 修改 `pubspec.yaml` 中的版本号
 2. 同步更新应用内展示版本号（当前在 `lib/app_runtime.dart`）
 3. 新建 `.github/release-<version>.md`
 4. 更新 README、文档站和必要的站点首页内容
-5. 构建并验证：
+5. 如有界面变更，执行 `python tools/update_doc_images.py`
+6. 构建并验证：
    - `flutter analyze`
    - `npm run build`（在 `docs/` 下）
-6. 提交代码并创建 tag：`V<version>`
+7. 提交代码并创建 tag：`V<version>`
 
 GitHub Actions 会在推送 tag 后自动构建三平台工件并创建 prerelease / release。

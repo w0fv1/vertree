@@ -2,7 +2,7 @@
 
 Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，并通过系统原生入口尽量不改变你原本的使用习惯。
 
-## 0.10.0-alpha3 现状
+## 0.10.0-alpha4 现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
 - 支持 macOS 桌面使用，GitHub Release 会生成 `zip` / `dmg`，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
@@ -89,11 +89,24 @@ vertree express-backup /path/to/file
 - `GET /api/v1/openapi.json`：OpenAPI 文档
 - `GET /api/v1/docs`：交互式文档
 - `GET /api/v1/health`：运行状态
+- `POST /api/v1/app/quit`：退出当前 Vertree 应用
+- `POST /api/v1/ui/navigation`：切换到指定页面
+- `POST /api/v1/ui/window-state`：切换窗口为还原 / 最大化 / 全屏
+- `POST /api/v1/ui/file-tree/viewport`：让文件树适配视口或设置缩放比例
+- `POST /api/v1/ui/screenshot`：导出当前应用窗口 PNG 截图
 - `GET/POST/PATCH/DELETE /api/v1/monitor-tasks`：监控任务管理
 - `POST /api/v1/backups`：触发单次备份
 - `GET /api/v1/backups`：列出备份目录文件
 - `GET /api/v1/version-files`：列出同一版本族文件
 - `GET /api/v1/version-trees`：生成版本树
+
+用于刷新文档截图时，可以配合本地开发控制器运行：
+
+```bash
+python tools/update_doc_images.py
+```
+
+它会通过 `POST /ensure-ready` 拉起或复用开发中的应用实例，再调用 `ui/navigation` 和 `ui/screenshot` 自动更新 `docs/static/img/usage/` 下的截图资源。
 
 ## 开发运行
 

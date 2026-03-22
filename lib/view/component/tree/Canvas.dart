@@ -33,6 +33,7 @@ class TreeCanvas extends StatefulWidget {
 }
 
 class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
+  static const double _fitPadding = 40;
   final Map<String, CanvasComponentContainer> components = {};
   int indexCounter = 0; // 控制 index 递增
   List<Edge> edges = []; // 存储所有的连线
@@ -42,7 +43,7 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
   Offset canvasPosition = Offset.zero;
 
   double _scale = 1.0;
-  double minScale = 0.5;
+  double minScale = 0.18;
   double maxScale = 3.0;
   SystemMouseCursor _cursor = SystemMouseCursors.allScroll;
 
@@ -54,6 +55,9 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
     widget.manager.raiseOneLayer = raiseOneLayer;
     widget.manager.lowerOneLayer = lowerOneLayer;
     widget.manager.connectPoints = connectPoints;
+    widget.manager.setScale = setScale;
+    widget.manager.fitScene = fitScene;
+    widget.manager.getScale = getScale;
 
     _syncCanvasContent();
 
@@ -81,22 +85,8 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
           setState(() {
             final RenderBox box = context.findRenderObject() as RenderBox;
             final localFocalPoint = box.globalToLocal(pointerSignal.position);
-            final zoomFactor = 0.1;
-            double newScale = _scale;
-
-            if (pointerSignal.scrollDelta.dy < 0) {
-              newScale = _scale * (1 + zoomFactor);
-            } else {
-              newScale = _scale * (1 - zoomFactor);
-            }
-
-            newScale = newScale.clamp(minScale, maxScale);
-
-            final scaleChange = newScale / _scale;
-            canvasPosition =
-                localFocalPoint -
-                (localFocalPoint - canvasPosition) * scaleChange;
-            _scale = newScale;
+            final zoomFactor = pointerSignal.scrollDelta.dy < 0 ? 1.1 : 0.9;
+            _applyScale(_scale * zoomFactor, focalPoint: localFocalPoint);
           });
         }
       },
@@ -200,6 +190,53 @@ class _TreeCanvasState extends State<TreeCanvas> with TickerProviderStateMixin {
         add(child);
       }
     }
+  }
+
+  double getScale() {
+    return _scale;
+  }
+
+  void setScale(double scale) {
+    setState(() {
+      _applyScale(scale);
+    });
+  }
+
+  void fitScene() {
+    final sceneSize = widget.sceneSize == Size.zero
+        ? Size(widget.width, widget.height)
+        : widget.sceneSize;
+    final availableWidth = (widget.width - (_fitPadding * 2)).clamp(
+      1.0,
+      double.infinity,
+    );
+    final availableHeight = (widget.height - (_fitPadding * 2)).clamp(
+      1.0,
+      double.infinity,
+    );
+    final fittedScale = [
+      availableWidth / sceneSize.width,
+      availableHeight / sceneSize.height,
+    ].reduce((value, element) => value < element ? value : element);
+
+    setState(() {
+      _scale = fittedScale.clamp(minScale, maxScale);
+      canvasPosition = Offset(
+        (widget.width - (sceneSize.width * _scale)) / 2,
+        (widget.height - (sceneSize.height * _scale)) / 2,
+      );
+    });
+  }
+
+  void _applyScale(double nextScale, {Offset? focalPoint}) {
+    final clampedScale = nextScale.clamp(minScale, maxScale);
+    if (focalPoint == null) {
+      _scale = clampedScale;
+      return;
+    }
+    final scaleChange = clampedScale / _scale;
+    canvasPosition = focalPoint - (focalPoint - canvasPosition) * scaleChange;
+    _scale = clampedScale;
   }
 
   String put(

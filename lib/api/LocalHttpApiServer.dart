@@ -23,7 +23,8 @@ class LocalHttpApiServer {
 
   bool get isRunning => _server != null;
   int? get port => _port;
-  String? get baseUrl => _port == null ? null : 'http://127.0.0.1:$_port/api/v1';
+  String? get baseUrl =>
+      _port == null ? null : 'http://127.0.0.1:$_port/api/v1';
   String? get openApiUrl => baseUrl == null ? null : '$baseUrl/openapi.json';
   String? get docsUrl => baseUrl == null ? null : '$baseUrl/docs';
 
@@ -41,9 +42,11 @@ class LocalHttpApiServer {
       return;
     }
 
-    for (var candidate = defaultPort;
-        candidate < defaultPort + maxPortSearchSpan;
-        candidate++) {
+    for (
+      var candidate = defaultPort;
+      candidate < defaultPort + maxPortSearchSpan;
+      candidate++
+    ) {
       try {
         final server = await HttpServer.bind(
           InternetAddress.loopbackIPv4,
@@ -52,7 +55,9 @@ class LocalHttpApiServer {
         _server = server;
         _port = candidate;
         unawaited(_listen(server));
-        logger.info('Local HTTP API started at http://127.0.0.1:$candidate/api/v1');
+        logger.info(
+          'Local HTTP API started at http://127.0.0.1:$candidate/api/v1',
+        );
         return;
       } on SocketException catch (e) {
         logger.info('Port $candidate unavailable for local HTTP API: $e');
@@ -119,7 +124,10 @@ class LocalHttpApiServer {
         return;
       }
 
-      final route = pathSegments.skip(2).where((segment) => segment.isNotEmpty).toList();
+      final route = pathSegments
+          .skip(2)
+          .where((segment) => segment.isNotEmpty)
+          .toList();
       await _dispatch(request, route, startedAt);
     } catch (e) {
       logger.error('Local HTTP API request failed: $e');
@@ -193,6 +201,227 @@ class LocalHttpApiServer {
         handler: _handleHealth,
       ),
       LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/app/quit',
+        summary: 'Quit the current Vertree app process',
+        description:
+            'Returns a success response first, then asynchronously shuts down the current desktop app process.',
+        tags: const ['system', 'automation'],
+        handler: _handleQuitApp,
+      ),
+      LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/ui/navigation',
+        summary: 'Switch to a specific app page',
+        description:
+            'Shows the main window if needed and navigates the desktop app to a supported page.',
+        tags: const ['ui', 'automation'],
+        requestBody: const LocalHttpApiRequestBody(
+          description: 'The target page and optional navigation parameters.',
+          fields: [
+            LocalHttpApiField(
+              name: 'page',
+              type: 'string',
+              description:
+                  'Supported values: brand, monitor, settings, version-tree.',
+              required: true,
+              example: 'settings',
+            ),
+            LocalHttpApiField(
+              name: 'path',
+              type: 'string',
+              description:
+                  'Required when page is version-tree. Use an absolute file path.',
+              required: false,
+              example: r'D:\project\storyboard.0.1.txt',
+            ),
+            LocalHttpApiField(
+              name: 'waitMilliseconds',
+              type: 'integer',
+              description:
+                  'Extra time to wait after navigation before returning.',
+              required: false,
+              example: 600,
+            ),
+            LocalHttpApiField(
+              name: 'ensureWindowVisible',
+              type: 'boolean',
+              description:
+                  'Whether the API should surface the main window before navigation.',
+              required: false,
+              example: true,
+            ),
+            LocalHttpApiField(
+              name: 'windowMode',
+              type: 'string',
+              description:
+                  'Optional window mode applied after navigation: restore, maximize, fullscreen.',
+              required: false,
+              example: 'fullscreen',
+            ),
+            LocalHttpApiField(
+              name: 'windowWidth',
+              type: 'number',
+              description:
+                  'Optional target window width used with windowMode=restore.',
+              required: false,
+              example: 1440,
+            ),
+            LocalHttpApiField(
+              name: 'windowHeight',
+              type: 'number',
+              description:
+                  'Optional target window height used with windowMode=restore.',
+              required: false,
+              example: 920,
+            ),
+            LocalHttpApiField(
+              name: 'showInitialSetupDialog',
+              type: 'boolean',
+              description:
+                  'When page is brand, forces the initialization setup dialog to open.',
+              required: false,
+              example: true,
+            ),
+            LocalHttpApiField(
+              name: 'fileTreeScale',
+              type: 'number',
+              description:
+                  'Optional initial canvas scale when page is version-tree.',
+              required: false,
+              example: 0.42,
+            ),
+            LocalHttpApiField(
+              name: 'fitFileTreeToViewport',
+              type: 'boolean',
+              description:
+                  'Whether the version-tree canvas should auto-fit into the current viewport after loading.',
+              required: false,
+              example: true,
+            ),
+          ],
+        ),
+        handler: _handleUiNavigation,
+      ),
+      LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/ui/window-state',
+        summary: 'Adjust the current app window state',
+        description:
+            'Shows the current app window and updates its mode to restore, maximize, or fullscreen.',
+        tags: const ['ui', 'automation'],
+        requestBody: const LocalHttpApiRequestBody(
+          description: 'Window state and optional restore size.',
+          fields: [
+            LocalHttpApiField(
+              name: 'mode',
+              type: 'string',
+              description: 'Supported values: restore, maximize, fullscreen.',
+              required: false,
+              example: 'fullscreen',
+            ),
+            LocalHttpApiField(
+              name: 'width',
+              type: 'number',
+              description: 'Optional window width used when mode is restore.',
+              required: false,
+              example: 1440,
+            ),
+            LocalHttpApiField(
+              name: 'height',
+              type: 'number',
+              description: 'Optional window height used when mode is restore.',
+              required: false,
+              example: 920,
+            ),
+            LocalHttpApiField(
+              name: 'focus',
+              type: 'boolean',
+              description:
+                  'Whether the app window should be focused after the state change.',
+              required: false,
+              example: true,
+            ),
+          ],
+        ),
+        handler: _handleUiWindowState,
+      ),
+      LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/ui/file-tree/viewport',
+        summary: 'Adjust the version-tree canvas viewport',
+        description:
+            'Fits the version-tree canvas to the viewport or applies an explicit scale.',
+        tags: const ['ui', 'automation'],
+        requestBody: const LocalHttpApiRequestBody(
+          description: 'File tree viewport options.',
+          fields: [
+            LocalHttpApiField(
+              name: 'scale',
+              type: 'number',
+              description:
+                  'Explicit file tree canvas scale. Lower values zoom out.',
+              required: false,
+              example: 0.38,
+            ),
+            LocalHttpApiField(
+              name: 'fitToViewport',
+              type: 'boolean',
+              description:
+                  'Whether the canvas should be auto-fitted to the current viewport.',
+              required: false,
+              example: true,
+            ),
+          ],
+        ),
+        handler: _handleUiFileTreeViewport,
+      ),
+      LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/ui/screenshot',
+        summary: 'Capture the current app UI as a PNG image',
+        description:
+            'Captures the rendered desktop app window and writes a PNG file to the requested path.',
+        tags: const ['ui', 'automation'],
+        requestBody: const LocalHttpApiRequestBody(
+          description: 'The PNG output path and optional rendering parameters.',
+          fields: [
+            LocalHttpApiField(
+              name: 'outputPath',
+              type: 'string',
+              description: 'Absolute PNG output path on the local machine.',
+              required: true,
+              example: r'D:\vertree\docs\static\img\settings.png',
+            ),
+            LocalHttpApiField(
+              name: 'pixelRatio',
+              type: 'number',
+              description:
+                  'Flutter image pixel ratio used for rendering the screenshot.',
+              required: false,
+              example: 1.75,
+            ),
+            LocalHttpApiField(
+              name: 'waitMilliseconds',
+              type: 'integer',
+              description:
+                  'Extra time to wait before capturing the frame, useful for async page loading.',
+              required: false,
+              example: 900,
+            ),
+            LocalHttpApiField(
+              name: 'ensureWindowVisible',
+              type: 'boolean',
+              description:
+                  'Whether the API should surface the main window before capturing.',
+              required: false,
+              example: true,
+            ),
+          ],
+        ),
+        handler: _handleUiScreenshot,
+      ),
+      LocalHttpApiRoute(
         method: 'GET',
         pathTemplate: '/monitor-tasks',
         summary: 'List monitor tasks',
@@ -242,7 +471,8 @@ class LocalHttpApiServer {
         method: 'PATCH',
         pathTemplate: '/monitor-tasks/{id}',
         summary: 'Update one monitor task',
-        description: 'Starts or stops a monitor task by updating its running state.',
+        description:
+            'Starts or stops a monitor task by updating its running state.',
         tags: const ['monitoring'],
         pathParameters: const [
           LocalHttpApiField(
@@ -258,7 +488,8 @@ class LocalHttpApiServer {
             LocalHttpApiField(
               name: 'isRunning',
               type: 'boolean',
-              description: 'Whether the task should be running after the update.',
+              description:
+                  'Whether the task should be running after the update.',
               required: true,
               example: true,
             ),
@@ -403,14 +634,16 @@ class LocalHttpApiServer {
             LocalHttpApiField(
               name: 'appendText',
               type: 'string',
-              description: 'Text appended to the monitored file during verification.',
+              description:
+                  'Text appended to the monitored file during verification.',
               required: true,
               example: '\napi-verification-write',
             ),
             LocalHttpApiField(
               name: 'waitMilliseconds',
               type: 'integer',
-              description: 'How long to wait after the write before reading backup results.',
+              description:
+                  'How long to wait after the write before reading backup results.',
               required: false,
               example: 1800,
             ),
@@ -422,7 +655,8 @@ class LocalHttpApiServer {
   }
 
   LocalHttpApiDocumentation get _documentation {
-    final serverUrl = baseUrl ?? 'http://127.0.0.1:${_port ?? defaultPort}/api/v1';
+    final serverUrl =
+        baseUrl ?? 'http://127.0.0.1:${_port ?? defaultPort}/api/v1';
     return LocalHttpApiDocumentation(
       title: 'Vertree Local HTTP API',
       appVersion: apiService.currentVersion,
@@ -479,6 +713,25 @@ class LocalHttpApiServer {
     );
   }
 
+  Future<void> _handleQuitApp(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final result = apiService.prepareQuitApp();
+    if (result.isErr) {
+      await _writeResult(request, result, startedAt);
+      return;
+    }
+
+    await _writeSuccess(request, data: result.unwrap(), startedAt: startedAt);
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 120), () async {
+        await apiService.quitApp();
+      }),
+    );
+  }
+
   Future<void> _handleMonitorTaskList(
     HttpRequest request,
     Map<String, String> pathParameters,
@@ -489,6 +742,104 @@ class LocalHttpApiServer {
       data: apiService.listMonitorTasks(),
       startedAt: startedAt,
     );
+  }
+
+  Future<void> _handleUiNavigation(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final body = await _readJsonBody(request);
+    final page = _requiredStringField(body, 'page');
+    if (page == null) {
+      await _writeJson(
+        request,
+        statusCode: HttpStatus.badRequest,
+        body: _errorBody(
+          request,
+          'BAD_REQUEST',
+          'Field "page" is required.',
+          startedAt,
+        ),
+      );
+      return;
+    }
+
+    final result = await apiService.navigateUi(
+      page: page,
+      path: _optionalStringField(body, 'path'),
+      waitMilliseconds: _optionalIntField(body, 'waitMilliseconds') ?? 400,
+      ensureWindowVisible:
+          _optionalBoolField(body, 'ensureWindowVisible') ?? true,
+      windowMode: _optionalStringField(body, 'windowMode'),
+      windowWidth: _optionalDoubleField(body, 'windowWidth'),
+      windowHeight: _optionalDoubleField(body, 'windowHeight'),
+      showInitialSetupDialog:
+          _optionalBoolField(body, 'showInitialSetupDialog') ?? false,
+      fileTreeScale: _optionalDoubleField(body, 'fileTreeScale'),
+      fitFileTreeToViewport:
+          _optionalBoolField(body, 'fitFileTreeToViewport') ?? false,
+    );
+    await _writeResult(request, result, startedAt);
+  }
+
+  Future<void> _handleUiWindowState(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final body = await _readJsonBody(request);
+    final result = await apiService.setWindowState(
+      mode: _optionalStringField(body, 'mode') ?? 'restore',
+      width: _optionalDoubleField(body, 'width'),
+      height: _optionalDoubleField(body, 'height'),
+      focus: _optionalBoolField(body, 'focus') ?? true,
+    );
+    await _writeResult(request, result, startedAt);
+  }
+
+  Future<void> _handleUiFileTreeViewport(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final body = await _readJsonBody(request);
+    final result = await apiService.setFileTreeViewport(
+      scale: _optionalDoubleField(body, 'scale'),
+      fitToViewport: _optionalBoolField(body, 'fitToViewport') ?? false,
+    );
+    await _writeResult(request, result, startedAt);
+  }
+
+  Future<void> _handleUiScreenshot(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final body = await _readJsonBody(request);
+    final outputPath = _requiredStringField(body, 'outputPath');
+    if (outputPath == null) {
+      await _writeJson(
+        request,
+        statusCode: HttpStatus.badRequest,
+        body: _errorBody(
+          request,
+          'BAD_REQUEST',
+          'Field "outputPath" is required.',
+          startedAt,
+        ),
+      );
+      return;
+    }
+
+    final result = await apiService.captureUiScreenshot(
+      outputPath: outputPath,
+      pixelRatio: _optionalDoubleField(body, 'pixelRatio') ?? 1.5,
+      waitMilliseconds: _optionalIntField(body, 'waitMilliseconds') ?? 450,
+      ensureWindowVisible:
+          _optionalBoolField(body, 'ensureWindowVisible') ?? true,
+    );
+    await _writeResult(request, result, startedAt);
   }
 
   Future<void> _handleCreateMonitorTask(
@@ -719,9 +1070,62 @@ class LocalHttpApiServer {
     return value;
   }
 
+  String? _optionalStringField(Map<String, dynamic> body, String fieldName) {
+    final value = body[fieldName]?.toString();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
   bool? _requiredBoolField(Map<String, dynamic> body, String fieldName) {
     final value = body[fieldName];
     return value is bool ? value : null;
+  }
+
+  bool? _optionalBoolField(Map<String, dynamic> body, String fieldName) {
+    final value = body[fieldName];
+    if (value is bool) {
+      return value;
+    }
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true') {
+        return true;
+      }
+      if (normalized == 'false') {
+        return false;
+      }
+    }
+    return null;
+  }
+
+  int? _optionalIntField(Map<String, dynamic> body, String fieldName) {
+    final value = body[fieldName];
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value.trim());
+    }
+    return null;
+  }
+
+  double? _optionalDoubleField(Map<String, dynamic> body, String fieldName) {
+    final value = body[fieldName];
+    if (value is double) {
+      return value;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value.trim());
+    }
+    return null;
   }
 
   String? _requiredQueryParameter(HttpRequest request, String key) {

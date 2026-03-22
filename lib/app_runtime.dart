@@ -1,8 +1,11 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:toastification/toastification.dart';
 import 'package:vertree/component/I18nLang.dart';
@@ -20,6 +23,7 @@ import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/platform/bootstrap/platform_bootstrap.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/service/LocalHttpApiService.dart';
+import 'package:vertree/view/module/FileTree.dart';
 import 'package:vertree/view/page/BrandPage.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
@@ -37,9 +41,15 @@ late final AppCommandHandler appCommandHandler;
 late final AppWindowController appWindowController;
 
 final AppLocale appLocale = AppLocale();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey appScreenshotBoundaryKey = GlobalKey();
+final Completer<void> _appUiReadyCompleter = Completer<void>();
+String _currentUiPageId = 'brand';
+Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
+FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.10.0-alpha3",
+  currentVersion: "V0.10.0-alpha4",
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
@@ -376,6 +386,12 @@ Future<void> runVertreeApp(
       currentVersion: appVersionInfo.currentVersion,
       startedAt: DateTime.now(),
       currentPortResolver: () => localHttpApiServer.port,
+      currentUiStateResolver: _currentUiState,
+      navigateUiHandler: navigateToPageForApi,
+      captureUiScreenshotHandler: captureCurrentAppScreenshot,
+      setWindowStateHandler: setWindowStateForApi,
+      setFileTreeViewportHandler: setFileTreeViewportForApi,
+      quitAppHandler: quitApplication,
     ),
   );
   logger.info("启动参数: $args");
@@ -489,6 +505,320 @@ Future<void> _ensureWindowVisible() async {
   await showMainWindow(animate: true);
 }
 
+Future<void> _waitForUiReady() async {
+  if (_appUiReadyCompleter.isCompleted) {
+    return;
+  }
+  await _appUiReadyCompleter.future.timeout(const Duration(seconds: 10));
+}
+
+Future<void> _waitForRenderedFrames({int waitMilliseconds = 0}) async {
+  await Future<void>.delayed(Duration.zero);
+  await WidgetsBinding.instance.endOfFrame;
+  if (waitMilliseconds > 0) {
+    await Future<void>.delayed(Duration(milliseconds: waitMilliseconds));
+  }
+  await WidgetsBinding.instance.endOfFrame;
+  await Future<void>.delayed(const Duration(milliseconds: 32));
+}
+
+Map<String, dynamic> _describePage(Widget page) {
+  if (page is BrandPage) {
+    return {
+      'page': 'brand',
+      'forceShowInitialSetupDialog': page.forceShowInitialSetupDialog,
+    };
+  }
+  if (page is MonitPage) {
+    return const {'page': 'monitor'};
+  }
+  if (page is SettingPage) {
+    return const {'page': 'settings'};
+  }
+  if (page is FileTreePage) {
+    return {
+      'page': 'version-tree',
+      'path': page.path,
+      'fitToViewportOnLoad': page.fitToViewportOnLoad,
+      'initialScale': page.initialScale,
+      'currentScale': page.viewportController?.currentScale,
+    };
+  }
+  return {'page': page.runtimeType.toString()};
+}
+
+void _updateCurrentUiPage(Widget page) {
+  final pageInfo = _describePage(page);
+  _currentUiPageId = (pageInfo['page'] ?? page.runtimeType.toString())
+      .toString();
+  _currentUiPageState = Map<String, dynamic>.from(pageInfo);
+  _currentFileTreeViewportController = page is FileTreePage
+      ? page.viewportController
+      : null;
+}
+
+Map<String, dynamic> _currentUiState() {
+  return {
+    'ready': _appUiReadyCompleter.isCompleted,
+    'currentPage': _currentUiPageId,
+    'pageState': Map<String, dynamic>.from(_currentUiPageState),
+    'screenshotReady': appScreenshotBoundaryKey.currentContext != null,
+    'fileTreeViewportReady':
+        _currentFileTreeViewportController?.isAttached ?? false,
+    'fileTreeScale': _currentFileTreeViewportController?.currentScale,
+  };
+}
+
+Widget? _buildPageForApi(
+  String page, {
+  String? path,
+  bool showInitialSetupDialog = false,
+  double? fileTreeScale,
+  bool fitFileTreeToViewport = false,
+}) {
+  final normalized = page.trim().toLowerCase();
+  switch (normalized) {
+    case 'brand':
+    case 'home':
+      return BrandPage(
+        forceShowInitialSetupDialog: showInitialSetupDialog,
+        initialSetupDialogDelay: showInitialSetupDialog
+            ? const Duration(milliseconds: 250)
+            : const Duration(seconds: 1),
+      );
+    case 'monitor':
+    case 'monit':
+      return MonitPage();
+    case 'setting':
+    case 'settings':
+      return SettingPage();
+    case 'version-tree':
+    case 'viewtree':
+    case 'tree':
+      if (path == null || path.trim().isEmpty) {
+        return null;
+      }
+      return FileTreePage(
+        key: UniqueKey(),
+        path: path.trim(),
+        viewportController: FileTreeViewportController(),
+        initialScale: fileTreeScale,
+        fitToViewportOnLoad: fitFileTreeToViewport,
+      );
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>> _readWindowState() async {
+  final size = await windowManager.getSize();
+  return {
+    'isVisible': await windowManager.isVisible(),
+    'isFocused': await windowManager.isFocused(),
+    'isMaximized': await windowManager.isMaximized(),
+    'isFullScreen': await windowManager.isFullScreen(),
+    'size': {'width': size.width, 'height': size.height},
+  };
+}
+
+Future<Result<Map<String, dynamic>, String>> setWindowStateForApi({
+  String mode = 'restore',
+  double? width,
+  double? height,
+  bool focus = true,
+}) async {
+  try {
+    final normalizedMode = mode.trim().isEmpty
+        ? 'restore'
+        : mode.trim().toLowerCase();
+    if (!{'restore', 'maximize', 'fullscreen'}.contains(normalizedMode)) {
+      return Result.eMsg(
+        'Unsupported window mode "$mode". Supported values: restore, maximize, fullscreen.',
+      );
+    }
+
+    await showMainWindow(animate: false);
+    if (normalizedMode != 'fullscreen' && await windowManager.isFullScreen()) {
+      await windowManager.setFullScreen(false);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    }
+
+    if (normalizedMode == 'restore') {
+      if (await windowManager.isMaximized()) {
+        await windowManager.restore();
+      }
+      if (width != null && height != null) {
+        await windowManager.setSize(Size(width, height));
+        await windowManager.center();
+      }
+    } else if (normalizedMode == 'maximize') {
+      await windowManager.maximize();
+    } else if (normalizedMode == 'fullscreen') {
+      await windowManager.setFullScreen(true);
+    }
+
+    if (focus) {
+      await windowManager.focus();
+    }
+    await _waitForRenderedFrames(waitMilliseconds: 220);
+
+    return Result.ok({
+      'mode': normalizedMode,
+      'window': await _readWindowState(),
+    });
+  } catch (e) {
+    return Result.eMsg('Failed to update window state: $e');
+  }
+}
+
+Future<Result<Map<String, dynamic>, String>> setFileTreeViewportForApi({
+  double? scale,
+  bool fitToViewport = false,
+}) async {
+  try {
+    await _waitForUiReady();
+    final controller = _currentFileTreeViewportController;
+    if (_currentUiPageId != 'version-tree' || controller == null) {
+      return Result.eMsg(
+        'File tree viewport controls are only available on the version-tree page.',
+      );
+    }
+    await _waitForRenderedFrames(waitMilliseconds: 220);
+    if (!controller.isAttached) {
+      return Result.eMsg('File tree viewport is not ready yet.');
+    }
+    if (fitToViewport) {
+      controller.fitScene();
+    } else if (scale != null) {
+      controller.setScale(scale);
+    } else {
+      return Result.eMsg('Either scale or fitToViewport must be provided.');
+    }
+    await _waitForRenderedFrames(waitMilliseconds: 220);
+
+    return Result.ok({
+      'page': _currentUiPageId,
+      'scale': controller.currentScale,
+      'fitToViewport': fitToViewport,
+      'pageState': Map<String, dynamic>.from(_currentUiPageState),
+    });
+  } catch (e) {
+    return Result.eMsg('Failed to update file tree viewport: $e');
+  }
+}
+
+Future<Result<Map<String, dynamic>, String>> navigateToPageForApi({
+  required String page,
+  String? path,
+  int waitMilliseconds = 400,
+  bool ensureWindowVisible = true,
+  String? windowMode,
+  double? windowWidth,
+  double? windowHeight,
+  bool showInitialSetupDialog = false,
+  double? fileTreeScale,
+  bool fitFileTreeToViewport = false,
+}) async {
+  try {
+    await _waitForUiReady();
+    final targetPage = _buildPageForApi(
+      page,
+      path: path,
+      showInitialSetupDialog: showInitialSetupDialog,
+      fileTreeScale: fileTreeScale,
+      fitFileTreeToViewport: fitFileTreeToViewport,
+    );
+    if (targetPage == null) {
+      return Result.eMsg(
+        'Unsupported page "$page". Supported values: brand, monitor, settings, version-tree (requires path).',
+      );
+    }
+
+    if (ensureWindowVisible) {
+      await showMainWindow(page: targetPage, animate: false);
+    } else {
+      go(targetPage);
+    }
+
+    if (windowMode != null || windowWidth != null || windowHeight != null) {
+      final windowResult = await setWindowStateForApi(
+        mode: windowMode ?? 'restore',
+        width: windowWidth,
+        height: windowHeight,
+        focus: ensureWindowVisible,
+      );
+      if (windowResult.isErr) {
+        return Result.eMsg(windowResult.msg);
+      }
+    }
+
+    await _waitForRenderedFrames(waitMilliseconds: waitMilliseconds);
+
+    return Result.ok({
+      'requestedPage': page,
+      'currentPage': _currentUiPageId,
+      'pageState': Map<String, dynamic>.from(_currentUiPageState),
+      'waitMilliseconds': waitMilliseconds,
+      'window': await _readWindowState(),
+      'fileTreeScale': _currentFileTreeViewportController?.currentScale,
+    });
+  } catch (e) {
+    return Result.eMsg('Failed to navigate UI: $e');
+  }
+}
+
+Future<Result<Map<String, dynamic>, String>> captureCurrentAppScreenshot({
+  required String outputPath,
+  double pixelRatio = 1.5,
+  int waitMilliseconds = 450,
+  bool ensureWindowVisible = true,
+}) async {
+  final normalizedOutputPath = p.normalize(outputPath);
+  try {
+    await _waitForUiReady();
+    if (ensureWindowVisible) {
+      await showMainWindow(animate: false);
+      await windowManager.focus();
+    }
+    await _waitForRenderedFrames(waitMilliseconds: waitMilliseconds);
+
+    final renderObject = appScreenshotBoundaryKey.currentContext
+        ?.findRenderObject();
+    if (renderObject is! RenderRepaintBoundary) {
+      return Result.eMsg('Screenshot boundary render object is unavailable.');
+    }
+
+    final image = await renderObject.toImage(pixelRatio: pixelRatio);
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        return Result.eMsg('Failed to encode the screenshot as PNG.');
+      }
+
+      final bytes = byteData.buffer.asUint8List();
+      final file = File(normalizedOutputPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+
+      return Result.ok({
+        'outputPath': file.path,
+        'pixelRatio': pixelRatio,
+        'waitMilliseconds': waitMilliseconds,
+        'page': _currentUiPageId,
+        'pageState': Map<String, dynamic>.from(_currentUiPageState),
+        'image': {
+          'width': image.width,
+          'height': image.height,
+          'byteLength': bytes.length,
+        },
+      });
+    } finally {
+      image.dispose();
+    }
+  } catch (e) {
+    return Result.eMsg('Failed to capture app screenshot: $e');
+  }
+}
+
 Future<void> _pickFileAndRunAction(String action) async {
   await _ensureWindowVisible();
   final result = await FilePicker.platform.pickFiles();
@@ -500,8 +830,6 @@ Future<void> _pickFileAndRunAction(String action) async {
 void processArgs(List<String> args) {
   appCommandHandler.process(args);
 }
-
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -517,6 +845,10 @@ class _MainPageState extends State<MainPage> with WindowListener {
   void initState() {
     super.initState();
     go = goPage;
+    _updateCurrentUiPage(page);
+    if (!_appUiReadyCompleter.isCompleted) {
+      _appUiReadyCompleter.complete();
+    }
     windowManager.addListener(this);
   }
 
@@ -532,6 +864,12 @@ class _MainPageState extends State<MainPage> with WindowListener {
             themeMode: themeMode,
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
+            builder: (context, child) {
+              return RepaintBoundary(
+                key: appScreenshotBoundaryKey,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: page,
           );
         },
@@ -546,6 +884,7 @@ class _MainPageState extends State<MainPage> with WindowListener {
 
     setState(() {
       this.page = page;
+      _updateCurrentUiPage(page);
     });
   }
 

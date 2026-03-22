@@ -22,6 +22,8 @@ Windows 仍然是当前最完整的桌面发布形态。
 
 后续都可以在设置页里再开关。
 
+![initial-setup-dialog](/img/tutorial/initial-setup-dialog.png)
+
 ## macOS
 
 仓库已经包含 macOS 工程和自动构建脚本，GitHub Release 会产出：
@@ -80,4 +82,4 @@ flutter run -d linux
 - `pubspec.yaml` 中的 `version` 决定发布版本
 - `.github/release-<version>.md` 决定 GitHub Release 说明
 - GitHub Release workflow 要求 tag 与 `pubspec.yaml` 版本完全一致
-- 例如发布 `0.10.0-alpha3` 时，应使用 tag `V0.10.0-alpha3`
+- 例如发布 `0.10.0-alpha4` 时，应使用 tag `V0.10.0-alpha4`

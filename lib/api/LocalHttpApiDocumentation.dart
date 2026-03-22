@@ -74,38 +74,31 @@ class LocalHttpApiDocumentation {
             (parameter) => parameter.toParameterSchema(location: 'query'),
           ),
         ],
-        if (route.requestBody != null) 'requestBody': route.requestBody!.toOpenApi(),
+        if (route.requestBody != null)
+          'requestBody': route.requestBody!.toOpenApi(),
         'responses': {
           '${route.successStatusCode}': {
             'description': route.successDescription,
             'content': {
-              route.responseContentType: {
-                'schema': _successEnvelopeSchema(),
-              },
+              route.responseContentType: {'schema': _successEnvelopeSchema()},
             },
           },
           '400': {
             'description': 'Request validation failed',
             'content': {
-              'application/json': {
-                'schema': _errorEnvelopeSchema(),
-              },
+              'application/json': {'schema': _errorEnvelopeSchema()},
             },
           },
           '403': {
             'description': 'The request did not originate from loopback',
             'content': {
-              'application/json': {
-                'schema': _errorEnvelopeSchema(),
-              },
+              'application/json': {'schema': _errorEnvelopeSchema()},
             },
           },
           '500': {
             'description': 'Unhandled internal error',
             'content': {
-              'application/json': {
-                'schema': _errorEnvelopeSchema(),
-              },
+              'application/json': {'schema': _errorEnvelopeSchema()},
             },
           },
         },
@@ -118,13 +111,10 @@ class LocalHttpApiDocumentation {
         'title': title,
         'version': appVersion,
         'description':
-            'Loopback-only HTTP API for Vertree monitoring, backup, and verification.',
+            'Loopback-only HTTP API for Vertree monitoring, backup, verification, and UI automation.',
       },
       'servers': [
-        {
-          'url': serverUrl,
-          'description': 'Local loopback endpoint',
-        },
+        {'url': serverUrl, 'description': 'Local loopback endpoint'},
       ],
       'paths': paths,
     };
@@ -186,10 +176,7 @@ class LocalHttpApiDocumentation {
         'success': {'type': 'boolean', 'const': true},
         'code': {'type': 'string', 'example': 'OK'},
         'message': {'type': 'string', 'example': 'ok'},
-        'data': {
-          'type': 'object',
-          'additionalProperties': true,
-        },
+        'data': {'type': 'object', 'additionalProperties': true},
         'debug': _debugSchema(),
       },
       'required': ['success', 'code', 'message', 'data', 'debug'],
@@ -219,14 +206,22 @@ class LocalHttpApiDocumentation {
         'requestedAt': {'type': 'string', 'format': 'date-time'},
         'respondedAt': {'type': 'string', 'format': 'date-time'},
         'durationMs': {'type': 'integer'},
-        'method': {'type': ['string', 'null']},
-        'path': {'type': ['string', 'null']},
+        'method': {
+          'type': ['string', 'null'],
+        },
+        'path': {
+          'type': ['string', 'null'],
+        },
         'query': {
           'type': ['object', 'null'],
           'additionalProperties': {'type': 'string'},
         },
-        'serverPort': {'type': ['integer', 'null']},
-        'remoteAddress': {'type': ['string', 'null']},
+        'serverPort': {
+          'type': ['integer', 'null'],
+        },
+        'remoteAddress': {
+          'type': ['string', 'null'],
+        },
       },
       'required': [
         'requestedAt',
