@@ -1,5 +1,8 @@
 name: Build and Release
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   workflow_dispatch:
     inputs:
@@ -104,6 +107,9 @@ jobs:
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-setup.exe
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.zip
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msi
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msix
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-symbols.zip
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-win11-dev.zip
 
   linux:
     name: Linux (tar.gz + RPM)
@@ -148,8 +154,13 @@ jobs:
       - name: Build Linux release archive
         shell: bash
         run: |
-          chmod +x linux/build_linux_release.sh linux/build_linux_rpm.sh
+          chmod +x linux/build_linux_release.sh linux/build_linux_rpm.sh linux/build_linux_deb.sh
           linux/build_linux_release.sh
+
+      - name: Build Linux DEB
+        shell: bash
+        run: |
+          SKIP_FLUTTER_BUILD=1 linux/build_linux_deb.sh
 
       - name: Build Linux RPM
         shell: bash
@@ -167,6 +178,12 @@ jobs:
         with:
           name: vertree-linux-rpm-${{ needs.meta.outputs.version }}
           path: build/dist/*.rpm
+
+      - name: Upload Linux DEB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertree-linux-deb-${{ needs.meta.outputs.version }}
+          path: build/dist/*.deb
 
   macos:
     name: macOS
@@ -205,8 +222,10 @@ jobs:
         with:
           name: vertree-macos-${{ needs.meta.outputs.version }}
           path: |
-            build/dist/vertree-macos-${{ needs.meta.outputs.version }}.zip
-            build/dist/vertree-macos-${{ needs.meta.outputs.version }}.dmg
+            build/dist/vertree-macos-*-${{ needs.meta.outputs.version }}.zip
+            build/dist/vertree-macos-*-${{ needs.meta.outputs.version }}.dmg
+            build/dist/vertree-macos-*-${{ needs.meta.outputs.version }}-symbols.zip
+          if-no-files-found: error
 
   release:
     name: Publish GitHub Release
@@ -238,6 +257,12 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Publish release
         uses: softprops/action-gh-release@v2

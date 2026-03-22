@@ -5,10 +5,16 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/build/dist"
 VERSION="$(sed -n 's/^version:[[:space:]]*//p' "$ROOT_DIR/pubspec.yaml" | head -n1)"
 PRODUCTS_DIR="$ROOT_DIR/build/macos/Build/Products/Release"
+ARCH_RAW="$(uname -m)"
+ARCH_NAME="x64"
 
 if [[ -z "$VERSION" ]]; then
   echo "Unable to determine version from pubspec.yaml" >&2
   exit 1
+fi
+
+if [[ "$ARCH_RAW" == "arm64" || "$ARCH_RAW" == "aarch64" ]]; then
+  ARCH_NAME="arm64"
 fi
 
 export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
@@ -25,11 +31,14 @@ if [[ -z "$APP_PATH" ]]; then
 fi
 
 mkdir -p "$DIST_DIR"
-ZIP_PATH="$DIST_DIR/vertree-macos-$VERSION.zip"
-DMG_PATH="$DIST_DIR/vertree-macos-$VERSION.dmg"
+ARTIFACT_PREFIX="vertree-macos-$ARCH_NAME-$VERSION"
+ZIP_PATH="$DIST_DIR/$ARTIFACT_PREFIX.zip"
+DMG_PATH="$DIST_DIR/$ARTIFACT_PREFIX.dmg"
+SYMBOLS_PATH="$DIST_DIR/$ARTIFACT_PREFIX-symbols.zip"
 DMG_STAGE_DIR="$DIST_DIR/dmg-stage"
+DSYM_PATH="$(find "$PRODUCTS_DIR" -maxdepth 1 -type d -name '*.dSYM' | head -n1)"
 
-rm -f "$ZIP_PATH" "$DMG_PATH"
+rm -f "$ZIP_PATH" "$DMG_PATH" "$SYMBOLS_PATH"
 rm -rf "$DMG_STAGE_DIR"
 mkdir -p "$DMG_STAGE_DIR"
 
@@ -45,6 +54,11 @@ hdiutil create \
   "$DMG_PATH"
 
 rm -rf "$DMG_STAGE_DIR"
+
+if [[ -n "$DSYM_PATH" ]]; then
+  ditto -c -k --sequesterRsrc --keepParent "$DSYM_PATH" "$SYMBOLS_PATH"
+  echo "macOS symbols zip created: $SYMBOLS_PATH"
+fi
 
 echo "macOS zip created: $ZIP_PATH"
 echo "macOS dmg created: $DMG_PATH"

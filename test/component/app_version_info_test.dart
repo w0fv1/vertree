@@ -42,12 +42,20 @@ void main() {
           'browser_download_url': 'https://example.com/linux.rpm',
         },
         {
-          'name': 'vertree-macos-0.11.0-alpha1.dmg',
+          'name': 'vertree-linux-x64-0.11.0-alpha1.deb',
+          'browser_download_url': 'https://example.com/linux.deb',
+        },
+        {
+          'name': 'vertree-macos-arm64-0.11.0-alpha1.dmg',
           'browser_download_url': 'https://example.com/macos.dmg',
         },
         {
-          'name': 'vertree-macos-0.11.0-alpha1.zip',
+          'name': 'vertree-macos-arm64-0.11.0-alpha1.zip',
           'browser_download_url': 'https://example.com/macos.zip',
+        },
+        {
+          'name': 'vertree-macos-arm64-0.11.0-alpha1-symbols.zip',
+          'browser_download_url': 'https://example.com/macos-symbols.zip',
         },
         {
           'name': 'vertree-windows-x64-0.11.0-alpha1-setup.exe',
@@ -56,6 +64,10 @@ void main() {
         {
           'name': 'vertree-windows-x64-0.11.0-alpha1.zip',
           'browser_download_url': 'https://example.com/windows.zip',
+        },
+        {
+          'name': 'vertree-windows-x64-0.11.0-alpha1-symbols.zip',
+          'browser_download_url': 'https://example.com/windows-symbols.zip',
         },
       ],
     };
@@ -75,22 +87,32 @@ void main() {
         platformOverride: 'macos',
       );
 
-      expect(asset?.name, 'vertree-macos-0.11.0-alpha1.dmg');
+      expect(asset?.name, 'vertree-macos-arm64-0.11.0-alpha1.dmg');
     });
 
-    test('prefers tarball for generic Linux and rpm for rpm distros', () {
-      final genericAsset = AppVersionInfo.selectPreferredAsset(
-        release,
-        platformOverride: 'linux',
-      );
-      final rpmAsset = AppVersionInfo.selectPreferredAsset(
-        release,
-        platformOverride: 'linux',
-        linuxOsReleaseOverride: 'NAME=Fedora\nID=fedora\nID_LIKE="fedora rhel"',
-      );
+    test(
+      'prefers deb for deb distros, tarball for generic Linux and rpm for rpm distros',
+      () {
+        final genericAsset = AppVersionInfo.selectPreferredAsset(
+          release,
+          platformOverride: 'linux',
+        );
+        final debAsset = AppVersionInfo.selectPreferredAsset(
+          release,
+          platformOverride: 'linux',
+          linuxOsReleaseOverride: 'NAME=Ubuntu\nID=ubuntu\nID_LIKE=debian',
+        );
+        final rpmAsset = AppVersionInfo.selectPreferredAsset(
+          release,
+          platformOverride: 'linux',
+          linuxOsReleaseOverride:
+              'NAME=Fedora\nID=fedora\nID_LIKE="fedora rhel"',
+        );
 
-      expect(genericAsset?.name, 'vertree-linux-x64-0.11.0-alpha1.tar.gz');
-      expect(rpmAsset?.name, 'vertree-0.11.0-alpha1-1.x86_64.rpm');
-    });
+        expect(genericAsset?.name, 'vertree-linux-x64-0.11.0-alpha1.tar.gz');
+        expect(debAsset?.name, 'vertree-linux-x64-0.11.0-alpha1.deb');
+        expect(rpmAsset?.name, 'vertree-0.11.0-alpha1-1.x86_64.rpm');
+      },
+    );
   });
 }

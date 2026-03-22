@@ -50,7 +50,6 @@ Filename: "{app}\vertree.exe"; Description: "Launch Vertree"; Flags: nowait post
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-Type: filesandordirs; Name: "{userappdata}\dev.w0fv1"
 
 [Code]
 

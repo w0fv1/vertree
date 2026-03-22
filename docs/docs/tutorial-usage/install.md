@@ -9,10 +9,9 @@ sidebar_position: 1
 Windows 仍然是当前最完整的桌面发布形态。
 
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
-2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe` 或 `vertree-windows-x64-<version>.msi`
-3. 如果下载的是 `zip`，先解压得到 `vertree-windows-x64-<version>-setup.exe`
-4. 运行安装程序并完成安装
-5. 首次启动后完成初始化
+2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`、用于后续签名的 unsigned `vertree-windows-x64-<version>.msix`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
+3. 如果下载的是 `setup.exe` 或 `msi`，直接运行安装；如果下载的是 `zip`，解压后直接运行其中的 `vertree.exe`
+4. 首次启动后完成初始化
 
 初始化通常会完成这些动作：
 
@@ -29,7 +28,8 @@ Windows 仍然是当前最完整的桌面发布形态。
 仓库已经包含 macOS 工程和自动构建脚本，GitHub Release 会产出：
 
 - `vertree-macos-<version>.zip`
-- `vertree-macos-<version>.dmg`
+- `vertree-macos-<arch>-<version>.dmg`
+- `vertree-macos-<arch>-<version>.zip`
 
 ### 前置条件
 
@@ -59,6 +59,7 @@ flutter run -d macos
 仓库已经包含 Linux 工程和自动构建脚本，GitHub Release 会产出：
 
 - `vertree-linux-x64-<version>.tar.gz`
+- `vertree-linux-x64-<version>.deb`
 - `vertree-<version>-*.x86_64.rpm`
 
 ### 前置条件
@@ -82,4 +83,4 @@ flutter run -d linux
 - `pubspec.yaml` 中的 `version` 决定发布版本
 - `.github/release-<version>.md` 决定 GitHub Release 说明
 - GitHub Release workflow 要求 tag 与 `pubspec.yaml` 版本完全一致
-- 例如发布 `0.11.0-alpha2` 时，应使用 tag `V0.11.0-alpha2`
+- 例如发布 `0.11.0-alpha3` 时，应使用 tag `V0.11.0-alpha3`

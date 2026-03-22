@@ -6,6 +6,7 @@ param(
     [string]$Flutter = "",
     [string]$ISCC = "",
     [string]$WixBin = "",
+    [string]$MakeAppx = "",
     [string]$Target = "lib/main.dart"
 )
 
@@ -118,6 +119,31 @@ function Resolve-WixBin([string]$preferred) {
     return ""
 }
 
+function Resolve-MakeAppx([string]$preferred) {
+    if (-not [string]::IsNullOrWhiteSpace($preferred) -and (Test-Path $preferred)) {
+        return $preferred
+    }
+
+    $cmd = Get-Command makeappx.exe -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $cmd.Source
+    }
+
+    $kitsRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+    if (-not (Test-Path $kitsRoot)) {
+        return ""
+    }
+
+    $candidates = Get-ChildItem -Path $kitsRoot -Filter makeappx.exe -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match '\\x64\\makeappx\.exe$' } |
+        Sort-Object FullName -Descending
+    if ($candidates) {
+        return $candidates[0].FullName
+    }
+
+    return ""
+}
+
 function Escape-XmlAttribute([string]$value) {
     if ($null -eq $value) {
         return ""
@@ -144,12 +170,18 @@ $msiProductVersion = Get-MsiProductVersion -pubspecVersion $pubspecVersion
 $setupBaseName = "vertree-windows-x64-$pubspecVersion-setup"
 $zipBaseName = "vertree-windows-x64-$pubspecVersion"
 $msiBaseName = "vertree-windows-x64-$pubspecVersion"
+$msixBaseName = "vertree-windows-x64-$pubspecVersion"
+$symbolsBaseName = "vertree-windows-x64-$pubspecVersion-symbols"
+$win11DevBaseName = "vertree-windows-x64-$pubspecVersion-win11-dev"
 Write-Host "pubspec.yaml version=$pubspecVersion"
 Write-Host "VersionInfoVersion=$versionInfoVersion"
 Write-Host "MsiProductVersion=$msiProductVersion"
 Write-Host "Windows setup artifact=$setupBaseName.exe"
 Write-Host "Windows zip artifact=$zipBaseName.zip"
 Write-Host "Windows MSI artifact=$msiBaseName.msi"
+Write-Host "Windows MSIX artifact=$msixBaseName.msix"
+Write-Host "Windows symbols artifact=$symbolsBaseName.zip"
+Write-Host "Windows Win11 dev artifact=$win11DevBaseName.zip"
 
 Write-Host "正在执行 flutter build windows ($BuildMode)..."
 & $flutterCmd build windows --target $Target --$($BuildMode.ToLower())
@@ -165,10 +197,11 @@ Set-Location $scriptDir
 
 # ISS脚本路径（默认当前目录）
 $issFile = Join-Path $scriptDir "setup.iss"
+$runnerOutputDir = Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")
 
 # Copy context menu DLL into runner output (if built).
 $contextMenuDll = Join-Path $scriptDir "..\\build\\windows\\x64\\context_menu\\$BuildMode\\vertree_context_menu.dll"
-$runnerDll = Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode\\vertree_context_menu.dll"
+$runnerDll = Join-Path $runnerOutputDir "vertree_context_menu.dll"
 if (Test-Path $contextMenuDll) {
     try {
         Copy-Item $contextMenuDll $runnerDll -Force -ErrorAction Stop
@@ -217,6 +250,91 @@ if (Test-Path $packagingSourceDir) {
     }
 }
 
+function New-PortableArchive([string]$sourceDir, [string]$archivePath, [string]$folderName) {
+    $stageRoot = Join-Path $scriptDir "..\\build\\windows\\portable"
+    $stageDir = Join-Path $stageRoot $folderName
+    if (Test-Path $stageDir) {
+        Remove-Item $stageDir -Recurse -Force
+    }
+    if (Test-Path $archivePath) {
+        Remove-Item $archivePath -Force
+    }
+    New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+    Copy-Item (Join-Path $sourceDir "*") $stageDir -Recurse -Force
+    Compress-Archive -Path $stageDir -DestinationPath $archivePath
+    Write-Host "便携包已生成：" $archivePath
+}
+
+function New-SymbolArchive([string]$archivePath, [string]$folderName) {
+    $stageRoot = Join-Path $scriptDir "..\\build\\windows\\symbols"
+    $stageDir = Join-Path $stageRoot $folderName
+    $contextMenuBuildDir = Join-Path $scriptDir "..\\build\\windows\\x64\\context_menu\\$BuildMode"
+    if (Test-Path $stageDir) {
+        Remove-Item $stageDir -Recurse -Force
+    }
+    if (Test-Path $archivePath) {
+        Remove-Item $archivePath -Force
+    }
+
+    $copied = $false
+    foreach ($pair in @(
+        @{ Source = $runnerOutputDir; Target = "runner" },
+        @{ Source = $contextMenuBuildDir; Target = "context_menu" }
+    )) {
+        if (-not (Test-Path $pair.Source)) {
+            continue
+        }
+        $pdbs = Get-ChildItem -Path $pair.Source -Filter *.pdb -File -ErrorAction SilentlyContinue
+        if (-not $pdbs) {
+            continue
+        }
+        $targetDir = Join-Path $stageDir $pair.Target
+        New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+        foreach ($pdb in $pdbs) {
+            Copy-Item $pdb.FullName (Join-Path $targetDir $pdb.Name) -Force
+            $copied = $true
+        }
+    }
+
+    if (-not $copied) {
+        Write-Warning "未找到可打包的 Windows 符号文件，跳过 symbols zip。"
+        return
+    }
+
+    Compress-Archive -Path $stageDir -DestinationPath $archivePath
+    Write-Host "Windows symbols 包已生成：" $archivePath
+}
+
+function New-Win11DevArchive([string]$sourceDir, [string]$archivePath, [string]$folderName) {
+    if (-not (Test-Path $sourceDir)) {
+        Write-Warning "未找到 Win11 开发包资源目录，跳过 win11-dev zip。"
+        return
+    }
+
+    $stageRoot = Join-Path $scriptDir "..\\build\\windows\\win11-dev"
+    $stageDir = Join-Path $stageRoot $folderName
+    if (Test-Path $stageDir) {
+        Remove-Item $stageDir -Recurse -Force
+    }
+    if (Test-Path $archivePath) {
+        Remove-Item $archivePath -Force
+    }
+
+    New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+    Copy-Item (Join-Path $sourceDir "*") $stageDir -Recurse -Force
+    Compress-Archive -Path $stageDir -DestinationPath $archivePath
+    Write-Host "Win11 开发包已生成：" $archivePath
+}
+
+$portableZip = Join-Path $scriptDir "$zipBaseName.zip"
+New-PortableArchive -sourceDir $runnerOutputDir -archivePath $portableZip -folderName $zipBaseName
+
+$symbolsZip = Join-Path $scriptDir "$symbolsBaseName.zip"
+New-SymbolArchive -archivePath $symbolsZip -folderName $symbolsBaseName
+
+$win11DevZip = Join-Path $scriptDir "$win11DevBaseName.zip"
+New-Win11DevArchive -sourceDir $packagingTargetDir -archivePath $win11DevZip -folderName $win11DevBaseName
+
 if (-not (Test-Path $innoSetupCompiler)) {
     $isccCmd = Resolve-ToolPath -preferred $ISCC -fallbackPath "" -commandName "ISCC"
     if ([string]::IsNullOrWhiteSpace($isccCmd)) {
@@ -234,23 +352,7 @@ Write-Host "正在使用Inno Setup进行打包..."
 & $innoSetupCompiler /DBuildMode=$BuildMode /DAppVersion=$pubspecVersion /DAppVersionInfoVersion=$versionInfoVersion /DOutputBaseFilename=$setupBaseName $issFile
 
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "打包成功！开始压缩为Zip..."
-
-        # 安装程序路径（注意与setup.iss中的OutputBaseFilename一致）
-        $setupExe = Join-Path $scriptDir "$setupBaseName.exe"
-
-        # 输出Zip路径
-        $zipFile = Join-Path $scriptDir "$zipBaseName.zip"
-
-        # 检查已有zip文件，如存在则删除
-        if (Test-Path $zipFile) {
-            Remove-Item $zipFile -Force
-        }
-
-        # 压缩为zip
-        Compress-Archive -Path $setupExe -DestinationPath $zipFile
-
-        Write-Host "压缩完成：" $zipFile
+        Write-Host "安装包已生成：" (Join-Path $scriptDir "$setupBaseName.exe")
     } else {
         Write-Error "打包失败！请检查上方日志。"
     }
@@ -347,6 +449,46 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
         }
 
         Write-Host "MSI 打包完成：" $msiPath
+    }
+}
+
+$makeAppxExe = Resolve-MakeAppx -preferred $MakeAppx
+if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
+    Write-Warning "未找到 MakeAppx.exe，跳过 unsigned MSIX 打包。"
+} else {
+    $msixStageRoot = Join-Path $scriptDir "..\\build\\windows\\msix"
+    $msixStageDir = Join-Path $msixStageRoot "package"
+    $msixManifest = Join-Path $msixStageDir "AppxManifest.xml"
+    $msixPath = Join-Path $scriptDir "$msixBaseName.msix"
+
+    try {
+        if (Test-Path $msixStageDir) {
+            Remove-Item $msixStageDir -Recurse -Force
+        }
+        if (Test-Path $msixPath) {
+            Remove-Item $msixPath -Force
+        }
+
+        New-Item -ItemType Directory -Force -Path $msixStageDir | Out-Null
+        Copy-Item (Join-Path $packagingSourceDir "sparse\\*") $msixStageDir -Recurse -Force
+        if (Test-Path $msixManifest) {
+            $manifestContent = Get-Content $msixManifest -Raw
+            $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$msiProductVersion`"")
+            [System.IO.File]::WriteAllText(
+                $msixManifest,
+                $manifestContent,
+                [System.Text.UTF8Encoding]::new($false)
+            )
+        }
+
+        & $makeAppxExe pack /o /d $msixStageDir /p $msixPath | Out-Null
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $msixPath)) {
+            Write-Host "unsigned MSIX 打包完成：" $msixPath
+        } else {
+            Write-Warning "unsigned MSIX 打包失败，已跳过。"
+        }
+    } catch {
+        Write-Warning "unsigned MSIX 打包失败：$($_.Exception.Message)"
     }
 }
 

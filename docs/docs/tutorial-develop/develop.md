@@ -30,7 +30,7 @@ flutter config --enable-linux-desktop
 
 - Windows：如需构建安装包，额外安装 Inno Setup 和 WiX Toolset
 - macOS：安装 CocoaPods
-- Linux：安装 GTK / 通知 / 托盘 / RPM 打包相关依赖
+- Linux：安装 GTK / 通知 / 托盘 / RPM / DEB 打包相关依赖
 - 文档站：Node.js 18+
 
 ## 克隆项目
@@ -142,6 +142,9 @@ pwsh -File windows/build.ps1 -BuildMode Release
 - `windows/vertree-windows-x64-<version>-setup.exe`
 - `windows/vertree-windows-x64-<version>.zip`
 - `windows/vertree-windows-x64-<version>.msi`
+- `windows/vertree-windows-x64-<version>.msix`（unsigned，供后续签名）
+- `windows/vertree-windows-x64-<version>-symbols.zip`
+- `windows/vertree-windows-x64-<version>-win11-dev.zip`
 
 ### macOS
 
@@ -151,19 +154,22 @@ macos/build_macos_release.sh
 
 会生成：
 
-- `build/dist/vertree-macos-<version>.zip`
-- `build/dist/vertree-macos-<version>.dmg`
+- `build/dist/vertree-macos-<arch>-<version>.zip`
+- `build/dist/vertree-macos-<arch>-<version>.dmg`
+- `build/dist/vertree-macos-<arch>-<version>-symbols.zip`
 
 ### Linux
 
 ```bash
 linux/build_linux_release.sh
+linux/build_linux_deb.sh
 linux/build_linux_rpm.sh
 ```
 
 会生成：
 
 - `build/dist/vertree-linux-x64-<version>.tar.gz`
+- `build/dist/vertree-linux-x64-<version>.deb`
 - `build/dist/*.rpm`
 
 ## 文档站

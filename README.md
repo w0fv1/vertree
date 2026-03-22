@@ -5,8 +5,8 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 ## 0.11.0-alpha3 现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
-- 支持 macOS 桌面使用，GitHub Release 会生成 `zip` / `dmg`，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
-- 支持 Linux 桌面使用，GitHub Release 会生成便携 `tar.gz` 和 RPM，并提供托盘、GNOME Files 右键菜单、开机自启和设置页集成开关。
+- 支持 macOS 桌面使用，GitHub Release 会生成带架构标识的 `zip` / `dmg` 和符号包，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
+- 支持 Linux 桌面使用，GitHub Release 会生成便携 `tar.gz`、`.deb` 和 RPM，并提供托盘、GNOME Files 右键菜单、开机自启和设置页集成开关。
 - GitHub Actions 会自动构建 Windows、macOS、Linux 三个平台的发布产物。
 - 新增本机 HTTP API 和 OpenAPI 文档，可用于本地自动化测试、监控任务检查、版本树与备份验证。
 - 新增局域网文件分享能力，可为某个版本文件生成局域网下载链接、二维码和自动选路桥接页。
@@ -27,14 +27,14 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 
 ### Windows
 
-1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe` 或 `vertree-windows-x64-<version>.msi`
-2. 若下载 zip，解压后运行 `vertree-windows-x64-<version>-setup.exe`
+1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`、用于后续签名的 unsigned `vertree-windows-x64-<version>.msix`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
+2. `setup.exe` / `msi` 适合常规安装；`zip` 是真正的便携版，解压后可直接运行 `vertree.exe`
 3. 首次启动完成初始化
 4. 通过文件右键菜单、托盘或设置页开始使用
 
 ### macOS
 
-到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 macOS `zip` 或 `dmg`。
+到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 macOS `zip` 或 `dmg`，文件名会带上当前构建架构（如 `x64` / `arm64`）。
 
 已支持的 macOS 入口：
 
@@ -57,6 +57,7 @@ flutter run -d macos
 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载：
 
 - `vertree-linux-x64-<version>.tar.gz`：便携发布包
+- `vertree-linux-x64-<version>.deb`：Debian / Ubuntu 安装包
 - `vertree-<version>-1.*.x86_64.rpm`：RPM 安装包
 
 GNOME 环境下已支持：

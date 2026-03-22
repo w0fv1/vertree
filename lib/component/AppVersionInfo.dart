@@ -326,10 +326,14 @@ class AppVersionInfo {
     }
 
     final name = rawName.toLowerCase();
+    if (_isDeveloperOnlyArtifact(name)) {
+      return -1;
+    }
     final containsWindows = name.contains('windows') || name.contains('win');
     final containsMac =
         name.contains('macos') || name.contains('mac') || name.contains('dmg');
-    final containsLinux = name.contains('linux') || name.contains('rpm');
+    final containsLinux =
+        name.contains('linux') || name.contains('rpm') || name.endsWith('.deb');
 
     if (platform == 'windows') {
       if (name.endsWith('.exe')) {
@@ -358,11 +362,17 @@ class AppVersionInfo {
 
     if (platform == 'linux') {
       final preferRpm = _preferRpmPackage(linuxOsRelease);
+      final preferDeb = _preferDebPackage(linuxOsRelease);
+      if (name.endsWith('.deb')) {
+        return (preferDeb ? 100 : 80) + (containsLinux ? 10 : 0);
+      }
       if (name.endsWith('.rpm')) {
-        return (preferRpm ? 100 : 74) + (containsLinux ? 10 : 0);
+        return (preferRpm ? 100 : (preferDeb ? 72 : 84)) +
+            (containsLinux ? 10 : 0);
       }
       if (name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
-        return (preferRpm ? 86 : 100) + (containsLinux ? 10 : 0);
+        return (preferRpm ? 86 : (preferDeb ? 88 : 100)) +
+            (containsLinux ? 10 : 0);
       }
       return -1;
     }
@@ -373,10 +383,20 @@ class AppVersionInfo {
         name.endsWith('.dmg') ||
         name.endsWith('.exe') ||
         name.endsWith('.msi') ||
-        name.endsWith('.rpm')) {
+        name.endsWith('.rpm') ||
+        name.endsWith('.deb')) {
       return 1;
     }
     return -1;
+  }
+
+  static bool _isDeveloperOnlyArtifact(String name) {
+    return name.contains('symbols') ||
+        name.contains('dsym') ||
+        name.contains('sha256') ||
+        name.contains('checksums') ||
+        name.contains('win11-dev') ||
+        name.endsWith('.msix');
   }
 
   static bool _preferRpmPackage(String? linuxOsRelease) {
@@ -392,6 +412,21 @@ class AppVersionInfo {
         normalized.contains('opensuse') ||
         normalized.contains('sles') ||
         normalized.contains('suse');
+  }
+
+  static bool _preferDebPackage(String? linuxOsRelease) {
+    if (linuxOsRelease == null || linuxOsRelease.trim().isEmpty) {
+      return false;
+    }
+    final normalized = linuxOsRelease.toLowerCase();
+    return normalized.contains('ubuntu') ||
+        normalized.contains('debian') ||
+        normalized.contains('mint') ||
+        normalized.contains('pop') ||
+        normalized.contains('elementary') ||
+        normalized.contains('kali') ||
+        normalized.contains('zorin') ||
+        normalized.contains('raspbian');
   }
 }
 
