@@ -6,26 +6,24 @@ sidebar_position: 8
 
 ## 当前状态
 
-Vertree 已经可以在 Linux 上进入 Flutter 桌面构建流程，但当前仍处于适配阶段，还没有正式发布的 Linux 安装包。
+Vertree 已进入 Linux 桌面发布链路，当前仓库会构建：
 
-在 Fedora 43 上，本仓库已经实测通过了以下几步：
+- `vertree-linux-x64-<version>.tar.gz`
+- `vertree-<version>-*.x86_64.rpm`
 
-- Flutter 工程可生成 Linux 平台目录
-- `flutter pub get` 可成功完成
-- CMake / Ninja / GTK3 / 托盘 / 通知相关系统依赖可以被正确识别
+Linux 侧当前最完整的集成目标是 GNOME，会提供：
 
-当前还存在一个代码层面的兼容问题：
-
-- `tray_manager` 的 Linux 插件在当前环境下会因为上游废弃 API 告警被当成错误处理，导致构建中断
-- GNOME Files 右键菜单依赖 `nautilus-python`
-
-这意味着 Linux 端现在的主要工作已经从“缺环境”进入“修兼容”阶段。
+- 托盘菜单
+- GNOME Files 顶层右键菜单
+- 设置页中的集成状态检测与开关
+- 开机自启
+- 本机 HTTP API 与 OpenAPI 文档
 
 ## 开发环境要求
 
 ### Flutter / Dart
 
-- Flutter 3.41.5 或更新版本
+- Flutter stable
 - Dart 3.10.0 或更新版本
 
 项目当前的 SDK 约束见 [pubspec.yaml](../../pubspec.yaml)：
@@ -35,53 +33,34 @@ environment:
   sdk: '>=3.10.0 <4.0.0'
 ```
 
-### Fedora 依赖
+### 常见系统依赖
 
-在 Fedora 43 上，当前确认需要安装这些系统包：
+GitHub Actions 的 Linux workflow 当前会安装这些依赖：
 
 - `clang`
 - `cmake`
 - `ninja-build`
-- `gtk3-devel`
-- `libnotify-devel`
-- `libayatana-appindicator-gtk3-devel`
-- `python3-nautilus`
-
-可选但推荐：
-
-- `mesa-demos`
-  用于提供 `eglinfo`，方便 `flutter doctor` 检查图形驱动信息
-
-建议直接执行：
-
-```bash
-sudo dnf install clang cmake ninja-build gtk3-devel libnotify-devel libayatana-appindicator-gtk3-devel mesa-demos
-```
+- `pkg-config`
+- `libgtk-3-dev`
+- `libnotify-dev`
+- `libayatana-appindicator3-dev`
+- `libblkid-dev`
+- `liblzma-dev`
+- `rpm`
+- `desktop-file-utils`
+- `appstream`
 
 如果你要在 GNOME Files 里启用 Vertree 的文件右键菜单，还需要：
 
-```bash
-sudo dnf install python3-nautilus
-```
+- Debian/Ubuntu: `python3-nautilus`
+- Fedora: `nautilus-python`
 
-## 为什么需要这些依赖
+如果你要在 GNOME 里稳定使用托盘，还可能需要系统托盘扩展，例如 AppIndicator 扩展。
 
-- `clang`：Linux 桌面原生代码编译器
-- `cmake`：Flutter Linux runner 和插件的构建系统
-- `ninja-build`：CMake 默认使用的底层构建执行器
-- `gtk3-devel`：Flutter Linux shell 依赖的 GTK3 开发头文件
-- `libnotify-devel`：`local_notifier` 插件的 Linux 依赖
-- `libayatana-appindicator-gtk3-devel`：`tray_manager` 插件的 Linux 托盘依赖
-- `python3-nautilus`：GNOME Files 顶层右键菜单扩展依赖
-- `mesa-demos`：补充 `eglinfo` 等诊断工具，不是应用启动硬依赖
-
-## 启动步骤
-
-如果本机还没有 Flutter，可先把 Flutter SDK 放到用户目录并加入 `PATH`。之后在项目根目录执行：
+## 运行方式
 
 ```bash
 flutter config --enable-linux-desktop
-flutter create --platforms=linux .
 flutter pub get
 flutter run -d linux
 ```
@@ -93,19 +72,32 @@ env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u AL
   flutter run -d linux
 ```
 
-## 当前已确认的阻塞点
+## GNOME 集成说明
 
-在 Fedora 43 上，补齐系统依赖后，当前实际遇到的下一个问题是：
+### GNOME Files 右键菜单
 
-- `tray_manager` Linux 插件中的 `app_indicator_new` 废弃告警被 `-Werror` 提升为构建错误
+- 通过本地 `nautilus-python` 扩展脚本接入
+- 设置页可以检测依赖状态，并提供安装 / 重启 Files 的提示
+- 当前支持：备份、快速备份、监控、查看版本树
 
-这不是缺系统包，而是插件代码本身需要进一步兼容处理。
+### 托盘
 
-## 对 RPM 打包的意义
+- GNOME 默认不一定显示普通托盘图标
+- 如果托盘扩展不可用，Vertree 会回退为显示主窗口，而不是强制托盘常驻
+- 设置页会给出“已安装但未启用”或“缺少依赖”的具体提示
 
-如果后续要做 RPM 打包，至少需要把下面这些运行 / 构建前提整理清楚：
+## 打包命令
 
-- 构建机需要具备 Flutter Linux toolchain
-- SPEC 或打包说明里需要列出 GTK / libnotify / appindicator 相关依赖
-- 托盘与通知能力需要在目标发行版上单独验证
-- 插件层的废弃 API 问题需要先修掉，否则 RPM 构建同样会失败
+构建 Linux 便携包：
+
+```bash
+linux/build_linux_release.sh
+```
+
+构建 RPM：
+
+```bash
+linux/build_linux_rpm.sh
+```
+
+脚本会从 `pubspec.yaml` 读取版本号，并自动生成与 release 版本一致的归档文件名。

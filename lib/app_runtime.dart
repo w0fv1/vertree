@@ -39,7 +39,7 @@ late final AppWindowController appWindowController;
 final AppLocale appLocale = AppLocale();
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.10.0-alpha1",
+  currentVersion: "V0.10.0-alpha3",
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );

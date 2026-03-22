@@ -52,6 +52,20 @@ sidebar_position: 5
 - 菜单栏图标
 - 应用主界面
 
+### Linux GNOME
+
+- GNOME Files 右键菜单
+- 托盘菜单
+- 应用主界面
+- 设置页
+
+### 命令行
+
+- `vertree /path/to/file`
+- `vertree backup /path/to/file`
+- `vertree monit /path/to/file`
+- `vertree express-backup /path/to/file`
+
 ## 监控页能做什么
 
 - 手动添加监控任务
@@ -68,13 +82,29 @@ sidebar_position: 5
 - 切换语言
 - 切换主题模式
 - 调整监控频率与最大备份数
-- 开关 Windows 菜单集成
+- 开关 Windows / Linux GNOME 菜单集成
 - 开关开机自启
 - 打开配置文件和日志目录
+- 打开官网、GitHub 与捐助页面
+- 查看本机 HTTP API 地址和 OpenAPI 文档
 - 检查版本更新
+
+## 本机 HTTP API 能做什么
+
+如果你要做自动化验证或本地集成，可以通过设置页打开 API 文档，也可以直接访问：
+
+- `GET /api/v1/health`
+- `GET/POST/PATCH/DELETE /api/v1/monitor-tasks`
+- `POST /api/v1/backups`
+- `GET /api/v1/backups`
+- `GET /api/v1/version-files`
+- `GET /api/v1/version-trees`
+
+默认只监听 `127.0.0.1`，不会暴露到局域网。
 
 ## 使用建议
 
 - 旧版本只读，新增修改尽量通过“备份/分支”继续
 - 监控适合高频保存文件，不适合超大目录型项目
 - 发布前或重要节点前，建议手动做一次带备注备份
+- 如果系统托盘不可用，优先从主窗口和设置页确认平台集成状态

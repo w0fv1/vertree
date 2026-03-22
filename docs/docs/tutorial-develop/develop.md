@@ -2,175 +2,174 @@
 sidebar_position: 1
 ---
 
-# 🚀 VerTree 开发入门
+# Vertree 开发入门
 
-**VerTree** 是一款专注于 **单文件版本管理** 的工具，帮助用户轻松管理文件的历史版本。它采用 **Flutter** 开发，支持跨平台运行，并结合 **Windows API** 进行系统级集成。
+Vertree 是一个基于 Flutter 的桌面应用，目标是给“单文件持续演进”的工作流提供版本树、自动备份、平台原生入口和本机自动化接口。
 
----
+## 技术栈
 
-## 🛠️ **环境准备**
+- Flutter Desktop
+- Dart
+- Windows / macOS / Linux 原生平台桥接
+- Docusaurus 文档站
 
-### ✅ 1. 安装 Flutter
+## 环境准备
 
-VerTree 使用**Flutter**进行开发，首先需要安装 Flutter SDK。请参考官方指南：
-👉 [Flutter 安装指南](https://docs.flutter.dev/get-started/install)
+### Flutter
 
-**推荐版本**：请确保使用最新的稳定版 Flutter SDK 以获得最佳兼容性。
-
-### ⚙️ 2. 配置 Flutter 开发环境
-
-在终端运行以下命令，确保 Flutter 安装正确：
+请先安装 Flutter stable，并确认桌面支持已启用：
 
 ```bash
 flutter doctor
+flutter config --enable-windows-desktop
+flutter config --enable-macos-desktop
+flutter config --enable-linux-desktop
 ```
 
-如果遇到缺少依赖的提示，请按指引安装所需组件，如 **Android Studio、VS Code 插件** 或 **Windows 相关依赖** 。
+### 平台依赖
 
----
+- Windows：如需构建安装包，额外安装 Inno Setup
+- macOS：安装 CocoaPods
+- Linux：安装 GTK / 通知 / 托盘 / RPM 打包相关依赖
+- 文档站：Node.js 18+
 
-## 📥 **克隆项目**
+## 克隆项目
 
 ```bash
-git clone https://github.com/your-username/vertree.git
+git clone https://github.com/w0fv1/vertree.git
 cd vertree
-```
-
----
-
-## 📦 **安装依赖**
-
-在项目根目录下运行：
-
-```bash
 flutter pub get
 ```
 
-这将下载所有必须的依赖库。
+## 运行应用
 
----
-
-## 🚀 **运行 VerTree**
-
-### 🖥️ **Windows**
-
-由于 VerTree 目前优先支持 Windows，目前某些功能依赖管理员权限，请以管理员身份运行：
+### Windows
 
 ```bash
 flutter run -d windows
 ```
 
-**如果遇到管理员权限问题**，可以以**管理员身份**运行终端或使用：
+如果你要验证注册表菜单、Win11 新菜单或开机自启，可能需要提升权限；普通 UI 和版本树/监控逻辑不要求始终以管理员身份运行。
+
+### macOS
 
 ```bash
-flutter run --release
+brew install cocoapods
+flutter run -d macos
 ```
 
-### 🍎🐧 **macOS / Linux**
+### Linux
 
-目前 **VerTree** 主要支持 **Windows**，未来版本将逐步扩展到 **macOS 和 Linux**，敬请期待！
+```bash
+flutter run -d linux
+```
 
----
+## 本地开发控制脚本
 
-## 📁 **项目结构**
+仓库自带 `dev_server.py`，它会托管一个 `flutter run` 子进程，并暴露 loopback-only 控制接口，方便本地代理或自动化工具迭代 UI：
 
-```plaintext
+```bash
+python dev_server.py --bootstrap --device windows
+```
+
+默认控制器地址为 `http://127.0.0.1:32500`，支持：
+
+- `GET /status`
+- `GET /logs`
+- `POST /start`
+- `POST /reload`
+- `POST /hot-restart`
+- `POST /restart-process`
+- `POST /stop`
+- `POST /ensure-ready`
+
+## 项目结构
+
+```text
 vertree/
 ├── lib/
-│   ├── component/      # 组件模块（如日志管理、配置管理等）
-│   ├── core/           # 核心逻辑（版本管理、文件监控）
-│   ├── view/           # 视图层，包含 UI 组件和页面
-│   └── main.dart       # 应用入口
-├── assets/             # 资源文件（图标、UI 组件）
-├── pubspec.yaml        # 依赖管理文件
-└── README.md           # 项目说明文档
+│   ├── api/            # 本机 HTTP API 契约、文档与 server
+│   ├── component/      # 配置、日志、命令处理、窗口控制、托盘等通用组件
+│   ├── core/           # 版本树、监控、Result、TreeBuilder 等核心逻辑
+│   ├── platform/       # Windows / macOS / Linux 平台集成与 bootstrap
+│   ├── service/        # 面向 API 的业务服务
+│   ├── view/           # 页面、模块与可视化组件
+│   ├── app_runtime.dart
+│   └── main.dart
+├── windows/            # Windows 打包与上下文菜单相关脚本
+├── macos/              # macOS 构建脚本与原生桥接
+├── linux/              # Linux 发布与 RPM 打包脚本
+├── docs/               # Docusaurus 文档站
+└── .github/workflows/  # Release / Pages 工作流
 ```
 
----
+## 关键模块
 
-## 📌 **关键模块介绍**
+- `lib/main.dart`：按平台选择 bootstrap
+- `lib/app_runtime.dart`：应用启动总控、页面切换、单实例、托盘、HTTP API、命令行分发
+- `lib/component/app_cli.dart`：CLI 参数解析
+- `lib/component/app_command_handler.dart`：把 CLI 请求分发到备份 / 监控 / 版本树动作
+- `lib/core/FileVersionTree.dart`：版本号、文件元信息、文件节点与备份/分支逻辑
+- `lib/core/MonitManager.dart`、`lib/core/Monitor.dart`：监控任务管理与自动备份
+- `lib/api/LocalHttpApiServer.dart`、`lib/service/LocalHttpApiService.dart`：本机自动化接口
+- `lib/platform/platform_integration.dart`：跨平台上下文菜单、开机自启、GNOME 检测、Win11 包身份等封装
 
-| 模块 | 说明 |
-|------|------|
-| **`lib/core/FileVersionTree.dart`** | 版本树核心逻辑，管理文件的版本分支 |
-| **`lib/core/Monitor.dart`** | 文件监控模块，负责自动备份 |
-| **`lib/component/Notifier.dart`** | 负责系统通知，如备份成功提示 |
-| **`lib/component/WindowsRegistryHelper.dart`** | Windows 注册表管理，处理右键菜单等功能 |
-| **`lib/view/VersionTreePage.dart`** | 版本管理 UI 展示页面 |
-| **`lib/main.dart`** | 应用主入口 |
+## 构建发布工件
 
----
-
-## 📦 **打包发布**
-
-### 1️⃣ **编译 Windows 程序**
-
-在项目根目录执行以下命令编译 Windows 应用程序：
-
-```bash
-flutter build windows
-```
-
-生成的可执行文件位于：
-
-```plaintext
-build/windows/runner/Release/
-```
-
-你可以直接运行 `vertree.exe` 文件，也可以进一步制作安装包。
-
-### 2️⃣ **使用 Inno Setup 制作安装包**
-
-项目提供了便捷的 Inno Setup 打包脚本，位于 `windows` 目录中：
-
-- 确保已安装 [Inno Setup](https://jrsoftware.org/isdl.php)；
-- 推荐使用默认安装路径：`C:\Program Files (x86)\Inno Setup 6\`
-
-进入项目的 `windows` 目录：
-
-```bash
-cd windows
-```
-
-运行脚本进行打包：
+### Windows
 
 ```powershell
-.\build.ps1
+pwsh -File windows/build.ps1 -BuildMode Release
 ```
 
-此操作会自动生成安装程序 (`Vertree_Setup.exe`) 并压缩成 `Vertree_Setup.zip`。
+会生成：
 
-生成的文件位于 `windows` 目录中：
+- `windows/Vertree_Setup.exe`
+- `windows/Vertree_Setup.zip`
 
-- `Vertree_Setup.exe`（安装程序）
-- `Vertree_Setup.zip`（压缩后的安装包）
+### macOS
 
----
+```bash
+macos/build_macos_release.sh
+```
 
-## 🌟 **未来规划**
+会生成：
 
-1. **支持 macOS & Linux**：扩展跨平台兼容性。
-2. **国际化支持 (i18n)**：实现多语言版本，让全球用户都能轻松使用。
-3. **优化权限管理**：提升管理员权限控制的体验。
+- `build/dist/vertree-macos-<version>.zip`
+- `build/dist/vertree-macos-<version>.dmg`
 
----
+### Linux
 
-## 🙌 **贡献指南**
+```bash
+linux/build_linux_release.sh
+linux/build_linux_rpm.sh
+```
 
-欢迎对 VerTree 进行贡献！
+会生成：
 
-**如何参与？**
+- `build/dist/vertree-linux-x64-<version>.tar.gz`
+- `build/dist/*.rpm`
 
-1. **Fork 仓库** 并克隆到本地；
-2. **新增功能或修复问题**；
-3. 提交 **Pull Request**。
+## 文档站
 
----
+文档站位于 `docs/`：
 
-## 📬 **联系**
+```bash
+cd docs
+npm install
+npm start
+npm run build
+```
 
-如有任何问题或建议，请提交 [GitHub Issue](https://github.com/your-username/vertree)。我们会尽快回复！🚀
+## 版本发布流程
 
----
+1. 修改 `pubspec.yaml` 中的版本号
+2. 同步更新应用内展示版本号（当前在 `lib/app_runtime.dart`）
+3. 新建 `.github/release-<version>.md`
+4. 更新 README、文档站和必要的站点首页内容
+5. 构建并验证：
+   - `flutter analyze`
+   - `npm run build`（在 `docs/` 下）
+6. 提交代码并创建 tag：`V<version>`
 
-希望这份开发入门引导能帮助你快速上手！💡 欢迎提出优化建议！😃
+GitHub Actions 会在推送 tag 后自动构建三平台工件并创建 prerelease / release。

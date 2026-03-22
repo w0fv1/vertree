@@ -1141,9 +1141,8 @@ class _SettingPageState extends State<SettingPage> {
                                   ),
                                 ),
                                 FilledButton.tonalIcon(
-                                  onPressed: () => _openUrl(
-                                    "https://vertree.w0fv1.dev/",
-                                  ),
+                                  onPressed: () =>
+                                      _openUrl("https://vertree.w0fv1.dev/"),
                                   icon: const Icon(Icons.language_rounded),
                                   label: Text(
                                     appLocale.getText(
@@ -1162,6 +1161,17 @@ class _SettingPageState extends State<SettingPage> {
                                     appLocale.getText(
                                       LocaleKey.setting_openGithub,
                                     ),
+                                  ),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _openUrl(
+                                    "https://firco.cn/w0fv1?focusProduct=product-8283788fa5724d25ae65958d1b61b288",
+                                  ),
+                                  icon: const Icon(
+                                    Icons.volunteer_activism_rounded,
+                                  ),
+                                  label: Text(
+                                    appLocale.getText(LocaleKey.setting_donate),
                                   ),
                                 ),
                                 Tooltip(

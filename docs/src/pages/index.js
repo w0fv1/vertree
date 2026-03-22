@@ -27,6 +27,12 @@ function HomepageHeader() {
                         <Link className="button button--text button--lg" to="https://github.com/w0fv1/vertree/releases">
                             下载
                         </Link>
+                        <Link
+                            className="button button--primary button--lg"
+                            to="https://firco.cn/w0fv1?focusProduct=product-8283788fa5724d25ae65958d1b61b288"
+                        >
+                            捐助支持
+                        </Link>
                     </div>
                 </div>
 

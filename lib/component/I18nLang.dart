@@ -157,6 +157,7 @@ enum LocaleKey {
   setting_openConfig,
   setting_openLogs,
   setting_visitWebsite,
+  setting_donate,
   setting_versionInfo,
   setting_openGithub,
   setting_commandCopied,
@@ -492,6 +493,7 @@ class AppLocale {
     LocaleKey.setting_openConfig: "Open config.json",
     LocaleKey.setting_openLogs: "Open logs folder",
     LocaleKey.setting_visitWebsite: "Visit official website",
+    LocaleKey.setting_donate: "Donate",
     LocaleKey.setting_commandCopied: "Command copied",
     LocaleKey.setting_detectingPlatformIntegration:
         "Detecting desktop integration support...",
@@ -748,6 +750,7 @@ class AppLocale {
     LocaleKey.setting_openLogs: "打开日志文件夹",
 
     LocaleKey.setting_visitWebsite: "访问官方网站",
+    LocaleKey.setting_donate: "捐助支持",
     LocaleKey.setting_versionInfo: "版本信息",
     LocaleKey.setting_commandCopied: "已复制命令",
     LocaleKey.setting_detectingPlatformIntegration: "正在检测 GNOME 集成能力...",
@@ -992,6 +995,7 @@ class AppLocale {
     LocaleKey.setting_openConfig: "config.json を開く",
     LocaleKey.setting_openLogs: "ログフォルダを開く",
     LocaleKey.setting_visitWebsite: "公式サイトを訪問",
+    LocaleKey.setting_donate: "寄付で支援",
     LocaleKey.setting_commandCopied: "コマンドをコピーしました",
     LocaleKey.setting_detectingPlatformIntegration: "デスクトップ連携の状態を確認しています...",
     LocaleKey.setting_supportStatusAvailable: "利用可能",

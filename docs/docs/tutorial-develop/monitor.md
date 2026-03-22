@@ -2,157 +2,108 @@
 sidebar_position: 3
 ---
 
-# 🛡️ Vertree文件监控设计解析
+# Vertree 文件监控设计解析
 
-`Monitor` 模块负责实现文件的实时监控和自动备份功能。它能够侦听指定文件的修改事件，并在检测到文件发生变化时，自动备份文件，避免数据意外丢失或误修改带来的损失。
+Vertree 的监控能力由三个核心对象组成：
 
-本模块主要包含以下几个类：
+- `Monitor`：负责单个文件的文件系统监听与自动备份
+- `MonitManager`：负责保存、恢复和切换多个监控任务
+- `FileMonitTask`：监控任务的数据模型
 
-- `Monitor`：负责单个文件的实时监控和备份。
-- `MonitService`：负责管理多个监控任务，提供启动、暂停、移除任务的接口。
-- `FileMonitTask`：代表一个具体的监控任务，记录监控状态和文件信息。
+## Monitor 的工作方式
 
----
+`Monitor` 会监听目标文件所在目录的文件系统事件，并只在事件路径命中目标文件时继续处理。
 
-## 一、Monitor 类设计介绍
+核心行为：
 
-### 🎯 Monitor 类作用：
+- 使用 `file.parent.watch(events: FileSystemEvent.all)` 建立监听
+- 记录运行时状态：
+  - `startedAt`
+  - `lastObservedEventAt`
+  - `lastBackupTime`
+  - `lastBackupPath`
+  - `lastError`
+  - `observedEventCount`
+  - `createdBackupCount`
+- 通过 `_isHandlingFileChange` 防止重入
 
-- **文件监听**：监听单个文件的变更事件。
-- **自动备份**：文件发生变化后，自动进行备份到指定目录中。
+## 自动备份策略
 
-### 📌 核心工作流程：
+备份目录规则：
 
-1. **初始化**：
-  - 检查文件路径有效性；
-  - 创建专属备份目录，通常为源文件目录的子目录（如：`yourFile_bak`）。
+- 与源文件同目录
+- 目录名为 `<basename>_bak`
 
-2. **启动监控 (`start()`)**：
-  - 使用 `dart:io` 提供的文件监听机制 (`file.parent.watch()`)；
-  - 实时监听文件的修改事件；
-  - 当文件被修改时，触发 `_handleFileChange` 方法进行备份。
+备份文件名规则：
 
-3. **备份逻辑 (`_handleFileChange`)**：
-  - 限制备份频率（默认1分钟内变化只备份一次）；
-  - 备份文件名中包含时间戳，防止重复。
+- `<原文件名>_<ISO时间戳>.bak<原扩展名>`
 
-4. **停止监控 (`stop()`)**：
-  - 停止监听，释放资源。
+例如：
 
-### 🚩 关键方法说明：
+```text
+story.0.1.txt_2026-03-22T11-35-10.123.bak.txt
+```
 
-- **`start()`**：
-  - 开启文件监听任务，使用 Stream 监听文件夹下文件的修改事件。
+## 频率控制与清理
 
-- **`_handleFileChange(File file, Directory backupDir)`**：
-  - 检测到文件变更时调用；
-  - 控制备份频率，防止备份过于频繁。
+监控不会对每一次保存都立即无限制落盘，而是受配置控制：
 
-- **`_backupFile(File file, Directory backupDir)`**：
-  - 执行实际的文件复制操作，创建备份副本；
-  - 文件备份名带有精确到秒的时间戳，保证唯一性。
+- `monitorRate`：最小备份间隔，默认 `5` 分钟
+- `monitorMaxSize`：每个监控任务最多保留的备份数量，默认 `50`
 
-- **`stop()`**：
-  - 停止监控任务，取消事件监听。
+当备份数量超过上限时，`Monitor` 会按最后修改时间从旧到新删除多余备份。
 
----
+## MonitManager 的职责
 
-## 二、MonitService 类设计介绍
+`MonitManager` 是运行时监控任务的持有者。
 
-### 🎯 MonitService 类作用：
+它负责：
 
-- 统一管理多个文件的监控任务；
-- 提供对任务的增删改查与启动/暂停等控制。
+- 从 `config.json` 读取 `monitFiles`
+- 在启动时恢复 `isRunning == true` 的任务
+- 添加新任务
+- 删除任务
+- 切换任务运行状态
+- 统一保存任务列表
 
-### 📌 核心工作流程：
+关键方法：
 
-1. **任务初始化与加载**：
-  - 从本地配置文件（通过 `Configer` 类）加载已保存的任务；
-  - 初始化时自动启动状态为 `isRunning` 的任务。
+- `addFileMonitTask(String path)`
+- `removeFileMonitTask(String path)`
+- `toggleFileMonitTaskStatus(FileMonitTask task)`
+- `startAll()`
 
-2. **任务管理方法**：
-  - **`addFileMonitTask(String path)`**：增加新监控任务；
-  - **`removeFileMonitTask(String path)`**：移除指定任务；
-  - **`toggleFileMonitTaskStatus(FileMonitTask task)`**：切换任务运行状态（启动/暂停）；
-  - **`startAll()`**：启动所有标记为运行的监控任务。
+## FileMonitTask 的职责
 
-### 🚩 状态持久化：
+`FileMonitTask` 用来描述一个持久化的监控任务，核心字段包括：
 
-- MonitService 使用 `Configer` 存储监控任务列表，以 JSON 格式序列化保存到配置中，保证应用重启后仍能恢复任务状态。
+- `filePath`
+- `backupDirPath`
+- `isRunning`
+- `fileExists`
+- `monitor`
 
----
+它同时提供：
 
-## 三、FileMonitTask 类设计介绍
+- `toJson()`：持久化到配置
+- `fromJson()`：从配置恢复
 
-### 🎯 FileMonitTask 类作用：
+## 与本机 HTTP API 的关系
 
-- 描述一个具体的文件监控任务，记录监控文件的路径、备份目录以及运行状态。
+本机 HTTP API 会直接复用这些运行时对象：
 
-### 📌 核心属性：
+- `GET /api/v1/monitor-tasks`
+- `POST /api/v1/monitor-tasks`
+- `PATCH /api/v1/monitor-tasks/{id}`
+- `DELETE /api/v1/monitor-tasks/{id}`
+- `GET /api/v1/monitor-tasks/{id}/backups`
+- `POST /api/v1/monitor-tasks/{id}/verification-writes`
 
-- **`filePath`**：监控文件的绝对路径；
-- **`backupDirPath`**：自动备份的存放路径；
-- **`isRunning`**：标记任务是否处于运行状态；
-- **`monitor`**：任务对应的 Monitor 实例（可为空）。
+这意味着监控模块不仅服务 UI，也服务本地自动化和测试验证。
 
-### 🚩 序列化与反序列化：
+## 当前实现特点
 
-- **`toJson()`**：将任务状态序列化为 JSON，用于持久化；
-- **`fromJson()`**：从 JSON 数据还原任务实例。
-
----
-
-## 四、Monitor 设计思想与优势
-
-### 🌟 为什么设计为实时监控？
-
-- **安全性与稳定性**：
-  - 保证用户文件修改实时备份，避免数据丢失；
-  - 减少人为误操作带来的风险。
-
-- **用户体验**：
-  - 完全自动化，无需手动干预，提升工作效率；
-  - 文件发生意外时，可以快速恢复到最近的版本。
-
-### 🌟 为什么控制备份频率？
-
-- 避免频繁的文件保存事件产生过多冗余备份；
-- 提高性能，节省磁盘空间。
-
-### 🌟 为什么备份文件名包含时间戳？
-
-- 直观展示备份时间，便于回溯；
-- 防止备份文件名冲突。
-
----
-
-## 五、开发与扩展建议
-
-### 🚀 如何参与开发？
-
-- 增强 Monitor 的灵活性：
-  - 提供配置项（如备份频率、备份文件名格式化规则等）；
-  - 优化资源占用和文件监控性能。
-
-- 提升 MonitService 的易用性：
-  - 增加批量启动/停止功能；
-  - 提供监控状态的 UI 展示。
-
-- 改进错误处理与日志输出：
-  - 增加更多日志输出与异常处理逻辑；
-  - 便于用户与开发者排查问题。
-
----
-
-## 🛠️ 总结（给开发者的话）：
-
-Vertree 的监控模块是保障用户数据安全的重要组件，设计核心强调实时性、稳定性和用户体验。  
-开发时，你只需关注：
-
-- 文件监听事件；
-- 备份触发逻辑；
-- 任务管理机制。
-
-你可以快速上手并参与到新功能的开发与优化中！
-
-期待你的贡献，让 Vertree 更安全、更可靠！🚀✨
+- 备份逻辑简单直接，以文件复制为核心
+- 配置恢复优先保证“可继续工作”，而不是引入复杂调度器
+- 运行时元数据比较完整，便于设置页和 API 直接观测任务状态
+- 目前以单文件监听为单位，不是目录级批处理系统
