@@ -306,12 +306,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          current_ref="${GITHUB_REF#refs/tags/}"
+          expected_version="${{ needs.meta.outputs.version }}"
+          if [[ -z "$current_ref" || "$current_ref" == "$GITHUB_REF" ]]; then
+            echo "Release workflow did not receive a tag ref. GITHUB_REF=$GITHUB_REF" >&2
+            exit 1
+          fi
+
+          normalized_tag="${current_ref#V}"
+          normalized_tag="${normalized_tag#v}"
+          if [[ "$normalized_tag" != "$expected_version" ]]; then
+            echo "Resolved tag $current_ref does not match expected version $expected_version" >&2
+            exit 1
+          fi
+
+          tag="$current_ref"
           notes_file="${{ steps.notes.outputs.notes_file }}"
           prerelease_flag=()
           if [[ "${{ contains(needs.meta.outputs.version, '-') }}" == "true" ]]; then
             prerelease_flag+=(--prerelease)
           fi
+
+          echo "Publishing release for tag: $tag"
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$tag" \
