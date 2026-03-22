@@ -118,6 +118,13 @@ function Resolve-WixBin([string]$preferred) {
     return ""
 }
 
+function Escape-XmlAttribute([string]$value) {
+    if ($null -eq $value) {
+        return ""
+    }
+    return [System.Security.SecurityElement]::Escape($value)
+}
+
 # 当前脚本目录
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $currentDir = Get-Location
@@ -266,12 +273,27 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
         Write-Warning "WiX Toolset 缺少 heat/candle/light，可执行文件不完整，跳过 MSI 打包。"
     } else {
         New-Item -ItemType Directory -Force -Path $wixObjDir | Out-Null
+        $resolvedProjectRoot = (Resolve-Path $projectRoot).Path
+        $productGeneratedWxs = Join-Path $wixObjDir "Product.generated.wxs"
         if (Test-Path $harvestWxs) {
             Remove-Item $harvestWxs -Force
         }
         if (Test-Path $msiPath) {
             Remove-Item $msiPath -Force
         }
+        if (Test-Path $productGeneratedWxs) {
+            Remove-Item $productGeneratedWxs -Force
+        }
+
+        $productTemplate = Get-Content $productWxs -Raw
+        $productTemplate = $productTemplate.Replace('$(var.ProductVersion)', (Escape-XmlAttribute $msiProductVersion))
+        $productTemplate = $productTemplate.Replace('$(var.FullVersion)', (Escape-XmlAttribute $pubspecVersion))
+        $productTemplate = $productTemplate.Replace('$(var.RootDir)', (Escape-XmlAttribute $resolvedProjectRoot))
+        [System.IO.File]::WriteAllText(
+            $productGeneratedWxs,
+            $productTemplate,
+            [System.Text.UTF8Encoding]::new($false)
+        )
 
         Write-Host "正在使用 WiX 生成 MSI..."
         & $heatExe dir $runnerDir `
@@ -295,11 +317,8 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
             -nologo `
             -arch x64 `
             -dSourceDir=$runnerDir `
-            -dProductVersion=$msiProductVersion `
-            -dFullVersion=$pubspecVersion `
-            -dRootDir=$projectRoot `
             -out "$wixObjDir\\" `
-            $productWxs `
+            $productGeneratedWxs `
             $harvestWxs
 
         if ($LASTEXITCODE -ne 0) {
