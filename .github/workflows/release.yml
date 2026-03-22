@@ -252,10 +252,19 @@ jobs:
           fi
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v6
-        with:
-          path: release-assets
-          merge-multiple: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf release-artifacts release-assets
+          mkdir -p release-artifacts release-assets
+          gh run download "$GITHUB_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-artifacts
+
+          find release-artifacts -type f -print0 | while IFS= read -r -d '' file; do
+            cp "$file" "release-assets/$(basename "$file")"
+          done
 
       - name: Generate checksums
         shell: bash
