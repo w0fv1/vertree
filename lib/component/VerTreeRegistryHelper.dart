@@ -23,14 +23,6 @@ class VerTreeRegistryService {
   static const String win11HandlerName = 'Vertree';
   static const String win11HandlerClsid =
       '{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}';
-  static bool _warnedNoIdentity = false;
-  static void _warnNoIdentityOnce() {
-    if (_warnedNoIdentity) {
-      return;
-    }
-    _warnedNoIdentity = true;
-    logger.error('Win11 新菜单需要 Sparse Package/MSIX 身份');
-  }
 
   static String exePath = Platform.resolvedExecutable;
 
@@ -409,6 +401,7 @@ class VerTreeRegistryService {
 
   static bool applyInitialSetup() {
     final entries = _legacyMenuEntries();
+    final packaged = WindowsPackageIdentity.isPackagedOrRegistered();
 
     bool success = true;
     for (final entry in entries) {
@@ -426,11 +419,8 @@ class VerTreeRegistryService {
         RegistryHelper.enableAutoStart(runRegistryPath, appName, exePath) &&
         success;
 
-    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
-      // Packaged apps register Win11 menu via AppX manifest.
-      success = success && true;
-    } else {
-      logger.info('Win11 新菜单需要 Sparse Package/MSIX 身份，已跳过注册');
+    if (!packaged) {
+      success = addWin11ContextMenuHandler(allowElevation: false) && success;
     }
 
     if (success) {
@@ -438,6 +428,7 @@ class VerTreeRegistryService {
     }
 
     logger.info('初始化普通权限失败，尝试一次性提权配置...');
+    final win11Menu = !packaged ? _win11MenuPayload() : null;
     final payload = <String, dynamic>{
       'contextMenus': entries,
       'autostart': {
@@ -446,6 +437,7 @@ class VerTreeRegistryService {
         'appName': appName,
         'appPath': exePath,
       },
+      ...?win11Menu == null ? null : {'win11Menu': win11Menu},
     };
     final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
       ElevatedTaskRunner.opApplySetup,
@@ -518,16 +510,43 @@ class VerTreeRegistryService {
     if (WindowsPackageIdentity.isPackagedOrRegistered()) {
       return true;
     }
-    _warnNoIdentityOnce();
-    return false;
+    final payload = _win11MenuPayload();
+    if (payload == null) {
+      logger.error('Win11 新菜单注册失败：未找到 vertree_context_menu.dll');
+      return false;
+    }
+
+    bool success = RegistryHelper.addWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+      payload['serverPath']!,
+    );
+    success = _retryWithElevation(
+      actionName: '添加 Win11 新菜单',
+      success: success,
+      allowElevation: allowElevation,
+      operation: ElevatedTaskRunner.opAddWin11Menu,
+      payload: payload,
+    );
+    return success;
   }
 
   static bool removeWin11ContextMenuHandler({bool allowElevation = true}) {
     if (WindowsPackageIdentity.isPackagedOrRegistered()) {
       return true;
     }
-    _warnNoIdentityOnce();
-    return false;
+    bool success = RegistryHelper.removeWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+    );
+    success = _retryWithElevation(
+      actionName: '移除 Win11 新菜单',
+      success: success,
+      allowElevation: allowElevation,
+      operation: ElevatedTaskRunner.opRemoveWin11Menu,
+      payload: {'handlerName': win11HandlerName, 'clsid': win11HandlerClsid},
+    );
+    return success;
   }
 
   static bool checkWin11ContextMenuHandler() {
@@ -599,6 +618,22 @@ class VerTreeRegistryService {
         _iconPath('express-save.ico'),
       ),
     ];
+  }
+
+  static String _win11ServerPath() {
+    return path.join(FileUtils.appDirPath(), 'vertree_context_menu.dll');
+  }
+
+  static Map<String, String>? _win11MenuPayload() {
+    final serverPath = _win11ServerPath();
+    if (!File(serverPath).existsSync()) {
+      return null;
+    }
+    return {
+      'handlerName': win11HandlerName,
+      'clsid': win11HandlerClsid,
+      'serverPath': serverPath,
+    };
   }
 
   static const String backupMenuName = "备份文件 VerTree";

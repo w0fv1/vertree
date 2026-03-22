@@ -52,9 +52,13 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.11.0-alpha1",
-  releaseApiUrl:
-      "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
+  currentVersion: "V0.11.0-alpha2",
+  releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases",
+  readConfigString: (key, defaultValue) =>
+      configer.get<String>(key, defaultValue),
+  writeConfigString: (key, value) => configer.set<String>(key, value),
+  onLogInfo: logger.info,
+  onLogError: logger.error,
 );
 
 ThemeData _applyDesktopInteractionTheme(ThemeData theme) {

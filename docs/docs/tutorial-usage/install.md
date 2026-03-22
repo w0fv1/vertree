@@ -9,8 +9,8 @@ sidebar_position: 1
 Windows 仍然是当前最完整的桌面发布形态。
 
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
-2. 下载最新版本的 `Vertree_Setup.zip`
-3. 解压得到 `Vertree_Setup.exe`
+2. 下载最新版本的 `vertree-windows-x64-<version>.zip`
+3. 解压得到 `vertree-windows-x64-<version>-setup.exe`
 4. 运行安装程序并完成安装
 5. 首次启动后完成初始化
 
@@ -82,4 +82,4 @@ flutter run -d linux
 - `pubspec.yaml` 中的 `version` 决定发布版本
 - `.github/release-<version>.md` 决定 GitHub Release 说明
 - GitHub Release workflow 要求 tag 与 `pubspec.yaml` 版本完全一致
-- 例如发布 `0.11.0-alpha1` 时，应使用 tag `V0.11.0-alpha1`
+- 例如发布 `0.11.0-alpha2` 时，应使用 tag `V0.11.0-alpha2`

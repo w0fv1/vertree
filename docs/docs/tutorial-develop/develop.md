@@ -139,8 +139,8 @@ pwsh -File windows/build.ps1 -BuildMode Release
 
 会生成：
 
-- `windows/Vertree_Setup.exe`
-- `windows/Vertree_Setup.zip`
+- `windows/vertree-windows-x64-<version>-setup.exe`
+- `windows/vertree-windows-x64-<version>.zip`
 
 ### macOS
 

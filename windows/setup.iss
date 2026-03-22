@@ -17,7 +17,10 @@ DefaultDirName={commonpf}\Vertree
 DisableProgramGroupPage=yes
 DefaultGroupName=Vertree
 OutputDir=.
-OutputBaseFilename=Vertree_Setup
+#ifndef OutputBaseFilename
+#define OutputBaseFilename "vertree-windows-x64-" + AppVersion + "-setup"
+#endif
+OutputBaseFilename={#OutputBaseFilename}
 #ifndef BuildMode
 #define BuildMode "Release"
 #endif
@@ -64,7 +67,12 @@ begin
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\RegistryVerTreeBackup');
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\RegistryVerTreeExpressBackup');
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\RegistryVerTreeMonitor');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\RegistryVerTreeShare');
   RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\RegistryVerTreeViewTree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\Vertree');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, 'CLSID\{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}');
+  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shellex\ContextMenuHandlers\Vertree');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved', '{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}');
 
   if RegValueExists(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree') then
     RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', 'VerTree');

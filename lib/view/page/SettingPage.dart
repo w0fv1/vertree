@@ -42,7 +42,6 @@ class _SettingPageState extends State<SettingPage> {
   bool _showLegacyMenuDetails = false;
   bool isLoading = false;
   String _themeModeSetting = 'system';
-  bool? _windowsWin11PackageReady;
   GnomeSupportInfo? _gnomeFilesSupportInfo;
   GnomeSupportInfo? _gnomeTraySupportInfo;
 
@@ -51,8 +50,7 @@ class _SettingPageState extends State<SettingPage> {
   bool get _shouldShowGnomeTraySupportCard =>
       PlatformIntegration.isLinuxGnome &&
       (_gnomeTraySupportInfo?.isAvailable == false);
-  bool get _shouldShowWindowsWin11IdentityCard =>
-      PlatformIntegration.isWindows && (_windowsWin11PackageReady == false);
+  bool get _shouldShowWindowsWin11IdentityCard => false;
   bool get _shouldShowEnvironmentInfoSection =>
       _shouldShowGnomeTraySupportCard || _shouldShowWindowsWin11IdentityCard;
   String get _launchBehaviorTitle => PlatformIntegration.isLinuxGnome
@@ -158,12 +156,6 @@ class _SettingPageState extends State<SettingPage> {
       _gnomeFilesSupportInfo = null;
       _gnomeTraySupportInfo = null;
     }
-    if (PlatformIntegration.isWindows) {
-      _windowsWin11PackageReady =
-          await PlatformIntegration.isWin11PackagedOrRegistered();
-    } else {
-      _windowsWin11PackageReady = null;
-    }
     if (PlatformIntegration.supportsContextMenus) {
       backupFile = await PlatformIntegration.checkBackupKeyExists();
       expressBackupFile =
@@ -178,7 +170,13 @@ class _SettingPageState extends State<SettingPage> {
           shareFile &&
           viewTreeFile;
       if (PlatformIntegration.isWindows) {
-        win11MenuEnabled = configer.get("win11MenuEnabled", true);
+        final configuredWin11MenuEnabled = configer.get(
+          "win11MenuEnabled",
+          true,
+        );
+        final registeredWin11Menu =
+            await PlatformIntegration.checkWin11ContextMenuHandler();
+        win11MenuEnabled = configuredWin11MenuEnabled && registeredWin11Menu;
       }
     }
     if (PlatformIntegration.supportsAutoStart) {
@@ -248,17 +246,23 @@ class _SettingPageState extends State<SettingPage> {
     logger.info('Win11 menu toggle start: target=$value');
     try {
       final packaged = await PlatformIntegration.isWin11PackagedOrRegistered();
-      logger.info('Win11 menu packagedOrRegistered=$packaged');
-      if (!packaged) {
+      final success = packaged
+          ? true
+          : value
+          ? await PlatformIntegration.addWin11ContextMenuHandler()
+          : await PlatformIntegration.removeWin11ContextMenuHandler();
+      if (!success) {
         showToast(appLocale.getText(LocaleKey.setting_win11MenuNeedsIdentity));
-        await _refreshLegacyMenuState();
         return;
       }
 
       configer.set("win11MenuEnabled", value);
-      logger.info('Win11 menu config updated: $value');
+      logger.info(
+        'Win11 menu config updated: enabled=$value packagedOrRegistered=$packaged',
+      );
     } catch (e) {
       logger.error('Win11 menu toggle failed: $e');
+      showToast(appLocale.getText(LocaleKey.setting_win11MenuNeedsIdentity));
     } finally {
       await Future.delayed(const Duration(milliseconds: 200));
       await _refreshLegacyMenuState();
@@ -1246,7 +1250,7 @@ class _SettingPageState extends State<SettingPage> {
                                     getNewVersionDownloadUrl: () async {
                                       final Result<String?, String>
                                       checkUpdateResult = await appVersionInfo
-                                          .getLatestReleaseUrl();
+                                          .getPreferredDownloadUrl();
                                       if (checkUpdateResult.isErr) {
                                         logger.info(checkUpdateResult.msg);
                                         return "https://github.com/w0fv1/vertree/releases";

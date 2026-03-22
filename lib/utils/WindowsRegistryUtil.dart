@@ -304,13 +304,16 @@ class RegistryHelper {
         desiredAccessRights: AccessRights.allAccess,
       );
       final clsidKey = clsidRoot.createKey(clsid);
+      clsidKey.createValue(RegistryValue.string('', handlerName));
       try {
         clsidKey.deleteKey('LocalServer32', recursive: true);
       } catch (_) {}
 
       final serverKey = clsidKey.createKey('InprocServer32');
-      serverKey.createValue(RegistryValue.string('', '"$serverPath"'));
-      serverKey.createValue(RegistryValue.string('ThreadingModel', 'Apartment'));
+      serverKey.createValue(RegistryValue.string('', serverPath));
+      serverKey.createValue(
+        RegistryValue.string('ThreadingModel', 'Apartment'),
+      );
       serverKey.close();
       clsidKey.close();
       clsidRoot.close();
@@ -339,7 +342,9 @@ class RegistryHelper {
       );
       final menuKey = shellKey.createKey(handlerName);
       menuKey.createValue(RegistryValue.string('MUIVerb', handlerName));
-      menuKey.createValue(RegistryValue.string('ExplorerCommandHandler', clsid));
+      menuKey.createValue(
+        RegistryValue.string('ExplorerCommandHandler', clsid),
+      );
       menuKey.close();
       shellKey.close();
 

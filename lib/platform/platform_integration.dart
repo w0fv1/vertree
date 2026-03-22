@@ -225,8 +225,7 @@ class PlatformIntegration {
 
   static Future<bool> applyLegacyMenus(bool enabled) async {
     if (isWindows) {
-      await WindowsRegistryBridge.applyLegacyMenus(enabled);
-      return true;
+      return WindowsRegistryBridge.applyLegacyMenus(enabled);
     }
     if (isLinux) {
       return LinuxGnomeIntegration.applyAll(enabled);
@@ -323,5 +322,20 @@ class PlatformIntegration {
   static Future<bool> isWin11PackagedOrRegistered() async {
     if (!isWindows) return false;
     return WindowsRegistryBridge.isWin11PackagedOrRegistered();
+  }
+
+  static Future<bool> addWin11ContextMenuHandler() async {
+    if (!isWindows) return false;
+    return WindowsRegistryBridge.addWin11ContextMenuHandler();
+  }
+
+  static Future<bool> removeWin11ContextMenuHandler() async {
+    if (!isWindows) return false;
+    return WindowsRegistryBridge.removeWin11ContextMenuHandler();
+  }
+
+  static Future<bool> checkWin11ContextMenuHandler() async {
+    if (!isWindows) return false;
+    return WindowsRegistryBridge.checkWin11ContextMenuHandler();
   }
 }

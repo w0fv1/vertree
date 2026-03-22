@@ -97,8 +97,8 @@ jobs:
         with:
           name: vertree-windows-${{ needs.meta.outputs.version }}
           path: |
-            windows/Vertree_Setup.exe
-            windows/Vertree_Setup.zip
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-setup.exe
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.zip
 
   linux:
     name: Linux (tar.gz + RPM)

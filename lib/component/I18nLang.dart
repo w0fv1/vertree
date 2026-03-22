@@ -533,9 +533,9 @@ class AppLocale {
     LocaleKey.setting_gnomeMenuRestartHint:
         "GNOME Files integration was updated. You may need to restart Files for the change to appear.",
     LocaleKey.setting_win11MenuNeedsIdentity:
-        "The Windows 11 menu requires Sparse Package / MSIX identity.",
+        "Windows 11 menu registration failed. Make sure Vertree is fully installed and allow the admin prompt.",
     LocaleKey.setting_win11IdentityRequired:
-        "The Windows 11 menu requires Sparse Package / MSIX identity. Run the registration command first. If the menu still does not refresh, then run the refresh command.",
+        "The Windows 11 menu can be registered directly by the installer build. If Explorer still does not refresh, run the refresh command once.",
     LocaleKey.setting_copyRegisterCommand: "Copy register command",
     LocaleKey.setting_copyRefreshCommand: "Copy refresh command",
     LocaleKey.setting_copyConfigCommand: "Copy setup command",
@@ -810,9 +810,9 @@ class AppLocale {
         "GNOME Files 扩展不可用，请先安装 nautilus-python",
     LocaleKey.setting_gnomeMenuRestartHint: "GNOME Files 扩展已更新，可能需要重启“文件”应用后生效",
     LocaleKey.setting_win11MenuNeedsIdentity:
-        "Win11 新菜单需要 Sparse Package/MSIX 身份",
+        "Win11 新菜单注册失败，请确认已安装完整 Vertree 并允许管理员授权",
     LocaleKey.setting_win11IdentityRequired:
-        "Windows 11 新菜单需要 Sparse Package / MSIX 身份。先执行注册命令；如果执行后菜单仍未刷新，再执行刷新命令。",
+        "Windows 11 新菜单默认可由安装版直接注册；如果 Explorer 没有刷新，可再执行一次刷新命令。",
     LocaleKey.setting_copyRegisterCommand: "复制注册命令",
     LocaleKey.setting_copyRefreshCommand: "复制刷新命令",
     LocaleKey.setting_copyConfigCommand: "复制配置命令",
@@ -1075,9 +1075,9 @@ class AppLocale {
     LocaleKey.setting_gnomeMenuRestartHint:
         "GNOME Files 連携を更新しました。反映には「ファイル」アプリの再起動が必要な場合があります。",
     LocaleKey.setting_win11MenuNeedsIdentity:
-        "Windows 11 メニューには Sparse Package / MSIX ID が必要です",
+        "Windows 11 メニューの登録に失敗しました。Vertree が完全にインストールされ、管理者権限を許可したか確認してください",
     LocaleKey.setting_win11IdentityRequired:
-        "Windows 11 の新しいメニューには Sparse Package / MSIX ID が必要です。まず登録コマンドを実行し、まだ更新されない場合は更新コマンドも実行してください。",
+        "Windows 11 の新しいメニューは通常のインストーラー版でも直接登録できます。Explorer が更新されない場合だけ更新コマンドを実行してください。",
     LocaleKey.setting_copyRegisterCommand: "登録コマンドをコピー",
     LocaleKey.setting_copyRefreshCommand: "更新コマンドをコピー",
     LocaleKey.setting_copyConfigCommand: "設定コマンドをコピー",

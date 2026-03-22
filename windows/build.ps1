@@ -67,8 +67,12 @@ if ([string]::IsNullOrWhiteSpace($flutterCmd)) {
 
 $pubspecVersion = Get-PubspecVersion -projectRoot $projectRoot
 $versionInfoVersion = Get-VersionInfoVersion -pubspecVersion $pubspecVersion
+$setupBaseName = "vertree-windows-x64-$pubspecVersion-setup"
+$zipBaseName = "vertree-windows-x64-$pubspecVersion"
 Write-Host "pubspec.yaml version=$pubspecVersion"
 Write-Host "VersionInfoVersion=$versionInfoVersion"
+Write-Host "Windows setup artifact=$setupBaseName.exe"
+Write-Host "Windows zip artifact=$zipBaseName.zip"
 
 Write-Host "正在执行 flutter build windows ($BuildMode)..."
 & $flutterCmd build windows --target $Target --$($BuildMode.ToLower())
@@ -133,16 +137,16 @@ if ([string]::IsNullOrWhiteSpace($innoSetupCompiler)) {
 } else {
 # 编译安装程序
 Write-Host "正在使用Inno Setup进行打包..."
-& $innoSetupCompiler /DBuildMode=$BuildMode /DAppVersion=$pubspecVersion /DAppVersionInfoVersion=$versionInfoVersion $issFile
+& $innoSetupCompiler /DBuildMode=$BuildMode /DAppVersion=$pubspecVersion /DAppVersionInfoVersion=$versionInfoVersion /DOutputBaseFilename=$setupBaseName $issFile
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "打包成功！开始压缩为Zip..."
 
         # 安装程序路径（注意与setup.iss中的OutputBaseFilename一致）
-        $setupExe = Join-Path $scriptDir "Vertree_Setup.exe"
+        $setupExe = Join-Path $scriptDir "$setupBaseName.exe"
 
         # 输出Zip路径
-        $zipFile = Join-Path $scriptDir "Vertree_Setup.zip"
+        $zipFile = Join-Path $scriptDir "$zipBaseName.zip"
 
         # 检查已有zip文件，如存在则删除
         if (Test-Path $zipFile) {

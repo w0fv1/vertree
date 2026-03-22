@@ -8,12 +8,12 @@ class AppVersionDisplay extends StatefulWidget {
   final Future<String?> Function() getNewVersionDownloadUrl;
 
   const AppVersionDisplay({
-    Key? key,
+    super.key,
     required this.appVersion,
     required this.defaultLink,
     required this.checkNewVersion,
     required this.getNewVersionDownloadUrl,
-  }) : super(key: key);
+  });
 
   @override
   State<AppVersionDisplay> createState() => _AppVersionDisplayState();
@@ -50,7 +50,7 @@ class _AppVersionDisplayState extends State<AppVersionDisplay> {
         : widget.defaultLink;
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(

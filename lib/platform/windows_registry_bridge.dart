@@ -137,16 +137,34 @@ class WindowsRegistryBridge {
     return registry.VerTreeRegistryService.isAutoStartEnabled();
   }
 
-  static Future<void> applyLegacyMenus(bool enabled) async {
-    if (!Platform.isWindows) return;
+  static Future<bool> applyLegacyMenus(bool enabled) async {
+    if (!Platform.isWindows) return false;
     await _ensureLoaded();
-    registry.VerTreeRegistryService.applyLegacyMenus(enabled);
+    return registry.VerTreeRegistryService.applyLegacyMenus(enabled);
   }
 
   static Future<bool> applyInitialSetup() async {
     if (!Platform.isWindows) return true;
     await _ensureLoaded();
     return registry.VerTreeRegistryService.applyInitialSetup();
+  }
+
+  static Future<bool> addWin11ContextMenuHandler() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.addWin11ContextMenuHandler();
+  }
+
+  static Future<bool> removeWin11ContextMenuHandler() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.removeWin11ContextMenuHandler();
+  }
+
+  static Future<bool> checkWin11ContextMenuHandler() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.checkWin11ContextMenuHandler();
   }
 
   static Future<bool> isWin11PackagedOrRegistered() async {
