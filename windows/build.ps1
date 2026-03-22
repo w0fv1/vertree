@@ -452,47 +452,53 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
     }
 }
 
-$makeAppxExe = Resolve-MakeAppx -preferred $MakeAppx
-if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
-    Write-Warning "未找到 MakeAppx.exe，跳过 unsigned MSIX 打包。"
-} else {
-    $msixStageRoot = Join-Path $scriptDir "..\\build\\windows\\msix"
-    $msixStageDir = Join-Path $msixStageRoot "package"
-    $msixManifest = Join-Path $msixStageDir "AppxManifest.xml"
-    $msixPath = Join-Path $scriptDir "$msixBaseName.msix"
+$enableUnsignedMsix = ($env:VERTREE_ENABLE_UNSIGNED_MSIX -eq '1')
+if ($enableUnsignedMsix) {
+    $makeAppxExe = Resolve-MakeAppx -preferred $MakeAppx
+    if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
+        Write-Warning "未找到 MakeAppx.exe，跳过 unsigned MSIX 打包。"
+    } else {
+        $msixStageRoot = Join-Path $scriptDir "..\\build\\windows\\msix"
+        $msixStageDir = Join-Path $msixStageRoot "package"
+        $msixManifest = Join-Path $msixStageDir "AppxManifest.xml"
+        $msixPath = Join-Path $scriptDir "$msixBaseName.msix"
 
-    try {
-        if (Test-Path $msixStageDir) {
-            Remove-Item $msixStageDir -Recurse -Force
-        }
-        if (Test-Path $msixPath) {
-            Remove-Item $msixPath -Force
-        }
+        try {
+            if (Test-Path $msixStageDir) {
+                Remove-Item $msixStageDir -Recurse -Force
+            }
+            if (Test-Path $msixPath) {
+                Remove-Item $msixPath -Force
+            }
 
-        New-Item -ItemType Directory -Force -Path $msixStageDir | Out-Null
-        Copy-Item (Join-Path $runnerOutputDir "*") $msixStageDir -Recurse -Force
-        Copy-Item (Join-Path $packagingSourceDir "sparse\\*") $msixStageDir -Recurse -Force
-        if (Test-Path $msixManifest) {
-            $manifestContent = Get-Content $msixManifest -Raw
-            $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$msiProductVersion`"")
-            [System.IO.File]::WriteAllText(
-                $msixManifest,
-                $manifestContent,
-                [System.Text.UTF8Encoding]::new($false)
-            )
-        }
+            New-Item -ItemType Directory -Force -Path $msixStageDir | Out-Null
+            Copy-Item (Join-Path $runnerOutputDir "*") $msixStageDir -Recurse -Force
+            Copy-Item (Join-Path $packagingSourceDir "sparse\\*") $msixStageDir -Recurse -Force
+            if (Test-Path $msixManifest) {
+                $manifestContent = Get-Content $msixManifest -Raw
+                $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$msiProductVersion`"")
+                [System.IO.File]::WriteAllText(
+                    $msixManifest,
+                    $manifestContent,
+                    [System.Text.UTF8Encoding]::new($false)
+                )
+            }
 
-        & $makeAppxExe pack /o /d $msixStageDir /p $msixPath | Out-Null
-        if ($LASTEXITCODE -eq 0 -and (Test-Path $msixPath)) {
-            Write-Host "unsigned MSIX 打包完成：" $msixPath
-        } else {
-            Write-Warning "unsigned MSIX 打包失败，已跳过。"
+            & $makeAppxExe pack /o /d $msixStageDir /p $msixPath | Out-Null
+            if ($LASTEXITCODE -eq 0 -and (Test-Path $msixPath)) {
+                Write-Host "unsigned MSIX 打包完成：" $msixPath
+            } else {
+                Write-Warning "unsigned MSIX 打包失败，已跳过。"
+                $global:LASTEXITCODE = 0
+            }
+        } catch {
+            Write-Warning "unsigned MSIX 打包失败：$($_.Exception.Message)"
             $global:LASTEXITCODE = 0
         }
-    } catch {
-        Write-Warning "unsigned MSIX 打包失败：$($_.Exception.Message)"
-        $global:LASTEXITCODE = 0
     }
+} else {
+    Write-Host "默认发布流程跳过 unsigned MSIX 打包；如需生成，请设置 VERTREE_ENABLE_UNSIGNED_MSIX=1。"
+    $global:LASTEXITCODE = 0
 }
 
 if ($Sparse -or $SparseRefresh) {

@@ -32,7 +32,7 @@ jobs:
       notes_file: ${{ steps.notes.outputs.notes_file }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Read version from pubspec.yaml
         id: pubspec
@@ -72,7 +72,7 @@ jobs:
     needs: meta
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -100,14 +100,13 @@ jobs:
           pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -BuildMode $mode
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vertree-windows-${{ needs.meta.outputs.version }}
           path: |
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-setup.exe
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.zip
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msi
-            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msix
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-symbols.zip
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-win11-dev.zip
 
@@ -117,7 +116,7 @@ jobs:
     needs: meta
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Linux build dependencies
         shell: bash
@@ -168,19 +167,19 @@ jobs:
           SKIP_FLUTTER_BUILD=1 linux/build_linux_rpm.sh
 
       - name: Upload Linux archive artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vertree-linux-archive-${{ needs.meta.outputs.version }}
           path: build/dist/vertree-linux-x64-${{ needs.meta.outputs.version }}.tar.gz
 
       - name: Upload Linux RPM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vertree-linux-rpm-${{ needs.meta.outputs.version }}
           path: build/dist/*.rpm
 
       - name: Upload Linux DEB artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vertree-linux-deb-${{ needs.meta.outputs.version }}
           path: build/dist/*.deb
@@ -191,7 +190,7 @@ jobs:
     needs: meta
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -218,7 +217,7 @@ jobs:
           macos/build_macos_release.sh
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vertree-macos-${{ needs.meta.outputs.version }}
           path: |
@@ -238,7 +237,7 @@ jobs:
       - macos
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve release notes
         id: notes
@@ -253,7 +252,7 @@ jobs:
           fi
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-assets
           merge-multiple: true
