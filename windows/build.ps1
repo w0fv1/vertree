@@ -275,6 +275,8 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
         New-Item -ItemType Directory -Force -Path $wixObjDir | Out-Null
         $resolvedProjectRoot = (Resolve-Path $projectRoot).Path
         $productGeneratedWxs = Join-Path $wixObjDir "Product.generated.wxs"
+        $productWixObj = Join-Path $wixObjDir "Product.generated.wixobj"
+        $harvestWixObj = Join-Path $wixObjDir "AppFiles.wixobj"
         if (Test-Path $harvestWxs) {
             Remove-Item $harvestWxs -Force
         }
@@ -283,6 +285,12 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
         }
         if (Test-Path $productGeneratedWxs) {
             Remove-Item $productGeneratedWxs -Force
+        }
+        if (Test-Path $productWixObj) {
+            Remove-Item $productWixObj -Force
+        }
+        if (Test-Path $harvestWixObj) {
+            Remove-Item $harvestWixObj -Force
         }
 
         $productTemplate = Get-Content $productWxs -Raw
@@ -330,8 +338,8 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
             -nologo `
             -cultures:en-us `
             -out $msiPath `
-            (Join-Path $wixObjDir "Product.wixobj") `
-            (Join-Path $wixObjDir "AppFiles.wixobj")
+            $productWixObj `
+            $harvestWixObj
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "light 链接 MSI 安装包失败。"
