@@ -84,7 +84,14 @@ function probeWithFetch(candidate, timeoutMs = 2400) {
     mode: 'cors',
     cache: 'no-store',
     signal: controller.signal,
-  }).finally(() => window.clearTimeout(timeout));
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`probe failed: ${response.status}`);
+      }
+      return response;
+    })
+    .finally(() => window.clearTimeout(timeout));
 }
 
 function probeWithImage(candidate, timeoutMs = 2400) {
@@ -174,10 +181,14 @@ export default function FileSharePage() {
           }
           resolved = true;
           setSelectedCandidate(candidate);
-          setCandidateStates((previous) => ({
-            ...previous,
-            [candidate.id]: 'success',
-          }));
+          setCandidateStates(
+            Object.fromEntries(
+              candidates.map((item) => [
+                item.id,
+                item.id === candidate.id ? 'success' : 'stopped',
+              ]),
+            ),
+          );
           setStatus('redirecting');
           window.setTimeout(() => {
             window.location.replace(candidate.downloadUrl);
@@ -298,6 +309,7 @@ export default function FileSharePage() {
                     {{
                       pending: '探测中',
                       success: '可用',
+                      stopped: '已停止',
                       failed: '失败',
                     }[candidateStates[candidate.id] || 'pending']}
                   </span>

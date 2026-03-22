@@ -20,6 +20,8 @@
   --share-pending-text: #6b650f;
   --share-success-bg: #d9f0de;
   --share-success-text: #1f6b3a;
+  --share-stopped-bg: #e8ece9;
+  --share-stopped-text: #5f6f64;
   --share-failed-bg: #f8dedd;
   --share-failed-text: #8f2d2d;
   --share-failure-card-border: rgba(143, 45, 45, 0.16);
@@ -53,6 +55,8 @@
   --share-pending-text: #f2dd7f;
   --share-success-bg: rgba(70, 163, 99, 0.2);
   --share-success-text: #98ebb0;
+  --share-stopped-bg: rgba(129, 145, 135, 0.18);
+  --share-stopped-text: #b7c4bb;
   --share-failed-bg: rgba(160, 72, 72, 0.22);
   --share-failed-text: #ffb1b1;
   --share-failure-card-border: rgba(220, 113, 113, 0.18);
@@ -268,6 +272,11 @@
 .success {
   background: var(--share-success-bg);
   color: var(--share-success-text);
+}
+
+.stopped {
+  background: var(--share-stopped-bg);
+  color: var(--share-stopped-text);
 }
 
 .failed {

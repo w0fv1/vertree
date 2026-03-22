@@ -132,6 +132,15 @@ class _MonitPageState extends State<MonitPage> {
     }
   }
 
+  Future<void> _shareFile() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    final selectedFilePath = result?.files.single.path;
+    if (selectedFilePath == null || selectedFilePath.isEmpty) {
+      return;
+    }
+    await openLanShareDialogForPath(selectedFilePath);
+  }
+
   Future<void> _removeTask(FileMonitTask task) async {
     bool? confirmDelete = await showDialog<bool>(
       context: context,
@@ -373,6 +382,13 @@ class _MonitPageState extends State<MonitPage> {
             tooltip: appLocale.getText(LocaleKey.monit_cleanInvalidAction),
             onPressed: _cleanInvalidTask,
             child: const Icon(Icons.cleaning_services_rounded, size: 18),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.small(
+            heroTag: 'share_file',
+            tooltip: appLocale.getText(LocaleKey.fileleaf_menuShare),
+            onPressed: _shareFile,
+            child: const Icon(Icons.lan_rounded, size: 18),
           ),
           const SizedBox(height: 10),
           FloatingActionButton.extended(

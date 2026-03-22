@@ -19,17 +19,37 @@ class LanShareDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final compactLayout = screenWidth < 760;
+    final dialogWidth =
+        (compactLayout
+                ? (screenWidth - 24).clamp(280.0, 520.0)
+                : (screenWidth * 0.82).clamp(640.0, 980.0))
+            .toDouble();
+    final qrSize = compactLayout ? 180.0 : 220.0;
     final sharePageUrl = _sharePageUrl;
     final fileName = (shareData['fileName'] as String?) ?? '';
     final fileSize = (shareData['fileSize'] as num?)?.toInt() ?? 0;
     final expiresAt = _formatDateTime(shareData['expiresAt'] as String?);
 
     return AlertDialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: compactLayout ? 12 : 24,
+        vertical: 18,
+      ),
+      contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actionsOverflowButtonSpacing: 10,
       title: Text(
         appLocale.getText(LocaleKey.fileleaf_shareDialogTitle).tr([fileName]),
       ),
-      content: SizedBox(
-        width: 720,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: dialogWidth,
+          maxHeight: screenHeight * 0.78,
+        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,31 +84,63 @@ class LanShareDialog extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               if (sharePageUrl != null) ...[
-                Center(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: QrImageView(
-                        data: sharePageUrl,
-                        version: QrVersions.auto,
-                        size: 220,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stacked = compactLayout || constraints.maxWidth < 720;
+                    final qrWidget = Center(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: QrImageView(
+                            data: sharePageUrl,
+                            version: QrVersions.auto,
+                            size: qrSize,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+
+                    final linkWidget = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          appLocale.getText(
+                            LocaleKey.fileleaf_shareLandingLink,
+                          ),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _SelectableUrlCard(text: sharePageUrl),
+                      ],
+                    );
+
+                    if (stacked) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          qrWidget,
+                          const SizedBox(height: 14),
+                          linkWidget,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(width: qrSize + 36, child: qrWidget),
+                        const SizedBox(width: 20),
+                        Expanded(child: linkWidget),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  appLocale.getText(LocaleKey.fileleaf_shareLandingLink),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _SelectableUrlCard(text: sharePageUrl),
                 const SizedBox(height: 18),
               ],
               Text(
@@ -278,47 +330,88 @@ class _DirectDownloadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card.outlined(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.lan_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    ip,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 460;
+        final header = compact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.lan_rounded, color: theme.colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          ip,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: url));
+                        showToast(
+                          appLocale.getText(LocaleKey.fileleaf_shareCopiedLink),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded),
+                      label: Text(
+                        appLocale.getText(LocaleKey.fileleaf_shareCopyLink),
+                      ),
                     ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: url));
-                    showToast(
-                      appLocale.getText(LocaleKey.fileleaf_shareCopiedLink),
-                    );
-                  },
-                  icon: const Icon(Icons.copy_rounded),
-                  label: Text(
-                    appLocale.getText(LocaleKey.fileleaf_shareCopyLink),
+                ],
+              )
+            : Row(
+                children: [
+                  Icon(Icons.lan_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      ip,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: url));
+                      showToast(
+                        appLocale.getText(LocaleKey.fileleaf_shareCopiedLink),
+                      );
+                    },
+                    icon: const Icon(Icons.copy_rounded),
+                    label: Text(
+                      appLocale.getText(LocaleKey.fileleaf_shareCopyLink),
+                    ),
+                  ),
+                ],
+              );
+
+        return Card.outlined(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                header,
+                const SizedBox(height: 8),
+                SelectableText(url),
               ],
             ),
-            const SizedBox(height: 8),
-            SelectableText(url),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

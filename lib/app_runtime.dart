@@ -1088,10 +1088,10 @@ void monit(String path) {
 }
 
 void share(String path) {
-  unawaited(_shareFile(path));
+  unawaited(openLanShareDialogForPath(path));
 }
 
-Future<void> _shareFile(String path) async {
+Future<void> openLanShareDialogForPath(String path) async {
   logger.info('share $path');
   await showMainWindow(animate: false);
   showToast(appLocale.getText(LocaleKey.fileleaf_sharePreparing));
@@ -1123,10 +1123,45 @@ Future<void> _shareFile(String path) async {
     return;
   }
 
-  await showDialog<void>(
-    context: overlayContext,
-    builder: (context) => LanShareDialog(shareData: result.unwrap()),
-  );
+  final shouldRestoreAfterDialog = await _prepareWindowForShareDialog();
+  try {
+    await showDialog<void>(
+      context: overlayContext,
+      builder: (context) => LanShareDialog(shareData: result.unwrap()),
+    );
+  } finally {
+    if (shouldRestoreAfterDialog) {
+      await _restoreWindowAfterShareDialog();
+    }
+  }
+}
+
+Future<bool> _prepareWindowForShareDialog() async {
+  try {
+    if (await windowManager.isFullScreen()) {
+      return false;
+    }
+    if (await windowManager.isMaximized()) {
+      return false;
+    }
+    await windowManager.maximize();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> _restoreWindowAfterShareDialog() async {
+  try {
+    if (await windowManager.isFullScreen()) {
+      return;
+    }
+    if (await windowManager.isMaximized()) {
+      await windowManager.restore();
+    }
+  } catch (_) {
+    // ignore
+  }
 }
 
 void viewtree(String path) {

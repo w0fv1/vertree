@@ -6,7 +6,6 @@ import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/tree/CanvasComponent.dart';
-import 'package:vertree/view/module/LanShareDialog.dart';
 
 class FileLeaf extends CanvasComponent {
   static const double minCardWidth = 240;
@@ -672,26 +671,7 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
   }
 
   Future<void> _openLanShareDialog() async {
-    showToast(appLocale.getText(LocaleKey.fileleaf_sharePreparing));
-    final result = await lanFileShareServer.createShare(fileNode.mate.fullPath);
-    if (result.isErr) {
-      showToast(
-        appLocale.getText(LocaleKey.fileleaf_shareCreateFailed).tr([
-          result.msg,
-        ]),
-      );
-      return;
-    }
-
-    final dialogContext = navigatorKey.currentContext;
-    if (dialogContext == null) {
-      return;
-    }
-
-    await showDialog<void>(
-      context: dialogContext,
-      builder: (context) => LanShareDialog(shareData: result.unwrap()),
-    );
+    await openLanShareDialogForPath(fileNode.mate.fullPath);
   }
 
   @override
