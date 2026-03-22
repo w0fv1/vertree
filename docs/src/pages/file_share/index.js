@@ -144,6 +144,10 @@ export default function FileSharePage() {
   );
   const fileSize = useMemo(() => Number(params.get('size') || 0), [params]);
   const expiresAt = useMemo(() => params.get('exp'), [params]);
+  const networkName = useMemo(
+    () => decodeBase64UrlUtf8(params.get('net')),
+    [params],
+  );
   const candidates = useMemo(() => buildCandidates(params), [params]);
 
   useEffect(() => {
@@ -237,6 +241,12 @@ export default function FileSharePage() {
                 <span>失效时间</span>
                 <strong>{formatTime(expiresAt)}</strong>
               </div>
+              {networkName ? (
+                <div>
+                  <span>分享网络</span>
+                  <strong>{networkName}</strong>
+                </div>
+              ) : null}
             </div>
           </article>
 
@@ -246,7 +256,7 @@ export default function FileSharePage() {
               {status === 'redirecting' && selectedCandidate
                 ? `已选中 ${selectedCandidate.ip}，即将开始下载。`
                 : status === 'failed'
-                  ? '浏览器没有自动探测到可用地址。你可以手动点击下面的候选下载链接。'
+                  ? '浏览器没有自动探测到可用地址。你可以手动点击下面的候选下载链接，并先确认是否和分享者连接在同一网络。'
                   : status === 'invalid'
                     ? '当前链接参数不完整，请让分享者重新生成分享链接。'
                     : '正在后台并发测试多个候选地址，请稍候。'}
@@ -254,6 +264,12 @@ export default function FileSharePage() {
             <p className={styles.note}>
               提示：某些浏览器或企业网络会限制从 HTTPS 页面直接探测 HTTP 局域网地址。如果自动跳转失败，手动点击下面的候选地址通常仍然可以下载。
             </p>
+            {status === 'failed' ? (
+              <div className={styles.failureHint}>
+                没有探测到任何可用候选地址。请先确认接收方和分享方是否连接在同一个网络；
+                {networkName ? `当前分享网络是“${networkName}”。` : '如果分享方使用的是 Wi‑Fi，也请确认两端连接的是同一个 Wi‑Fi。'}
+              </div>
+            ) : null}
           </article>
         </section>
 

@@ -32,6 +32,7 @@ class _SettingPageState extends State<SettingPage> {
   bool backupFile = false;
   bool expressBackupFile = false;
   bool monitorFile = false;
+  bool shareFile = false;
   bool viewTreeFile = false;
   bool autoStart = false;
   bool launchToTray = PlatformIntegration.defaultLaunchToTray;
@@ -110,7 +111,11 @@ class _SettingPageState extends State<SettingPage> {
       }
       isLoading = false;
       legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
+          backupFile &&
+          expressBackupFile &&
+          monitorFile &&
+          shareFile &&
+          viewTreeFile;
     });
     await _showLinuxMenuToggleResult(success);
   }
@@ -164,9 +169,14 @@ class _SettingPageState extends State<SettingPage> {
       expressBackupFile =
           await PlatformIntegration.checkExpressBackupKeyExists();
       monitorFile = await PlatformIntegration.checkMonitorKeyExists();
+      shareFile = await PlatformIntegration.checkShareKeyExists();
       viewTreeFile = await PlatformIntegration.checkViewTreeKeyExists();
       legacyMenuEnabled =
-          backupFile && expressBackupFile && monitorFile && viewTreeFile;
+          backupFile &&
+          expressBackupFile &&
+          monitorFile &&
+          shareFile &&
+          viewTreeFile;
       if (PlatformIntegration.isWindows) {
         win11MenuEnabled = configer.get("win11MenuEnabled", true);
       }
@@ -295,6 +305,19 @@ class _SettingPageState extends State<SettingPage> {
         LocaleKey.setting_notifyRemoveView,
       ),
       updateState: (nextValue) => viewTreeFile = nextValue,
+    );
+  }
+
+  Future<void> _toggleShareFile(bool? value) async {
+    await _applyContextMenuToggle(
+      value: value,
+      enableAction: PlatformIntegration.addShareContextMenu,
+      disableAction: PlatformIntegration.removeShareContextMenu,
+      enableNotification: appLocale.getText(LocaleKey.setting_notifyAddShare),
+      disableNotification: appLocale.getText(
+        LocaleKey.setting_notifyRemoveShare,
+      ),
+      updateState: (nextValue) => shareFile = nextValue,
     );
   }
 
@@ -615,7 +638,7 @@ class _SettingPageState extends State<SettingPage> {
                       ),
                     ),
                   ),
-                  if (trailing case final trailing?) trailing,
+                  if (trailing != null) ...[trailing],
                 ],
               ),
               const SizedBox(height: 12),
@@ -976,6 +999,14 @@ class _SettingPageState extends State<SettingPage> {
                                           ),
                                           value: monitorFile,
                                           onChanged: _toggleMonitorFile,
+                                        ),
+                                        _buildSwitchTile(
+                                          icon: Icons.lan_outlined,
+                                          title: appLocale.getText(
+                                            LocaleKey.setting_addShareMenu,
+                                          ),
+                                          value: shareFile,
+                                          onChanged: _toggleShareFile,
                                         ),
                                         _buildSwitchTile(
                                           icon: Icons.account_tree_outlined,

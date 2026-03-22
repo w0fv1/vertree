@@ -46,6 +46,7 @@ enum LocaleKey {
   registry_backupKeyName,
   registry_expressBackupKeyName,
   registry_monitorKeyName,
+  registry_shareKeyName,
   registry_viewTreeKeyName,
 
   // App General Keys
@@ -137,6 +138,7 @@ enum LocaleKey {
   setting_addBackupMenu,
   setting_addExpressBackupMenu,
   setting_addMonitorMenu,
+  setting_addShareMenu,
   setting_addViewtreeMenu,
   setting_linuxContextMenuToggle,
   setting_linuxContextMenuToggleInstallHint,
@@ -183,6 +185,8 @@ enum LocaleKey {
   setting_notifyRemoveBackup,
   setting_notifyAddMonitor,
   setting_notifyRemoveMonitor,
+  setting_notifyAddShare,
+  setting_notifyRemoveShare,
   setting_notifyAddView,
   setting_notifyRemoveView,
   setting_notifyEnableAutostart,
@@ -280,6 +284,8 @@ enum LocaleKey {
   tray_expressBackupTooltip,
   tray_monit,
   tray_monitTooltip,
+  tray_share,
+  tray_shareTooltip,
   tray_viewTree,
   tray_viewTreeTooltip,
   tray_setting,
@@ -369,6 +375,7 @@ class AppLocale {
     LocaleKey.registry_backupKeyName: "Backup Files VerTree",
     LocaleKey.registry_expressBackupKeyName: "Quick Backup Files VerTree",
     LocaleKey.registry_monitorKeyName: "Monitor File Changes VerTree",
+    LocaleKey.registry_shareKeyName: "Share for LAN Download VerTree",
     LocaleKey.registry_viewTreeKeyName: "View File Version Tree VerTree",
 
     LocaleKey.app_confirmExitTitle: "Confirm Exit",
@@ -480,6 +487,8 @@ class AppLocale {
     LocaleKey.setting_addExpressBackupMenu:
         "Add 'Express backup this file' to context menu",
     LocaleKey.setting_addMonitorMenu: "Add 'Monitor this file' to context menu",
+    LocaleKey.setting_addShareMenu:
+        "Add 'Share for LAN download' to context menu",
     LocaleKey.setting_addViewtreeMenu:
         "Add 'View version tree' to context menu",
     LocaleKey.setting_linuxContextMenuToggle: "Enable GNOME Files context menu",
@@ -543,6 +552,10 @@ class AppLocale {
         "Added 'Monitor this file' to context menu",
     LocaleKey.setting_notifyRemoveMonitor:
         "Removed 'Monitor this file' from context menu",
+    LocaleKey.setting_notifyAddShare:
+        "Added 'Share for LAN download' to context menu",
+    LocaleKey.setting_notifyRemoveShare:
+        "Removed 'Share for LAN download' from context menu",
     LocaleKey.setting_notifyAddView:
         "Added 'View file version tree' to context menu",
     LocaleKey.setting_notifyRemoveView:
@@ -644,6 +657,8 @@ class AppLocale {
     LocaleKey.tray_expressBackupTooltip: "Choose a file for quick backup",
     LocaleKey.tray_monit: "Monitor file",
     LocaleKey.tray_monitTooltip: "Choose a file to add to monitoring",
+    LocaleKey.tray_share: "Share on LAN",
+    LocaleKey.tray_shareTooltip: "Choose a file to create a LAN download link",
     LocaleKey.tray_viewTree: "View version tree",
     LocaleKey.tray_viewTreeTooltip: "Choose a file to inspect its version tree",
     LocaleKey.tray_setting: "Settings",
@@ -657,6 +672,7 @@ class AppLocale {
     LocaleKey.registry_backupKeyName: "备份文件 VerTree",
     LocaleKey.registry_expressBackupKeyName: "快速备份文件 VerTree",
     LocaleKey.registry_monitorKeyName: "监控文件变动 VerTree",
+    LocaleKey.registry_shareKeyName: "局域网分享下载 VerTree",
     LocaleKey.registry_viewTreeKeyName: "查看文件版本树 VerTree",
 
     LocaleKey.app_confirmExitTitle: "确认退出",
@@ -754,6 +770,7 @@ class AppLocale {
     LocaleKey.setting_addBackupMenu: "将“备份该文件”增加到右键菜单",
     LocaleKey.setting_addExpressBackupMenu: "将“快速备份该文件”增加到右键菜单",
     LocaleKey.setting_addMonitorMenu: "将“监控该文件”增加到右键菜单",
+    LocaleKey.setting_addShareMenu: "将“局域网分享下载”增加到右键菜单",
     LocaleKey.setting_addViewtreeMenu: "将“浏览该文件版本树”增加到右键菜单",
     LocaleKey.setting_linuxContextMenuToggle: "启用 GNOME Files 右键菜单",
     LocaleKey.setting_linuxContextMenuToggleInstallHint:
@@ -807,6 +824,8 @@ class AppLocale {
     LocaleKey.setting_notifyRemoveBackup: "已从右键菜单移除 '备份当前文件版本' 功能按钮",
     LocaleKey.setting_notifyAddMonitor: "已添加 '监控该文件' 到右键菜单",
     LocaleKey.setting_notifyRemoveMonitor: "已从右键菜单移除 '监控该文件' 功能按钮",
+    LocaleKey.setting_notifyAddShare: "已添加 '局域网分享下载' 到右键菜单",
+    LocaleKey.setting_notifyRemoveShare: "已从右键菜单移除 '局域网分享下载' 功能按钮",
     LocaleKey.setting_notifyAddView: "已添加 '浏览文件版本树' 到右键菜单",
     LocaleKey.setting_notifyRemoveView: "已从右键菜单移除 '浏览文件版本树' 功能按钮",
     LocaleKey.setting_notifyEnableAutostart: "已启用开机自启",
@@ -902,6 +921,8 @@ class AppLocale {
     LocaleKey.tray_expressBackupTooltip: "选择文件进行快速备份",
     LocaleKey.tray_monit: "监控文件",
     LocaleKey.tray_monitTooltip: "选择文件加入监控",
+    LocaleKey.tray_share: "局域网分享",
+    LocaleKey.tray_shareTooltip: "选择文件生成局域网下载链接",
     LocaleKey.tray_viewTree: "查看版本树",
     LocaleKey.tray_viewTreeTooltip: "选择文件查看版本树",
     LocaleKey.tray_setting: "设置",
@@ -915,6 +936,7 @@ class AppLocale {
     LocaleKey.registry_backupKeyName: "バックアップファイル VerTree",
     LocaleKey.registry_expressBackupKeyName: "クイックバックアップファイル VerTree",
     LocaleKey.registry_monitorKeyName: "ファイル変更監視 VerTree",
+    LocaleKey.registry_shareKeyName: "LAN ダウンロード共有 VerTree",
     LocaleKey.registry_viewTreeKeyName: "ファイルバージョンツリー表示 VerTree",
 
     LocaleKey.app_confirmExitTitle: "終了の確認",
@@ -1015,6 +1037,7 @@ class AppLocale {
     LocaleKey.setting_addBackupMenu: "「このファイルをバックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addExpressBackupMenu: "「このファイルを即時バックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addMonitorMenu: "「このファイルを監視」を右クリックメニューに追加",
+    LocaleKey.setting_addShareMenu: "「LAN ダウンロード共有」を右クリックメニューに追加",
     LocaleKey.setting_addViewtreeMenu: "「バージョンツリーを表示」を右クリックメニューに追加",
     LocaleKey.setting_linuxContextMenuToggle: "GNOME Files の右クリックメニューを有効にする",
     LocaleKey.setting_linuxContextMenuToggleInstallHint:
@@ -1068,6 +1091,8 @@ class AppLocale {
         "「このファイルバージョンをバックアップ」が右クリックメニューから削除されました",
     LocaleKey.setting_notifyAddMonitor: "「このファイルを監視」が右クリックメニューに追加されました",
     LocaleKey.setting_notifyRemoveMonitor: "「このファイルを監視」が右クリックメニューから削除されました",
+    LocaleKey.setting_notifyAddShare: "「LAN ダウンロード共有」が右クリックメニューに追加されました",
+    LocaleKey.setting_notifyRemoveShare: "「LAN ダウンロード共有」が右クリックメニューから削除されました",
     LocaleKey.setting_notifyAddView: "「バージョンツリーを表示」が右クリックメニューに追加されました",
     LocaleKey.setting_notifyRemoveView: "「バージョンツリーを表示」が右クリックメニューから削除されました",
     LocaleKey.setting_notifyEnableAutostart: "自動起動が有効になりました",
@@ -1166,6 +1191,8 @@ class AppLocale {
     LocaleKey.tray_expressBackupTooltip: "クイックバックアップするファイルを選択",
     LocaleKey.tray_monit: "ファイルを監視",
     LocaleKey.tray_monitTooltip: "監視対象に追加するファイルを選択",
+    LocaleKey.tray_share: "LAN 共有",
+    LocaleKey.tray_shareTooltip: "LAN ダウンロードリンクを作るファイルを選択",
     LocaleKey.tray_viewTree: "バージョンツリーを表示",
     LocaleKey.tray_viewTreeTooltip: "バージョンツリーを確認するファイルを選択",
     LocaleKey.tray_setting: "設定",

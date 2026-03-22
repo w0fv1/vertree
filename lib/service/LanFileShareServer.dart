@@ -10,9 +10,11 @@ class LanFileShareServer {
   LanFileShareServer({
     this.sharePageBaseUrl = defaultSharePageBaseUrl,
     Future<List<String>> Function()? addressResolver,
+    Future<String?> Function()? wifiNameResolver,
     void Function(String message)? onLogInfo,
     void Function(String message)? onLogError,
   }) : _addressResolver = addressResolver ?? _discoverLanIpv4Addresses,
+       _wifiNameResolver = wifiNameResolver ?? _discoverWifiName,
        _onLogInfo = onLogInfo,
        _onLogError = onLogError {
     _cleanupTimer = Timer.periodic(
@@ -29,6 +31,7 @@ class LanFileShareServer {
 
   final String sharePageBaseUrl;
   final Future<List<String>> Function() _addressResolver;
+  final Future<String?> Function() _wifiNameResolver;
   final void Function(String message)? _onLogInfo;
   final void Function(String message)? _onLogError;
 
@@ -40,6 +43,7 @@ class LanFileShareServer {
   HttpServer? _server;
   int? _port;
   List<String> _lastKnownLanIps = const <String>[];
+  String? _lastKnownWifiName;
 
   bool get isRunning => _server != null;
   int? get port => _port;
@@ -52,6 +56,7 @@ class LanFileShareServer {
       'sharePageBaseUrl': sharePageBaseUrl,
       'activeShareCount': _shares.length,
       'lastKnownLanIps': _lastKnownLanIps,
+      'lastKnownWifiName': _lastKnownWifiName,
     };
   }
 
@@ -120,6 +125,7 @@ class LanFileShareServer {
 
     await start();
     final lanIps = await _resolveLanIps();
+    final wifiName = await _resolveWifiName();
     if (lanIps.isEmpty || _port == null) {
       return Result.eMsg(
         'No reachable LAN IPv4 address was detected for this machine.',
@@ -138,14 +144,15 @@ class LanFileShareServer {
     );
     _shares[entry.token] = entry;
 
-    return Result.ok(_shareToMap(entry, lanIps));
+    return Result.ok(_shareToMap(entry, lanIps, wifiName: wifiName));
   }
 
   Future<Map<String, dynamic>> listShares() async {
     _purgeExpiredShares();
     final lanIps = await _resolveLanIps();
+    final wifiName = await _resolveWifiName();
     final items = _shares.values
-        .map((entry) => _shareToMap(entry, lanIps))
+        .map((entry) => _shareToMap(entry, lanIps, wifiName: wifiName))
         .toList(growable: false);
     items.sort(
       (left, right) => ((right['createdAt'] as String?) ?? '').compareTo(
@@ -162,7 +169,8 @@ class LanFileShareServer {
       return Result.eMsg('LAN file share not found: $token');
     }
     final lanIps = await _resolveLanIps();
-    return Result.ok(_shareToMap(entry, lanIps));
+    final wifiName = await _resolveWifiName();
+    return Result.ok(_shareToMap(entry, lanIps, wifiName: wifiName));
   }
 
   Result<Map<String, dynamic>, String> revokeShare(String token) {
@@ -386,10 +394,17 @@ class LanFileShareServer {
     return addresses;
   }
 
+  Future<String?> _resolveWifiName() async {
+    final wifiName = _normalizeWifiName(await _wifiNameResolver());
+    _lastKnownWifiName = wifiName;
+    return wifiName;
+  }
+
   Map<String, dynamic> _shareToMap(
     _LanFileShareEntry entry,
-    List<String> lanIps,
-  ) {
+    List<String> lanIps, {
+    String? wifiName,
+  }) {
     final currentPort = _port;
     final directDownloads = currentPort == null
         ? const <Map<String, dynamic>>[]
@@ -415,6 +430,7 @@ class LanFileShareServer {
       'expiresAt': entry.expiresAt.toIso8601String(),
       'downloadCount': entry.downloadCount,
       'lastDownloadedAt': entry.lastDownloadedAt?.toIso8601String(),
+      'networkName': wifiName,
       'sharePageUrl': currentPort == null
           ? null
           : _buildSharePageUrl(
@@ -424,6 +440,7 @@ class LanFileShareServer {
               expiresAt: entry.expiresAt,
               port: currentPort,
               lanIps: lanIps,
+              wifiName: wifiName,
             ),
       'server': {
         'port': currentPort,
@@ -442,17 +459,20 @@ class LanFileShareServer {
     required DateTime expiresAt,
     required int port,
     required List<String> lanIps,
+    String? wifiName,
   }) {
-    final fragment = Uri(
-      queryParameters: {
-        't': token,
-        'p': port.toString(),
-        'ips': lanIps.join(','),
-        'name': base64Url.encode(utf8.encode(fileName)),
-        'size': fileSize.toString(),
-        'exp': expiresAt.millisecondsSinceEpoch.toString(),
-      },
-    ).query;
+    final queryParameters = <String, String>{
+      't': token,
+      'p': port.toString(),
+      'ips': lanIps.join(','),
+      'name': base64Url.encode(utf8.encode(fileName)),
+      'size': fileSize.toString(),
+      'exp': expiresAt.millisecondsSinceEpoch.toString(),
+    };
+    if (wifiName != null && wifiName.isNotEmpty) {
+      queryParameters['net'] = base64Url.encode(utf8.encode(wifiName));
+    }
+    final fragment = Uri(queryParameters: queryParameters).query;
     return '$sharePageBaseUrl#$fragment';
   }
 
@@ -548,6 +568,94 @@ class LanFileShareServer {
 
     final sorted = results.toList(growable: false)..sort();
     return sorted;
+  }
+
+  static String? _normalizeWifiName(String? raw) {
+    if (raw == null) {
+      return null;
+    }
+    final normalized = raw.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  static Future<String?> _discoverWifiName() async {
+    try {
+      if (Platform.isWindows) {
+        final result = await Process.run('netsh', [
+          'wlan',
+          'show',
+          'interfaces',
+        ]);
+        if (result.exitCode == 0) {
+          return _parseNetshWifiName(result.stdout.toString());
+        }
+      } else if (Platform.isMacOS) {
+        const airportPath =
+            '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport';
+        final result = await Process.run(airportPath, ['-I']);
+        if (result.exitCode == 0) {
+          return _parseColonDelimitedValue(result.stdout.toString(), 'SSID');
+        }
+      } else if (Platform.isLinux) {
+        final nmcliResult = await Process.run('nmcli', [
+          '-t',
+          '-f',
+          'active,ssid',
+          'dev',
+          'wifi',
+        ]);
+        if (nmcliResult.exitCode == 0) {
+          final wifiName = _parseNmcliWifiName(nmcliResult.stdout.toString());
+          if (wifiName != null) {
+            return wifiName;
+          }
+        }
+
+        final iwgetidResult = await Process.run('iwgetid', ['-r']);
+        if (iwgetidResult.exitCode == 0) {
+          return _normalizeWifiName(iwgetidResult.stdout.toString());
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  static String? _parseNetshWifiName(String output) {
+    for (final line in output.split(RegExp(r'\r?\n'))) {
+      final match = RegExp(r'^\s*SSID\s*:\s*(.+)$').firstMatch(line);
+      if (match == null) {
+        continue;
+      }
+      return _normalizeWifiName(match.group(1));
+    }
+    return null;
+  }
+
+  static String? _parseColonDelimitedValue(String output, String key) {
+    final pattern = RegExp('^\\s*${RegExp.escape(key)}\\s*:\\s*(.+)\$');
+    for (final line in output.split(RegExp(r'\r?\n'))) {
+      final match = pattern.firstMatch(line);
+      if (match == null) {
+        continue;
+      }
+      return _normalizeWifiName(match.group(1));
+    }
+    return null;
+  }
+
+  static String? _parseNmcliWifiName(String output) {
+    for (final line in output.split(RegExp(r'\r?\n'))) {
+      if (!line.startsWith('yes:')) {
+        continue;
+      }
+      return _normalizeWifiName(line.substring(4));
+    }
+    return null;
   }
 }
 

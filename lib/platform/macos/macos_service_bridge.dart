@@ -8,6 +8,7 @@ class MacOSServiceBridge {
     'express-backup',
     'monit',
     'monitor',
+    'share',
     'viewtree',
   };
 

@@ -237,6 +237,10 @@ class AppDelegate: FlutterAppDelegate {
     invokeMenuAction("monit")
   }
 
+  @IBAction func menuShare(_ sender: Any?) {
+    invokeMenuAction("share")
+  }
+
   @IBAction func menuViewtree(_ sender: Any?) {
     invokeMenuAction("viewtree")
   }
@@ -273,6 +277,12 @@ class AppDelegate: FlutterAppDelegate {
   @objc func vertreeMonit(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
     for path in readFilePaths(from: pboard) {
       invokeServiceAction("monit", path: path)
+    }
+  }
+
+  @objc func vertreeShare(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>?) {
+    for path in readFilePaths(from: pboard) {
+      invokeServiceAction("share", path: path)
     }
   }
 

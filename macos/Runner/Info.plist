@@ -94,6 +94,21 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
+				<string>局域网分享下载（Vertree）</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>vertreeShare</string>
+			<key>NSPortName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
 				<string>查看版本树（Vertree）</string>
 			</dict>
 			<key>NSMessage</key>

@@ -205,6 +205,15 @@ class TrayManager with lean_tray.TrayListener {
     );
     items.add(
       _buildMenuItem(
+        key: 'share',
+        label: appLocale.getText(LocaleKey.tray_share),
+        toolTip: appLocale.getText(LocaleKey.tray_shareTooltip),
+        iconAsset: 'assets/img/logo/logo.png',
+        action: () => _pickFileAndRun(share),
+      ),
+    );
+    items.add(
+      _buildMenuItem(
         key: 'viewtree',
         label: appLocale.getText(LocaleKey.tray_viewTree),
         toolTip: appLocale.getText(LocaleKey.tray_viewTreeTooltip),
@@ -313,6 +322,13 @@ class TrayManager with lean_tray.TrayListener {
           toolTip: appLocale.getText(LocaleKey.tray_monitTooltip),
           iconAsset: 'assets/img/icon/monit.png',
           action: () => _pickFileAndRun(monit),
+        ),
+        _buildLinuxMenuItem(
+          key: 'share',
+          label: appLocale.getText(LocaleKey.tray_share),
+          toolTip: appLocale.getText(LocaleKey.tray_shareTooltip),
+          iconAsset: 'assets/img/logo/logo.png',
+          action: () => _pickFileAndRun(share),
         ),
         _buildLinuxMenuItem(
           key: 'viewtree',

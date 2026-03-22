@@ -9,6 +9,7 @@ enum AppCliAction {
   backup,
   expressBackup,
   monit,
+  share,
   viewtree;
 
   static AppCliAction? fromToken(String raw) {
@@ -26,6 +27,9 @@ enum AppCliAction {
       case '--monit':
       case '--monitor':
         return AppCliAction.monit;
+      case 'share':
+      case '--share':
+        return AppCliAction.share;
       case 'viewtree':
       case 'tree':
       case 'open':

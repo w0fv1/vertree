@@ -22,9 +22,11 @@ void main() {
     test('accepts monitor alias and express backup subcommand', () {
       final monitor = parseAppCliArgs(['monitor', '/tmp/demo.txt']);
       final express = parseAppCliArgs(['express-backup', '/tmp/demo.txt']);
+      final share = parseAppCliArgs(['share', '/tmp/demo.txt']);
 
       expect(monitor!.action, AppCliAction.monit);
       expect(express!.action, AppCliAction.expressBackup);
+      expect(share!.action, AppCliAction.share);
     });
 
     test('keeps legacy flag invocations working', () {

@@ -16,6 +16,7 @@ void main() {
       server = LanFileShareServer(
         sharePageBaseUrl: 'https://vertree.w0fv1.dev/file_share',
         addressResolver: () async => ['192.168.10.8', '10.0.0.6'],
+        wifiNameResolver: () async => 'Office WiFi',
       );
     });
 
@@ -41,9 +42,11 @@ void main() {
 
         expect(share['fileName'], 'story.0.1.txt');
         expect(share['fileSize'], greaterThan(0));
+        expect(share['networkName'], 'Office WiFi');
         expect(sharePageUrl, isNotNull);
         expect(sharePageUrl, contains('https://vertree.w0fv1.dev/file_share#'));
         expect(sharePageUrl, contains('ips='));
+        expect(sharePageUrl, contains('net='));
         expect(directDownloads, hasLength(2));
         expect(
           (directDownloads.first as Map<String, dynamic>)['downloadUrl'],

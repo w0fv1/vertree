@@ -40,12 +40,14 @@ class LinuxGnomeIntegration {
   static const String actionBackup = 'backup';
   static const String actionExpressBackup = 'expressBackup';
   static const String actionMonitor = 'monitor';
+  static const String actionShare = 'share';
   static const String actionViewTree = 'viewTree';
 
   static const Map<String, String> _cliActionMap = {
     actionBackup: 'backup',
     actionExpressBackup: 'express-backup',
     actionMonitor: 'monit',
+    actionShare: 'share',
     actionViewTree: '',
   };
 
@@ -53,6 +55,7 @@ class LinuxGnomeIntegration {
     actionBackup: '备份该文件',
     actionExpressBackup: '快速备份该文件',
     actionMonitor: '监控该文件',
+    actionShare: '局域网分享下载',
     actionViewTree: '查看版本树',
   };
 

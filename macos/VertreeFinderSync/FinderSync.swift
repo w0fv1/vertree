@@ -43,6 +43,10 @@ final class FinderSync: FIFinderSync {
       action: #selector(monitSelectedFiles(_:))
     ))
     submenu.addItem(menuItem(
+      title: "局域网分享下载",
+      action: #selector(shareSelectedFiles(_:))
+    ))
+    submenu.addItem(menuItem(
       title: "查看版本树",
       action: #selector(viewtreeSelectedFiles(_:))
     ))
@@ -62,6 +66,10 @@ final class FinderSync: FIFinderSync {
 
   @objc private func monitSelectedFiles(_ sender: Any?) {
     dispatchAction("monit")
+  }
+
+  @objc private func shareSelectedFiles(_ sender: Any?) {
+    dispatchAction("share")
   }
 
   @objc private func viewtreeSelectedFiles(_ sender: Any?) {

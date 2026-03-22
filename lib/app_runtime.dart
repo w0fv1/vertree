@@ -25,6 +25,7 @@ import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/service/LanFileShareServer.dart';
 import 'package:vertree/service/LocalHttpApiService.dart';
 import 'package:vertree/view/module/FileTree.dart';
+import 'package:vertree/view/module/LanShareDialog.dart';
 import 'package:vertree/view/page/BrandPage.dart';
 import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
@@ -378,6 +379,7 @@ Future<void> runVertreeApp(
     onBackup: backup,
     onExpressBackup: expressBackup,
     onMonit: monit,
+    onShare: share,
     onViewTree: viewtree,
     onNotify: showWindowsNotification,
     onLogInfo: logger.info,
@@ -1083,6 +1085,48 @@ void monit(String path) {
       );
     }
   });
+}
+
+void share(String path) {
+  unawaited(_shareFile(path));
+}
+
+Future<void> _shareFile(String path) async {
+  logger.info('share $path');
+  await showMainWindow(animate: false);
+  showToast(appLocale.getText(LocaleKey.fileleaf_sharePreparing));
+
+  final result = await lanFileShareServer.createShare(path);
+  if (result.isErr) {
+    final message = appLocale.getText(LocaleKey.fileleaf_shareCreateFailed).tr([
+      result.msg,
+    ]);
+    showToast(message);
+    unawaited(
+      showWindowsNotification(
+        appLocale.getText(LocaleKey.fileleaf_menuShare),
+        message,
+      ),
+    );
+    return;
+  }
+
+  final overlayContext = navigatorKey.currentState?.overlay?.context;
+  if (overlayContext == null) {
+    final shareData = result.unwrap();
+    final message = (shareData['sharePageUrl'] as String?) ?? path;
+    showToast(message);
+    return;
+  }
+
+  if (!overlayContext.mounted) {
+    return;
+  }
+
+  await showDialog<void>(
+    context: overlayContext,
+    builder: (context) => LanShareDialog(shareData: result.unwrap()),
+  );
 }
 
 void viewtree(String path) {

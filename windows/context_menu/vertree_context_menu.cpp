@@ -19,6 +19,7 @@ constexpr wchar_t kMenuTitle[] = L"Vertree";
 constexpr wchar_t kCmdBackup[] = L"backup";
 constexpr wchar_t kCmdExpressBackup[] = L"express-backup";
 constexpr wchar_t kCmdMonitor[] = L"monit";
+constexpr wchar_t kCmdShare[] = L"share";
 constexpr wchar_t kCmdViewTree[] = L"viewtree";
 
 HINSTANCE g_instance = nullptr;
@@ -245,22 +246,26 @@ std::wstring GetCommandTitle(const wchar_t* verb) {
   const bool is_backup = (wcscmp(verb, kCmdBackup) == 0);
   const bool is_express = (wcscmp(verb, kCmdExpressBackup) == 0);
   const bool is_monitor = (wcscmp(verb, kCmdMonitor) == 0);
+  const bool is_share = (wcscmp(verb, kCmdShare) == 0);
   const bool is_viewtree = (wcscmp(verb, kCmdViewTree) == 0);
 
   if (lang == MenuLang::EN) {
     if (is_backup) return L"Backup Files VerTree";
     if (is_express) return L"Quick Backup Files VerTree";
     if (is_monitor) return L"Monitor File Changes VerTree";
+    if (is_share) return L"Share for LAN Download VerTree";
     if (is_viewtree) return L"View File Version Tree VerTree";
   } else if (lang == MenuLang::JA) {
     if (is_backup) return L"バックアップファイル VerTree";
     if (is_express) return L"クイックバックアップファイル VerTree";
     if (is_monitor) return L"ファイル変更監視 VerTree";
+    if (is_share) return L"LAN ダウンロード共有 VerTree";
     if (is_viewtree) return L"ファイルバージョンツリー表示 VerTree";
   } else {
     if (is_backup) return L"备份文件 VerTree";
     if (is_express) return L"快速备份文件 VerTree";
     if (is_monitor) return L"监控文件变动 VerTree";
+    if (is_share) return L"局域网分享下载 VerTree";
     if (is_viewtree) return L"查看文件版本树 VerTree";
   }
 
@@ -653,12 +658,13 @@ class RootCommand : public IExplorerCommand, public ComObjectBase {
     *enum_commands = nullptr;
 
     std::vector<IExplorerCommand*> cmds;
-    cmds.reserve(4);
+    cmds.reserve(5);
 
     // Each command starts with ref_count=1. The enumerator owns that reference.
     cmds.push_back(new LeafCommand(kCmdBackup, GetCommandTitle(kCmdBackup)));
     cmds.push_back(new LeafCommand(kCmdExpressBackup, GetCommandTitle(kCmdExpressBackup)));
     cmds.push_back(new LeafCommand(kCmdMonitor, GetCommandTitle(kCmdMonitor)));
+    cmds.push_back(new LeafCommand(kCmdShare, GetCommandTitle(kCmdShare)));
     cmds.push_back(new LeafCommand(kCmdViewTree, GetCommandTitle(kCmdViewTree)));
 
     *enum_commands = new CommandEnumerator(std::move(cmds), 0);

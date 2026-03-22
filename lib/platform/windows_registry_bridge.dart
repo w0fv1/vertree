@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:vertree/component/ElevatedTask.dart' deferred as elevated_task;
-import 'package:vertree/component/VerTreeRegistryHelper.dart' deferred as registry;
-import 'package:vertree/utils/WindowsPackageIdentity.dart' deferred as package_identity;
+import 'package:vertree/component/VerTreeRegistryHelper.dart'
+    deferred as registry;
+import 'package:vertree/utils/WindowsPackageIdentity.dart'
+    deferred as package_identity;
 
 class WindowsRegistryBridge {
   static bool _loaded = false;
@@ -44,6 +46,12 @@ class WindowsRegistryBridge {
     return registry.VerTreeRegistryService.checkMonitorKeyExists();
   }
 
+  static Future<bool> checkShareKeyExists() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.checkShareKeyExists();
+  }
+
   static Future<bool> checkViewTreeKeyExists() async {
     if (!Platform.isWindows) return false;
     await _ensureLoaded();
@@ -71,7 +79,8 @@ class WindowsRegistryBridge {
   static Future<bool> removeExpressBackupContextMenu() async {
     if (!Platform.isWindows) return false;
     await _ensureLoaded();
-    return registry.VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
+    return registry
+        .VerTreeRegistryService.removeVerTreeExpressBackupContextMenu();
   }
 
   static Future<bool> addMonitorContextMenu() async {
@@ -84,6 +93,18 @@ class WindowsRegistryBridge {
     if (!Platform.isWindows) return false;
     await _ensureLoaded();
     return registry.VerTreeRegistryService.removeVerTreeMonitorContextMenu();
+  }
+
+  static Future<bool> addShareContextMenu() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.addVerTreeShareContextMenu();
+  }
+
+  static Future<bool> removeShareContextMenu() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.removeVerTreeShareContextMenu();
   }
 
   static Future<bool> addViewTreeContextMenu() async {

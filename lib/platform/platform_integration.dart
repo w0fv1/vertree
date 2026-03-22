@@ -83,6 +83,16 @@ class PlatformIntegration {
     return false;
   }
 
+  static Future<bool> checkShareKeyExists() async {
+    if (isWindows) {
+      return WindowsRegistryBridge.checkShareKeyExists();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.hasAction(LinuxGnomeIntegration.actionShare);
+    }
+    return false;
+  }
+
   static Future<bool> checkViewTreeKeyExists() async {
     if (isWindows) {
       return WindowsRegistryBridge.checkViewTreeKeyExists();
@@ -162,6 +172,28 @@ class PlatformIntegration {
     if (isLinux) {
       return LinuxGnomeIntegration.removeAction(
         LinuxGnomeIntegration.actionMonitor,
+      );
+    }
+    return false;
+  }
+
+  static Future<bool> addShareContextMenu() async {
+    if (isWindows) {
+      return WindowsRegistryBridge.addShareContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.addAction(LinuxGnomeIntegration.actionShare);
+    }
+    return false;
+  }
+
+  static Future<bool> removeShareContextMenu() async {
+    if (isWindows) {
+      return WindowsRegistryBridge.removeShareContextMenu();
+    }
+    if (isLinux) {
+      return LinuxGnomeIntegration.removeAction(
+        LinuxGnomeIntegration.actionShare,
       );
     }
     return false;

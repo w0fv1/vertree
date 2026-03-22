@@ -20,6 +20,7 @@ ACTIONS = [
     ("backup", "备份该文件", "backup"),
     ("expressBackup", "快速备份该文件", "express-backup"),
     ("monitor", "监控该文件", "monit"),
+    ("share", "局域网分享下载", "share"),
     ("viewTree", "查看版本树", ""),
 ]
 

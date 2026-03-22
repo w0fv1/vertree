@@ -13,6 +13,7 @@ class VerTreeRegistryService {
   static const String registry_expressBackupKeyName =
       "RegistryVerTreeExpressBackup";
   static const String registry_monitorKeyName = "RegistryVerTreeMonitor";
+  static const String registry_shareKeyName = "RegistryVerTreeShare";
   static const String registry_viewTreeKeyName = "RegistryVerTreeViewTree";
 
   static const String appName = "VerTree"; // 应用名称
@@ -73,6 +74,11 @@ class VerTreeRegistryService {
     if (checkViewTreeKeyExists()) {
       RegistryHelper.removeContextMenuOptionByKey(registry_viewTreeKeyName);
       addVerTreeViewContextMenu();
+    }
+
+    if (checkShareKeyExists()) {
+      RegistryHelper.removeContextMenuOptionByKey(registry_shareKeyName);
+      addVerTreeShareContextMenu();
     }
 
     if (checkExpressBackupKeyExists()) {
@@ -194,6 +200,43 @@ class VerTreeRegistryService {
     return success;
   }
 
+  static bool addVerTreeShareContextMenu({bool allowElevation = true}) {
+    final exePath = Platform.resolvedExecutable;
+    final iconPath = path.join(
+      FileUtils.appDirPath(),
+      'data',
+      'flutter_assets',
+      'assets',
+      'img',
+      'logo',
+      'logo.ico',
+    );
+    final menuText = appLocale.getText(LocaleKey.registry_shareKeyName);
+    final command = '"$exePath" share "%1"';
+
+    bool success = RegistryHelper.addContextMenuOption(
+      registry_shareKeyName,
+      menuText,
+      command,
+      iconPath: iconPath,
+    );
+
+    success = _retryWithElevation(
+      actionName: '添加右键菜单[Share]',
+      success: success,
+      allowElevation: allowElevation,
+      operation: ElevatedTaskRunner.opAddContextMenu,
+      payload: {
+        'keyName': registry_shareKeyName,
+        'menuText': menuText,
+        'command': command,
+        'iconPath': iconPath,
+      },
+    );
+
+    return success;
+  }
+
   static bool addVerTreeExpressBackupContextMenu({bool allowElevation = true}) {
     final exePath = Platform.resolvedExecutable;
     final iconPath = path.join(
@@ -261,6 +304,20 @@ class VerTreeRegistryService {
     return success;
   }
 
+  static bool removeVerTreeShareContextMenu({bool allowElevation = true}) {
+    bool success = RegistryHelper.removeContextMenuOptionByKey(
+      registry_shareKeyName,
+    );
+    success = _retryWithElevation(
+      actionName: '移除右键菜单[Share]',
+      success: success,
+      allowElevation: allowElevation,
+      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
+      payload: {'keyName': registry_shareKeyName},
+    );
+    return success;
+  }
+
   static bool removeVerTreeMonitorContextMenu({bool allowElevation = true}) {
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_monitorKeyName,
@@ -301,6 +358,10 @@ class VerTreeRegistryService {
 
   static bool checkMonitorKeyExists() {
     return RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName);
+  }
+
+  static bool checkShareKeyExists() {
+    return RegistryHelper.checkRegistryMenuExistsByKey(registry_shareKeyName);
   }
 
   static bool checkViewTreeKeyExists() {
@@ -523,6 +584,12 @@ class VerTreeRegistryService {
         registry_viewTreeKeyName,
         appLocale.getText(LocaleKey.registry_viewTreeKeyName),
         '"$exePath" "%1"',
+        _iconPath('logo.ico', isLogo: true),
+      ),
+      _contextMenuPayload(
+        registry_shareKeyName,
+        appLocale.getText(LocaleKey.registry_shareKeyName),
+        '"$exePath" share "%1"',
         _iconPath('logo.ico', isLogo: true),
       ),
       _contextMenuPayload(

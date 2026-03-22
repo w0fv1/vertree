@@ -57,6 +57,12 @@
                                     <action selector="menuMonit:" target="Voe-Tx-rLC" id="wX2-2i-q2A"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="局域网分享下载…" id="3Wv-4m-Y2Q">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuShare:" target="Voe-Tx-rLC" id="1fA-uB-3Sc"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="查看版本树…" id="1iT-R7-NzQ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -115,6 +121,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="menuMonit:" target="Voe-Tx-rLC" id="k7f-0Y-XwQ"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="局域网分享下载…" id="z8V-Lu-K2m">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuShare:" target="Voe-Tx-rLC" id="s3R-tM-d6V"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="查看版本树…" id="m1x-4z-4P0">
