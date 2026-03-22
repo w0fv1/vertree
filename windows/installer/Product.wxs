@@ -29,25 +29,16 @@
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLDIR" Name="Vertree" />
       </Directory>
-      <Directory Id="ProgramMenuFolder">
+      <Directory Id="CommonProgramsFolder">
         <Directory Id="ProgramMenuDir" Name="Vertree" />
       </Directory>
-      <Directory Id="DesktopFolder" />
+      <Directory Id="CommonDesktopFolder" />
     </Directory>
 
     <DirectoryRef Id="ProgramMenuDir">
-      <Component Id="ApplicationShortcuts" Guid="{3B8A22E3-4E1E-47C0-A5D1-C523A8353831}">
+      <Component Id="StartMenuShortcuts" Guid="{3B8A22E3-4E1E-47C0-A5D1-C523A8353831}">
         <Shortcut
           Id="StartMenuShortcut"
-          Name="Vertree"
-          Description="Launch Vertree"
-          Target="[INSTALLDIR]vertree.exe"
-          WorkingDirectory="INSTALLDIR"
-          Icon="VertreeAppIcon"
-          Advertise="no" />
-        <Shortcut
-          Id="DesktopShortcut"
-          Directory="DesktopFolder"
           Name="Vertree"
           Description="Launch Vertree"
           Target="[INSTALLDIR]vertree.exe"
@@ -65,9 +56,31 @@
       </Component>
     </DirectoryRef>
 
+    <DirectoryRef Id="CommonDesktopFolder">
+      <Component Id="DesktopShortcutComponent" Guid="{A9E1B322-1C20-4B7C-84CB-8F8665C97A15}">
+        <Shortcut
+          Id="DesktopShortcut"
+          Directory="CommonDesktopFolder"
+          Name="Vertree"
+          Description="Launch Vertree"
+          Target="[INSTALLDIR]vertree.exe"
+          WorkingDirectory="INSTALLDIR"
+          Icon="VertreeAppIcon"
+          Advertise="no" />
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\Vertree"
+          Name="DesktopShortcut"
+          Type="string"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
     <Feature Id="MainFeature" Title="Vertree" Level="1">
       <ComponentGroupRef Id="AppFiles" />
-      <ComponentRef Id="ApplicationShortcuts" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcutComponent" />
     </Feature>
   </Product>
 </Wix>

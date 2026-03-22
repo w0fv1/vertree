@@ -156,7 +156,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $currentDir = Get-Location
 
 # 回到项目根目录执行 flutter build windows
-$projectRoot = Resolve-Path (Join-Path $scriptDir "..")
+$projectRoot = (Resolve-Path (Join-Path $scriptDir "..")).Path
 Set-Location $projectRoot
 
 $flutterCmd = Resolve-ToolPath -preferred $Flutter -fallbackPath $flutterDefault -commandName "flutter"
@@ -197,7 +197,7 @@ Set-Location $scriptDir
 
 # ISS脚本路径（默认当前目录）
 $issFile = Join-Path $scriptDir "setup.iss"
-$runnerOutputDir = Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")
+$runnerOutputDir = (Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")).Path
 
 # Copy context menu DLL into runner output (if built).
 $contextMenuDll = Join-Path $scriptDir "..\\build\\windows\\x64\\context_menu\\$BuildMode\\vertree_context_menu.dll"
@@ -368,14 +368,14 @@ if ([string]::IsNullOrWhiteSpace($wixBin)) {
     $productWxs = Join-Path $scriptDir "installer\\Product.wxs"
     $wixObjDir = Join-Path $scriptDir "..\\build\\windows\\wix"
     $harvestWxs = Join-Path $wixObjDir "AppFiles.wxs"
-    $runnerDir = Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")
+    $runnerDir = (Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")).Path
     $msiPath = Join-Path $scriptDir "$msiBaseName.msi"
 
     if ((-not (Test-Path $heatExe)) -or (-not (Test-Path $candleExe)) -or (-not (Test-Path $lightExe))) {
         Write-Warning "WiX Toolset 缺少 heat/candle/light，可执行文件不完整，跳过 MSI 打包。"
     } else {
         New-Item -ItemType Directory -Force -Path $wixObjDir | Out-Null
-        $resolvedProjectRoot = (Resolve-Path $projectRoot).Path
+        $resolvedProjectRoot = $projectRoot
         $productGeneratedWxs = Join-Path $wixObjDir "Product.generated.wxs"
         $productWixObj = Join-Path $wixObjDir "Product.generated.wixobj"
         $harvestWixObj = Join-Path $wixObjDir "AppFiles.wixobj"
@@ -502,7 +502,7 @@ if ($enableUnsignedMsix) {
 }
 
 if ($Sparse -or $SparseRefresh) {
-    $externalLocation = Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")
+    $externalLocation = (Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")).Path
 
     if ($SparseRefresh) {
         $refreshScript = Join-Path $scriptDir "packaging\\refresh_win11_menu.ps1"

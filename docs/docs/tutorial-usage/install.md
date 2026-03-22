@@ -9,9 +9,10 @@ sidebar_position: 1
 Windows 仍然是当前最完整的桌面发布形态。
 
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
-2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`、用于后续签名的 unsigned `vertree-windows-x64-<version>.msix`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
+2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
 3. 如果下载的是 `setup.exe` 或 `msi`，直接运行安装；如果下载的是 `zip`，解压后直接运行其中的 `vertree.exe`
-4. 首次启动后完成初始化
+4. 如需 unsigned `msix`，可在本地 Windows 构建时设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`
+5. 首次启动后完成初始化
 
 初始化通常会完成这些动作：
 

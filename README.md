@@ -27,8 +27,9 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 
 ### Windows
 
-1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`、用于后续签名的 unsigned `vertree-windows-x64-<version>.msix`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
+1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
 2. `setup.exe` / `msi` 适合常规安装；`zip` 是真正的便携版，解压后可直接运行 `vertree.exe`
+3. 如需 unsigned `msix` 供本地开发调试或后续签名，可在 Windows 本地构建时设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`
 3. 首次启动完成初始化
 4. 通过文件右键菜单、托盘或设置页开始使用
 

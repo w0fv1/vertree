@@ -142,9 +142,10 @@ pwsh -File windows/build.ps1 -BuildMode Release
 - `windows/vertree-windows-x64-<version>-setup.exe`
 - `windows/vertree-windows-x64-<version>.zip`
 - `windows/vertree-windows-x64-<version>.msi`
-- `windows/vertree-windows-x64-<version>.msix`（unsigned，供后续签名）
 - `windows/vertree-windows-x64-<version>-symbols.zip`
 - `windows/vertree-windows-x64-<version>-win11-dev.zip`
+
+如需本地额外生成 unsigned `msix`，可在构建前设置环境变量 `VERTREE_ENABLE_UNSIGNED_MSIX=1`。
 
 ### macOS
 
