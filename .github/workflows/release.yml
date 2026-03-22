@@ -349,10 +349,24 @@ jobs:
             exit 1
           fi
 
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.id')"
+          upload_url="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.upload_url')"
+          upload_url="${upload_url%\{*}"
+
           for file in "${asset_files[@]}"; do
             name="$(basename "$file")"
-            gh release delete-asset "$tag" "$name" --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
-            gh release upload "$tag" "$file" --repo "$GITHUB_REPOSITORY"
+            asset_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --jq ".[] | select(.name == \"$name\") | .id" | head -n1 || true)"
+            if [[ -n "$asset_id" ]]; then
+              gh api "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" --method DELETE >/dev/null
+            fi
+
+            encoded_name="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$name")"
+            curl --fail-with-body --silent --show-error \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$file" \
+              "${upload_url}?name=${encoded_name}" >/dev/null
           done
 
           uploaded_count="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.assets | length')"
