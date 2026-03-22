@@ -9,8 +9,8 @@ sidebar_position: 1
 Windows 仍然是当前最完整的桌面发布形态。
 
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
-2. 下载最新版本的 `vertree-windows-x64-<version>.zip`
-3. 解压得到 `vertree-windows-x64-<version>-setup.exe`
+2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe` 或 `vertree-windows-x64-<version>.msi`
+3. 如果下载的是 `zip`，先解压得到 `vertree-windows-x64-<version>-setup.exe`
 4. 运行安装程序并完成安装
 5. 首次启动后完成初始化
 

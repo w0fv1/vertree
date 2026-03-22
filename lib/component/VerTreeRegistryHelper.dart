@@ -428,7 +428,6 @@ class VerTreeRegistryService {
     }
 
     logger.info('初始化普通权限失败，尝试一次性提权配置...');
-    final win11Menu = !packaged ? _win11MenuPayload() : null;
     final payload = <String, dynamic>{
       'contextMenus': entries,
       'autostart': {
@@ -437,7 +436,6 @@ class VerTreeRegistryService {
         'appName': appName,
         'appPath': exePath,
       },
-      ...?win11Menu == null ? null : {'win11Menu': win11Menu},
     };
     final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
       ElevatedTaskRunner.opApplySetup,
@@ -507,56 +505,56 @@ class VerTreeRegistryService {
   }
 
   static bool addWin11ContextMenuHandler({bool allowElevation = true}) {
+    final cleaned = _removeLegacyWin11ContextMenuHandler(
+      allowElevation: allowElevation,
+    );
     if (WindowsPackageIdentity.isPackagedOrRegistered()) {
-      return true;
+      return cleaned;
     }
-    final payload = _win11MenuPayload();
-    if (payload == null) {
-      logger.error('Win11 新菜单注册失败：未找到 vertree_context_menu.dll');
+    if (!_hasWin11PackagingAssets()) {
+      logger.error('Win11 新菜单注册失败：未找到 sparse package 资源');
       return false;
     }
 
-    bool success = RegistryHelper.addWin11ContextMenuHandler(
-      win11HandlerName,
-      win11HandlerClsid,
-      payload['serverPath']!,
+    final registered = _runWin11PackagingScript(
+      'refresh_win11_menu.ps1',
+      arguments: ['-ExternalLocation', FileUtils.appDirPath()],
     );
-    success = _retryWithElevation(
-      actionName: '添加 Win11 新菜单',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddWin11Menu,
-      payload: payload,
-    );
-    return success;
+    return cleaned && registered;
   }
 
   static bool removeWin11ContextMenuHandler({bool allowElevation = true}) {
+    bool success = true;
     if (WindowsPackageIdentity.isPackagedOrRegistered()) {
-      return true;
+      if (_hasWin11PackagingAssets()) {
+        success =
+            _runWin11PackagingScript('uninstall_sparse_package.ps1') && success;
+      }
     }
+    success =
+        _removeLegacyWin11ContextMenuHandler(allowElevation: allowElevation) &&
+        success;
+    return success;
+  }
+
+  static bool _removeLegacyWin11ContextMenuHandler({
+    bool allowElevation = true,
+  }) {
     bool success = RegistryHelper.removeWin11ContextMenuHandler(
       win11HandlerName,
       win11HandlerClsid,
     );
-    success = _retryWithElevation(
-      actionName: '移除 Win11 新菜单',
+    return _retryWithElevation(
+      actionName: '清理旧 Win11 菜单注册',
       success: success,
       allowElevation: allowElevation,
       operation: ElevatedTaskRunner.opRemoveWin11Menu,
       payload: {'handlerName': win11HandlerName, 'clsid': win11HandlerClsid},
     );
-    return success;
   }
 
   static bool checkWin11ContextMenuHandler() {
-    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
-      return true;
-    }
-    return RegistryHelper.checkWin11ContextMenuHandler(
-      win11HandlerName,
-      win11HandlerClsid,
-    );
+    return WindowsPackageIdentity.isPackagedOrRegistered();
   }
 
   static Map<String, String?> _contextMenuPayload(
@@ -620,20 +618,53 @@ class VerTreeRegistryService {
     ];
   }
 
-  static String _win11ServerPath() {
-    return path.join(FileUtils.appDirPath(), 'vertree_context_menu.dll');
+  static String _win11PackagingDir() {
+    return path.join(FileUtils.appDirPath(), 'win11_packaging');
   }
 
-  static Map<String, String>? _win11MenuPayload() {
-    final serverPath = _win11ServerPath();
-    if (!File(serverPath).existsSync()) {
-      return null;
+  static bool _hasWin11PackagingAssets() {
+    final packagingDir = _win11PackagingDir();
+    return File(
+          path.join(packagingDir, 'install_sparse_package.ps1'),
+        ).existsSync() &&
+        File(path.join(packagingDir, 'refresh_win11_menu.ps1')).existsSync() &&
+        File(
+          path.join(packagingDir, 'sparse', 'AppxManifest.xml'),
+        ).existsSync();
+  }
+
+  static bool _runWin11PackagingScript(
+    String scriptName, {
+    List<String> arguments = const [],
+  }) {
+    final scriptPath = path.join(_win11PackagingDir(), scriptName);
+    if (!File(scriptPath).existsSync()) {
+      logger.error('Win11 新菜单脚本不存在: $scriptPath');
+      return false;
     }
-    return {
-      'handlerName': win11HandlerName,
-      'clsid': win11HandlerClsid,
-      'serverPath': serverPath,
-    };
+
+    try {
+      final result = Process.runSync('powershell.exe', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        scriptPath,
+        ...arguments,
+      ]);
+      if (result.exitCode == 0) {
+        logger.info('Win11 新菜单脚本执行成功: $scriptName');
+        return true;
+      }
+
+      logger.error(
+        'Win11 新菜单脚本执行失败: $scriptName exitCode=${result.exitCode} stdout=${result.stdout} stderr=${result.stderr}',
+      );
+      return false;
+    } catch (e) {
+      logger.error('Win11 新菜单脚本启动失败: $scriptName error=$e');
+      return false;
+    }
   }
 
   static const String backupMenuName = "备份文件 VerTree";

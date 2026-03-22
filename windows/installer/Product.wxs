@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="Vertree"
+    Language="1033"
+    Version="$(var.ProductVersion)"
+    Manufacturer="Vertree"
+    UpgradeCode="{E79A0CE7-7903-4B3A-A9C0-59EB147D9BE2}">
+    <Package
+      InstallerVersion="500"
+      Compressed="yes"
+      InstallScope="perMachine"
+      InstallPrivileges="elevated"
+      Platform="x64" />
+
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Vertree is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="VertreeAppIcon" SourceFile="$(var.RootDir)\windows\runner\resources\app_icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="VertreeAppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://vertree.w0fv1.dev" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/w0fv1/vertree" />
+    <Property Id="ARPCONTACT" Value="w0fv1" />
+    <Property Id="ARPCOMMENTS" Value="Vertree single-file visual version management tool" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="Vertree" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ProgramMenuDir" Name="Vertree" />
+      </Directory>
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="ProgramMenuDir">
+      <Component Id="ApplicationShortcuts" Guid="{3B8A22E3-4E1E-47C0-A5D1-C523A8353831}">
+        <Shortcut
+          Id="StartMenuShortcut"
+          Name="Vertree"
+          Description="Launch Vertree"
+          Target="[INSTALLDIR]vertree.exe"
+          WorkingDirectory="INSTALLDIR"
+          Icon="VertreeAppIcon"
+          Advertise="no" />
+        <Shortcut
+          Id="DesktopShortcut"
+          Directory="DesktopFolder"
+          Name="Vertree"
+          Description="Launch Vertree"
+          Target="[INSTALLDIR]vertree.exe"
+          WorkingDirectory="INSTALLDIR"
+          Icon="VertreeAppIcon"
+          Advertise="no" />
+        <RemoveFolder Id="ProgramMenuDirCleanup" On="uninstall" />
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\Vertree"
+          Name="InstalledVersion"
+          Type="string"
+          Value="$(var.FullVersion)"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainFeature" Title="Vertree" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationShortcuts" />
+    </Feature>
+  </Product>
+</Wix>

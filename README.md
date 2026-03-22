@@ -2,7 +2,7 @@
 
 Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，并通过系统原生入口尽量不改变你原本的使用习惯。
 
-## 0.11.0-alpha2 现状
+## 0.11.0-alpha3 现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
 - 支持 macOS 桌面使用，GitHub Release 会生成 `zip` / `dmg`，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
@@ -27,8 +27,8 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 
 ### Windows
 
-1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`
-2. 解压并运行 `vertree-windows-x64-<version>-setup.exe`
+1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe` 或 `vertree-windows-x64-<version>.msi`
+2. 若下载 zip，解压后运行 `vertree-windows-x64-<version>-setup.exe`
 3. 首次启动完成初始化
 4. 通过文件右键菜单、托盘或设置页开始使用
 

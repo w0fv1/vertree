@@ -28,7 +28,7 @@ flutter config --enable-linux-desktop
 
 ### 平台依赖
 
-- Windows：如需构建安装包，额外安装 Inno Setup
+- Windows：如需构建安装包，额外安装 Inno Setup 和 WiX Toolset
 - macOS：安装 CocoaPods
 - Linux：安装 GTK / 通知 / 托盘 / RPM 打包相关依赖
 - 文档站：Node.js 18+
@@ -141,6 +141,7 @@ pwsh -File windows/build.ps1 -BuildMode Release
 
 - `windows/vertree-windows-x64-<version>-setup.exe`
 - `windows/vertree-windows-x64-<version>.zip`
+- `windows/vertree-windows-x64-<version>.msi`
 
 ### macOS
 

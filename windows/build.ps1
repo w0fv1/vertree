@@ -5,6 +5,7 @@ param(
     [switch]$SparseRefresh,
     [string]$Flutter = "",
     [string]$ISCC = "",
+    [string]$WixBin = "",
     [string]$Target = "lib/main.dart"
 )
 
@@ -52,6 +53,71 @@ function Get-VersionInfoVersion([string]$pubspecVersion) {
     return "0.0.0.0"
 }
 
+function Get-MsiProductVersion([string]$pubspecVersion) {
+    $baseVersion = $pubspecVersion
+    $preRelease = ""
+    if ($pubspecVersion.Contains('-')) {
+        $parts = $pubspecVersion.Split('-', 2)
+        $baseVersion = $parts[0]
+        $preRelease = $parts[1]
+    }
+
+    $baseParts = $baseVersion.Split('.')
+    if ($baseParts.Length -lt 3) {
+        return "0.0.0"
+    }
+
+    $major = [int]$baseParts[0]
+    $minor = [int]$baseParts[1]
+    $patch = [int]$baseParts[2]
+
+    $patchBucket = $patch * 100
+    $preOffset = 99
+    if (-not [string]::IsNullOrWhiteSpace($preRelease)) {
+        $preLower = $preRelease.ToLowerInvariant()
+        $baseWeight = 0
+        if ($preLower.StartsWith("alpha")) {
+            $baseWeight = 0
+        } elseif ($preLower.StartsWith("beta")) {
+            $baseWeight = 30
+        } elseif ($preLower.StartsWith("rc")) {
+            $baseWeight = 60
+        } else {
+            $baseWeight = 80
+        }
+
+        $match = [regex]::Match($preLower, '(\d+)$')
+        $ordinal = if ($match.Success) { [int]$match.Groups[1].Value } else { 0 }
+        $preOffset = [Math]::Min($baseWeight + $ordinal, 98)
+    }
+
+    return "$major.$minor.$($patchBucket + $preOffset)"
+}
+
+function Resolve-WixBin([string]$preferred) {
+    if (-not [string]::IsNullOrWhiteSpace($preferred) -and (Test-Path $preferred)) {
+        return $preferred
+    }
+
+    $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
+    $lightCmd = Get-Command light.exe -ErrorAction SilentlyContinue
+    $heatCmd = Get-Command heat.exe -ErrorAction SilentlyContinue
+    if ($candleCmd -and $lightCmd -and $heatCmd) {
+        return Split-Path -Parent $candleCmd.Source
+    }
+
+    foreach ($candidate in @(
+        "C:\Program Files (x86)\WiX Toolset v3.14\bin",
+        "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+    )) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return ""
+}
+
 # 当前脚本目录
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $currentDir = Get-Location
@@ -67,12 +133,16 @@ if ([string]::IsNullOrWhiteSpace($flutterCmd)) {
 
 $pubspecVersion = Get-PubspecVersion -projectRoot $projectRoot
 $versionInfoVersion = Get-VersionInfoVersion -pubspecVersion $pubspecVersion
+$msiProductVersion = Get-MsiProductVersion -pubspecVersion $pubspecVersion
 $setupBaseName = "vertree-windows-x64-$pubspecVersion-setup"
 $zipBaseName = "vertree-windows-x64-$pubspecVersion"
+$msiBaseName = "vertree-windows-x64-$pubspecVersion"
 Write-Host "pubspec.yaml version=$pubspecVersion"
 Write-Host "VersionInfoVersion=$versionInfoVersion"
+Write-Host "MsiProductVersion=$msiProductVersion"
 Write-Host "Windows setup artifact=$setupBaseName.exe"
 Write-Host "Windows zip artifact=$zipBaseName.zip"
+Write-Host "Windows MSI artifact=$msiBaseName.msi"
 
 Write-Host "正在执行 flutter build windows ($BuildMode)..."
 & $flutterCmd build windows --target $Target --$($BuildMode.ToLower())
@@ -123,6 +193,23 @@ if (Test-Path $contextMenuDll) {
     }
 }
 
+# Copy Win11 sparse package resources into runner output so installed builds
+# can self-register the packaged Explorer menu on end-user machines.
+$packagingSourceDir = Join-Path $scriptDir "packaging"
+$packagingTargetDir = Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode\\win11_packaging"
+if (Test-Path $packagingSourceDir) {
+    try {
+        if (Test-Path $packagingTargetDir) {
+            Remove-Item $packagingTargetDir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Force -Path $packagingTargetDir | Out-Null
+        Copy-Item (Join-Path $packagingSourceDir "*") $packagingTargetDir -Recurse -Force
+        Write-Host "已复制 Win11 sparse package 资源到 Runner 目录"
+    } catch {
+        Write-Warning "复制 Win11 sparse package 资源失败：$($_.Exception.Message)"
+    }
+}
+
 if (-not (Test-Path $innoSetupCompiler)) {
     $isccCmd = Resolve-ToolPath -preferred $ISCC -fallbackPath "" -commandName "ISCC"
     if ([string]::IsNullOrWhiteSpace($isccCmd)) {
@@ -159,6 +246,80 @@ Write-Host "正在使用Inno Setup进行打包..."
         Write-Host "压缩完成：" $zipFile
     } else {
         Write-Error "打包失败！请检查上方日志。"
+    }
+}
+
+$wixBin = Resolve-WixBin -preferred $WixBin
+if ([string]::IsNullOrWhiteSpace($wixBin)) {
+    Write-Warning "未找到 WiX Toolset，跳过 MSI 打包。"
+} else {
+    $heatExe = Join-Path $wixBin "heat.exe"
+    $candleExe = Join-Path $wixBin "candle.exe"
+    $lightExe = Join-Path $wixBin "light.exe"
+    $productWxs = Join-Path $scriptDir "installer\\Product.wxs"
+    $wixObjDir = Join-Path $scriptDir "..\\build\\windows\\wix"
+    $harvestWxs = Join-Path $wixObjDir "AppFiles.wxs"
+    $runnerDir = Resolve-Path (Join-Path $scriptDir "..\\build\\windows\\x64\\runner\\$BuildMode")
+    $msiPath = Join-Path $scriptDir "$msiBaseName.msi"
+
+    if ((-not (Test-Path $heatExe)) -or (-not (Test-Path $candleExe)) -or (-not (Test-Path $lightExe))) {
+        Write-Warning "WiX Toolset 缺少 heat/candle/light，可执行文件不完整，跳过 MSI 打包。"
+    } else {
+        New-Item -ItemType Directory -Force -Path $wixObjDir | Out-Null
+        if (Test-Path $harvestWxs) {
+            Remove-Item $harvestWxs -Force
+        }
+        if (Test-Path $msiPath) {
+            Remove-Item $msiPath -Force
+        }
+
+        Write-Host "正在使用 WiX 生成 MSI..."
+        & $heatExe dir $runnerDir `
+            -nologo `
+            -gg `
+            -g1 `
+            -srd `
+            -scom `
+            -sreg `
+            -cg AppFiles `
+            -dr INSTALLDIR `
+            -var var.SourceDir `
+            -out $harvestWxs
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "heat 收集安装文件失败。"
+            exit $LASTEXITCODE
+        }
+
+        & $candleExe `
+            -nologo `
+            -arch x64 `
+            -dSourceDir=$runnerDir `
+            -dProductVersion=$msiProductVersion `
+            -dFullVersion=$pubspecVersion `
+            -dRootDir=$projectRoot `
+            -out "$wixObjDir\\" `
+            $productWxs `
+            $harvestWxs
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "candle 编译 MSI 安装文件失败。"
+            exit $LASTEXITCODE
+        }
+
+        & $lightExe `
+            -nologo `
+            -cultures:en-us `
+            -out $msiPath `
+            (Join-Path $wixObjDir "Product.wixobj") `
+            (Join-Path $wixObjDir "AppFiles.wixobj")
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "light 链接 MSI 安装包失败。"
+            exit $LASTEXITCODE
+        }
+
+        Write-Host "MSI 打包完成：" $msiPath
     }
 }
 

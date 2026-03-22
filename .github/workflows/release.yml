@@ -85,6 +85,10 @@ jobs:
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: choco install wixtoolset -y --no-progress
+
       - name: Build Windows artifacts
         shell: pwsh
         run: |
@@ -99,6 +103,7 @@ jobs:
           path: |
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}-setup.exe
             windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.zip
+            windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msi
 
   linux:
     name: Linux (tar.gz + RPM)

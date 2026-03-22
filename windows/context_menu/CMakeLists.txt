@@ -5,6 +5,7 @@ add_library(vertree_context_menu SHARED
 
 APPLY_STANDARD_SETTINGS(vertree_context_menu)
 target_compile_definitions(vertree_context_menu PRIVATE "NOMINMAX")
+target_compile_options(vertree_context_menu PRIVATE "/utf-8")
 target_link_libraries(vertree_context_menu PRIVATE ole32 shell32 shlwapi)
 target_link_options(vertree_context_menu PRIVATE
   "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/vertree_context_menu.def"

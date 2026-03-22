@@ -246,10 +246,10 @@ class _SettingPageState extends State<SettingPage> {
     logger.info('Win11 menu toggle start: target=$value');
     try {
       final packaged = await PlatformIntegration.isWin11PackagedOrRegistered();
-      final success = packaged
-          ? true
-          : value
-          ? await PlatformIntegration.addWin11ContextMenuHandler()
+      final success = value
+          ? packaged
+                ? true
+                : await PlatformIntegration.addWin11ContextMenuHandler()
           : await PlatformIntegration.removeWin11ContextMenuHandler();
       if (!success) {
         showToast(appLocale.getText(LocaleKey.setting_win11MenuNeedsIdentity));
