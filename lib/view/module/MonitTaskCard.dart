@@ -176,6 +176,13 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                 runSpacing: 10,
                 children: [
                   Tooltip(
+                    message: appLocale.getText(LocaleKey.fileleaf_menuShare),
+                    child: IconButton.filledTonal(
+                      onPressed: () => openLanShareDialogForPath(task.filePath),
+                      icon: const Icon(Icons.lan_rounded, size: 20),
+                    ),
+                  ),
+                  Tooltip(
                     message: appLocale.getText(
                       LocaleKey.monitcard_openBackupFolder,
                     ),

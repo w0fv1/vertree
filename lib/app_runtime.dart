@@ -52,7 +52,7 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.10.0-alpha4",
+  currentVersion: "V0.11.0-alpha1",
   releaseApiUrl:
       "https://api.github.com/repos/w0fv1/vertree/releases/latest", // 你的仓库 API URL
 );
@@ -1111,22 +1111,23 @@ Future<void> openLanShareDialogForPath(String path) async {
     return;
   }
 
-  final overlayContext = navigatorKey.currentState?.overlay?.context;
-  if (overlayContext == null) {
-    final shareData = result.unwrap();
-    final message = (shareData['sharePageUrl'] as String?) ?? path;
-    showToast(message);
-    return;
-  }
-
-  if (!overlayContext.mounted) {
-    return;
-  }
-
   final shouldRestoreAfterDialog = await _prepareWindowForShareDialog();
   try {
+    await _waitForRenderedFrames(
+      waitMilliseconds: shouldRestoreAfterDialog ? 220 : 80,
+    );
+    final dialogContext =
+        navigatorKey.currentContext ?? navigatorKey.currentState?.context;
+    if (dialogContext == null || !dialogContext.mounted) {
+      final shareData = result.unwrap();
+      final message = (shareData['sharePageUrl'] as String?) ?? path;
+      showToast(message);
+      return;
+    }
+
     await showDialog<void>(
-      context: overlayContext,
+      context: dialogContext,
+      useRootNavigator: true,
       builder: (context) => LanShareDialog(shareData: result.unwrap()),
     );
   } finally {
@@ -1138,6 +1139,8 @@ Future<void> openLanShareDialogForPath(String path) async {
 
 Future<bool> _prepareWindowForShareDialog() async {
   try {
+    await Future<void>.delayed(Duration.zero);
+    await WidgetsBinding.instance.endOfFrame;
     if (await windowManager.isFullScreen()) {
       return false;
     }
@@ -1145,6 +1148,7 @@ Future<bool> _prepareWindowForShareDialog() async {
       return false;
     }
     await windowManager.maximize();
+    await Future<void>.delayed(const Duration(milliseconds: 120));
     return true;
   } catch (_) {
     return false;
