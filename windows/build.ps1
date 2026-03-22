@@ -470,6 +470,7 @@ if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
         }
 
         New-Item -ItemType Directory -Force -Path $msixStageDir | Out-Null
+        Copy-Item (Join-Path $runnerOutputDir "*") $msixStageDir -Recurse -Force
         Copy-Item (Join-Path $packagingSourceDir "sparse\\*") $msixStageDir -Recurse -Force
         if (Test-Path $msixManifest) {
             $manifestContent = Get-Content $msixManifest -Raw
