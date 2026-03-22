@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:vertree/api/LocalHttpApiContract.dart';
 import 'package:vertree/api/LocalHttpApiDocumentation.dart';
 import 'package:vertree/main.dart';
+import 'package:vertree/service/LanFileShareServer.dart';
 import 'package:vertree/service/LocalHttpApiService.dart';
 
 class LocalHttpApiServer {
@@ -580,6 +581,78 @@ class LocalHttpApiServer {
       ),
       LocalHttpApiRoute(
         method: 'GET',
+        pathTemplate: '/file-shares',
+        summary: 'List active LAN file shares',
+        description:
+            'Lists temporary LAN file shares created by the current desktop app instance.',
+        tags: const ['sharing'],
+        handler: _handleListFileShares,
+      ),
+      LocalHttpApiRoute(
+        method: 'POST',
+        pathTemplate: '/file-shares',
+        summary: 'Create one LAN file share',
+        description:
+            'Creates a temporary LAN download share for a specific file version and returns the GitHub Pages landing URL plus direct LAN candidates.',
+        tags: const ['sharing', 'automation'],
+        successStatusCode: HttpStatus.created,
+        requestBody: const LocalHttpApiRequestBody(
+          description: 'The file to share and optional expiry.',
+          fields: [
+            LocalHttpApiField(
+              name: 'path',
+              type: 'string',
+              description: 'Absolute file path to expose on the LAN.',
+              required: true,
+              example: r'D:\project\storyboard.0.1.txt',
+            ),
+            LocalHttpApiField(
+              name: 'expiresInMinutes',
+              type: 'integer',
+              description: 'How long the temporary share should stay valid.',
+              required: false,
+              example: 30,
+            ),
+          ],
+        ),
+        handler: _handleCreateFileShare,
+      ),
+      LocalHttpApiRoute(
+        method: 'GET',
+        pathTemplate: '/file-shares/{token}',
+        summary: 'Read one LAN file share',
+        description: 'Reads one temporary LAN file share by token.',
+        tags: const ['sharing'],
+        pathParameters: const [
+          LocalHttpApiField(
+            name: 'token',
+            type: 'string',
+            description:
+                'Opaque share token returned when the share was created.',
+            required: true,
+          ),
+        ],
+        handler: _handleGetFileShare,
+      ),
+      LocalHttpApiRoute(
+        method: 'DELETE',
+        pathTemplate: '/file-shares/{token}',
+        summary: 'Revoke one LAN file share',
+        description: 'Revokes one temporary LAN file share by token.',
+        tags: const ['sharing', 'automation'],
+        pathParameters: const [
+          LocalHttpApiField(
+            name: 'token',
+            type: 'string',
+            description:
+                'Opaque share token returned when the share was created.',
+            required: true,
+          ),
+        ],
+        handler: _handleDeleteFileShare,
+      ),
+      LocalHttpApiRoute(
+        method: 'GET',
         pathTemplate: '/version-trees',
         summary: 'Build a version tree',
         description:
@@ -994,6 +1067,71 @@ class LocalHttpApiServer {
     }
 
     final result = apiService.listVersionFiles(filePath);
+    await _writeResult(request, result, startedAt);
+  }
+
+  Future<void> _handleListFileShares(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    await _writeSuccess(
+      request,
+      data: await apiService.listLanFileShares(),
+      startedAt: startedAt,
+    );
+  }
+
+  Future<void> _handleCreateFileShare(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final body = await _readJsonBody(request);
+    final filePath = _requiredStringField(body, 'path');
+    if (filePath == null) {
+      await _writeJson(
+        request,
+        statusCode: HttpStatus.badRequest,
+        body: _errorBody(
+          request,
+          'BAD_REQUEST',
+          'Field "path" is required.',
+          startedAt,
+        ),
+      );
+      return;
+    }
+
+    final result = await apiService.createLanFileShare(
+      filePath,
+      expiresInMinutes:
+          _optionalIntField(body, 'expiresInMinutes') ??
+          LanFileShareServer.defaultExpiryMinutes,
+    );
+    await _writeResult(
+      request,
+      result,
+      startedAt,
+      successStatusCode: HttpStatus.created,
+    );
+  }
+
+  Future<void> _handleGetFileShare(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final result = await apiService.getLanFileShare(pathParameters['token']!);
+    await _writeResult(request, result, startedAt);
+  }
+
+  Future<void> _handleDeleteFileShare(
+    HttpRequest request,
+    Map<String, String> pathParameters,
+    DateTime startedAt,
+  ) async {
+    final result = apiService.revokeLanFileShare(pathParameters['token']!);
     await _writeResult(request, result, startedAt);
   }
 

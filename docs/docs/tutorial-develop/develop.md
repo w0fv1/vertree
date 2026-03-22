@@ -90,6 +90,12 @@ python dev_server.py --bootstrap --device windows
 - `POST /api/v1/ui/window-state`：控制窗口还原、最大化与全屏
 - `POST /api/v1/ui/file-tree/viewport`：让版本树画布自动适配或按比例缩放
 - `POST /api/v1/ui/screenshot`：将当前应用 UI 导出为 PNG
+- `GET /api/v1/file-shares`：列出当前进程内仍然有效的局域网分享
+- `POST /api/v1/file-shares`：为某个文件创建临时局域网下载分享
+- `GET /api/v1/file-shares/{token}`：读取单个局域网分享详情
+- `DELETE /api/v1/file-shares/{token}`：撤销临时局域网分享
+
+其中局域网分享能力由一个独立的临时 HTTP 服务承载，默认起始端口为 `31424`，会自动绑定本机所有 IPv4 接口。它只暴露受 token 保护的下载、探活和信息接口，真正的分享入口由文档站桥接页 `https://vertree.w0fv1.dev/file_share` 承接。
 
 ## 项目结构
 
@@ -120,6 +126,7 @@ vertree/
 - `lib/core/FileVersionTree.dart`：版本号、文件元信息、文件节点与备份/分支逻辑
 - `lib/core/MonitManager.dart`、`lib/core/Monitor.dart`：监控任务管理与自动备份
 - `lib/api/LocalHttpApiServer.dart`、`lib/service/LocalHttpApiService.dart`：本机自动化接口
+- `lib/service/LanFileShareServer.dart`：局域网临时分享服务与 token 下载映射
 - `lib/platform/platform_integration.dart`：跨平台上下文菜单、开机自启、GNOME 检测、Win11 包身份等封装
 
 ## 构建发布工件

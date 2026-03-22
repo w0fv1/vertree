@@ -7,6 +7,7 @@ import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/core/TreeBuilder.dart';
+import 'package:vertree/service/LanFileShareServer.dart';
 
 typedef CurrentPortResolver = int? Function();
 typedef UiStateResolver = Map<String, dynamic> Function();
@@ -48,6 +49,7 @@ class LocalHttpApiService {
   LocalHttpApiService({
     required this.configer,
     required this.monitManager,
+    required this.lanFileShareServer,
     required this.currentVersion,
     required this.startedAt,
     required this.currentPortResolver,
@@ -61,6 +63,7 @@ class LocalHttpApiService {
 
   final Configer configer;
   final MonitManager monitManager;
+  final LanFileShareServer lanFileShareServer;
   final String currentVersion;
   final DateTime startedAt;
   final CurrentPortResolver currentPortResolver;
@@ -88,6 +91,7 @@ class LocalHttpApiService {
         'taskCount': monitManager.monitFileTasks.length,
         'runningTaskCount': monitManager.runningTaskCount,
       },
+      'lanFileSharing': lanFileShareServer.status(),
       'config': {
         'monitorRateMinutes': configer.get<int>('monitorRate', 5),
         'monitorMaxSize': configer.get<int>('monitorMaxSize', 50),
@@ -310,6 +314,31 @@ class LocalHttpApiService {
       return Result.eMsg('Monitor task not found: $taskId');
     }
     return listBackups(task.filePath);
+  }
+
+  Future<Map<String, dynamic>> listLanFileShares() async {
+    return lanFileShareServer.listShares();
+  }
+
+  Future<Result<Map<String, dynamic>, String>> createLanFileShare(
+    String filePath, {
+    int expiresInMinutes = LanFileShareServer.defaultExpiryMinutes,
+  }) async {
+    final normalizedPath = _normalizePath(filePath);
+    return lanFileShareServer.createShare(
+      normalizedPath,
+      expiresInMinutes: expiresInMinutes,
+    );
+  }
+
+  Future<Result<Map<String, dynamic>, String>> getLanFileShare(
+    String token,
+  ) async {
+    return lanFileShareServer.getShare(token);
+  }
+
+  Result<Map<String, dynamic>, String> revokeLanFileShare(String token) {
+    return lanFileShareServer.revokeShare(token);
   }
 
   Future<Result<Map<String, dynamic>, String>> verifyMonitorTaskWrite(

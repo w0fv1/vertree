@@ -22,6 +22,7 @@ import 'package:vertree/component/app_window_controller.dart';
 import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/platform/bootstrap/platform_bootstrap.dart';
 import 'package:vertree/platform/platform_integration.dart';
+import 'package:vertree/service/LanFileShareServer.dart';
 import 'package:vertree/service/LocalHttpApiService.dart';
 import 'package:vertree/view/module/FileTree.dart';
 import 'package:vertree/view/page/BrandPage.dart';
@@ -36,6 +37,7 @@ final logger = AppLogger(LogLevel.debug);
 late void Function(Widget page) go;
 late MonitManager monitService;
 late LocalHttpApiServer localHttpApiServer;
+late LanFileShareServer lanFileShareServer;
 Configer configer = Configer();
 late final AppCommandHandler appCommandHandler;
 late final AppWindowController appWindowController;
@@ -309,6 +311,16 @@ Future<void> quitApplication() async {
   }
   _isQuittingApplication = true;
   try {
+    await lanFileShareServer.dispose();
+  } catch (_) {
+    // ignore
+  }
+  try {
+    await localHttpApiServer.stop();
+  } catch (_) {
+    // ignore
+  }
+  try {
     await windowManager.setPreventClose(false);
   } catch (_) {
     // ignore
@@ -379,10 +391,15 @@ Future<void> runVertreeApp(
   );
 
   monitService = MonitManager();
+  lanFileShareServer = LanFileShareServer(
+    onLogInfo: logger.info,
+    onLogError: logger.error,
+  );
   localHttpApiServer = LocalHttpApiServer(
     apiService: LocalHttpApiService(
       configer: configer,
       monitManager: monitService,
+      lanFileShareServer: lanFileShareServer,
       currentVersion: appVersionInfo.currentVersion,
       startedAt: DateTime.now(),
       currentPortResolver: () => localHttpApiServer.port,

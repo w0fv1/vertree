@@ -97,8 +97,23 @@ sidebar_position: 5
 - 聚焦当前版本所在节点
 - 快速理解最新版本、分支数和节点数
 - 从版本树继续回看和整理单文件演进过程
+- 右键任意版本节点，直接生成“分享到局域网”的二维码和分享链接
 
 ![version-tree-page](/img/usage/version-tree-page.png)
+
+## 局域网分享怎么用
+
+1. 在版本树页右键目标版本节点
+2. 选择“分享到局域网”
+3. 把弹窗里的桥接页链接或二维码发给同一局域网内的接收方
+4. 接收方用浏览器打开 `https://vertree.w0fv1.dev/file_share#...`
+5. 页面会优先自动探测可达的局域网地址，成功后直接开始下载
+
+补充说明：
+
+- 分享链接里不会暴露本地绝对路径，只包含一个临时 token 和候选局域网地址
+- 这是局域网直连能力，不会把文件上传到公网服务器
+- 如果浏览器因为 HTTPS / 本地网络策略无法自动选路，桥接页也会展示可手动点击的候选直连地址
 
 ## 本机 HTTP API 能做什么
 
@@ -115,6 +130,10 @@ sidebar_position: 5
 - `GET /api/v1/backups`
 - `GET /api/v1/version-files`
 - `GET /api/v1/version-trees`
+- `GET /api/v1/file-shares`
+- `POST /api/v1/file-shares`
+- `GET /api/v1/file-shares/{token}`
+- `DELETE /api/v1/file-shares/{token}`
 
 默认只监听 `127.0.0.1`，不会暴露到局域网。
 

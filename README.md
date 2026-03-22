@@ -9,6 +9,7 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 - 支持 Linux 桌面使用，GitHub Release 会生成便携 `tar.gz` 和 RPM，并提供托盘、GNOME Files 右键菜单、开机自启和设置页集成开关。
 - GitHub Actions 会自动构建 Windows、macOS、Linux 三个平台的发布产物。
 - 新增本机 HTTP API 和 OpenAPI 文档，可用于本地自动化测试、监控任务检查、版本树与备份验证。
+- 新增局域网文件分享能力，可为某个版本文件生成局域网下载链接、二维码和自动选路桥接页。
 - 提供本地开发控制脚本 `dev_server.py`，可托管 `flutter run` 进程并发送 hot reload / hot restart / restart 命令。
 
 ## 核心能力
@@ -19,6 +20,7 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 - 跨平台命令入口：`vertree /path/to/file` 查看版本树，`vertree backup <path>`、`vertree monit <path>`、`vertree express-backup <path>` 直接执行动作。
 - 设置集中管理：语言、主题、监控频率、最大备份数、上下文菜单、自启动、本机 HTTP API 都可以在设置页调整。
 - 本机自动化接口：提供 loopback-only HTTP API 与 OpenAPI 文档，便于 AI 和脚本验证功能。
+- 局域网临时分享：在版本树节点上可直接生成局域网下载分享链接和二维码，接收端可通过浏览器获取文件。
 - 单实例与启动优化：避免重复打开，改善启动显示和托盘恢复体验。
 
 ## 使用方式
@@ -99,6 +101,7 @@ vertree express-backup /path/to/file
 - `GET /api/v1/backups`：列出备份目录文件
 - `GET /api/v1/version-files`：列出同一版本族文件
 - `GET /api/v1/version-trees`：生成版本树
+- `GET/POST/DELETE /api/v1/file-shares`：管理局域网文件分享
 
 用于刷新文档截图时，可以配合本地开发控制器运行：
 
@@ -188,6 +191,7 @@ python dev_server.py --bootstrap --device windows
 ## 文档
 
 - 用户文档：[https://vertree.w0fv1.dev/](https://vertree.w0fv1.dev/)
+- 局域网分享桥接页：[https://vertree.w0fv1.dev/file_share](https://vertree.w0fv1.dev/file_share)
 - 本地文档开发：[docs/README.md](docs/README.md)
 
 ## 已知限制
