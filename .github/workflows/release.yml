@@ -94,12 +94,17 @@ jobs:
 
       - name: Build Windows artifacts
         shell: pwsh
-        env:
-          VERTREE_ENABLE_UNSIGNED_MSIX: "1"
         run: |
           $mode = "${{ github.event.inputs.build_mode }}"
           if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
           pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -BuildMode $mode
+
+      - name: Build Windows MSIX artifact
+        shell: pwsh
+        run: |
+          $mode = "${{ github.event.inputs.build_mode }}"
+          if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "Release" }
+          pwsh -NoProfile -ExecutionPolicy Bypass -File windows/build_msix.ps1 -BuildMode $mode
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v6
@@ -117,7 +122,7 @@ jobs:
         with:
           name: vertree-windows-msix-${{ needs.meta.outputs.version }}
           path: windows/vertree-windows-x64-${{ needs.meta.outputs.version }}.msix
-          if-no-files-found: warn
+          if-no-files-found: error
 
   linux:
     name: Linux (tar.gz + RPM)

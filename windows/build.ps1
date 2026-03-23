@@ -95,6 +95,18 @@ function Get-MsiProductVersion([string]$pubspecVersion) {
     return "$major.$minor.$($patchBucket + $preOffset)"
 }
 
+function Get-MsixPackageVersion([string]$pubspecVersion) {
+    $msiVersion = Get-MsiProductVersion -pubspecVersion $pubspecVersion
+    $parts = $msiVersion.Split('.')
+    if ($parts.Length -eq 3) {
+        return "$msiVersion.0"
+    }
+    if ($parts.Length -eq 4) {
+        return $msiVersion
+    }
+    return "0.0.0.0"
+}
+
 function Resolve-WixBin([string]$preferred) {
     if (-not [string]::IsNullOrWhiteSpace($preferred) -and (Test-Path $preferred)) {
         return $preferred
@@ -167,6 +179,7 @@ if ([string]::IsNullOrWhiteSpace($flutterCmd)) {
 $pubspecVersion = Get-PubspecVersion -projectRoot $projectRoot
 $versionInfoVersion = Get-VersionInfoVersion -pubspecVersion $pubspecVersion
 $msiProductVersion = Get-MsiProductVersion -pubspecVersion $pubspecVersion
+$msixPackageVersion = Get-MsixPackageVersion -pubspecVersion $pubspecVersion
 $setupBaseName = "vertree-windows-x64-$pubspecVersion-setup"
 $zipBaseName = "vertree-windows-x64-$pubspecVersion"
 $msiBaseName = "vertree-windows-x64-$pubspecVersion"
@@ -176,6 +189,7 @@ $win11DevBaseName = "vertree-windows-x64-$pubspecVersion-win11-dev"
 Write-Host "pubspec.yaml version=$pubspecVersion"
 Write-Host "VersionInfoVersion=$versionInfoVersion"
 Write-Host "MsiProductVersion=$msiProductVersion"
+Write-Host "MsixPackageVersion=$msixPackageVersion"
 Write-Host "Windows setup artifact=$setupBaseName.exe"
 Write-Host "Windows zip artifact=$zipBaseName.zip"
 Write-Host "Windows MSI artifact=$msiBaseName.msi"
@@ -476,7 +490,7 @@ if ($enableUnsignedMsix) {
             Copy-Item (Join-Path $packagingSourceDir "sparse\\*") $msixStageDir -Recurse -Force
             if (Test-Path $msixManifest) {
                 $manifestContent = Get-Content $msixManifest -Raw
-                $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$msiProductVersion`"")
+                $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$msixPackageVersion`"")
                 [System.IO.File]::WriteAllText(
                     $msixManifest,
                     $manifestContent,
