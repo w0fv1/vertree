@@ -38,7 +38,7 @@ jobs:
         id: pubspec
         shell: bash
         run: |
-          version="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1)"
+          version="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1 | tr -d '\r')"
           if [[ -z "$version" ]]; then
             echo "pubspec.yaml missing version" >&2
             exit 1
