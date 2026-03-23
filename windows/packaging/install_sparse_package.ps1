@@ -5,9 +5,34 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$manifest = Join-Path $PSScriptRoot "sparse\\AppxManifest.xml"
-if (-not (Test-Path $manifest)) {
-  Write-Error "AppxManifest not found: $manifest"
+function Get-StagedSparseRoot {
+  if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+    Write-Error "LOCALAPPDATA is not available."
+  }
+
+  return Join-Path $env:LOCALAPPDATA "Vertree\\win11_packaging\\sparse"
+}
+
+function Update-StagedSparsePackage {
+  $sourceSparseRoot = Join-Path $PSScriptRoot "sparse"
+  if (-not (Test-Path $sourceSparseRoot)) {
+    Write-Error "Sparse package directory not found: $sourceSparseRoot"
+  }
+
+  $stagedSparseRoot = Get-StagedSparseRoot
+  if (Test-Path $stagedSparseRoot) {
+    Remove-Item $stagedSparseRoot -Recurse -Force
+  }
+
+  New-Item -ItemType Directory -Force -Path $stagedSparseRoot | Out-Null
+  Copy-Item (Join-Path $sourceSparseRoot "*") $stagedSparseRoot -Recurse -Force
+
+  $stagedManifest = Join-Path $stagedSparseRoot "AppxManifest.xml"
+  if (-not (Test-Path $stagedManifest)) {
+    Write-Error "Staged AppxManifest not found: $stagedManifest"
+  }
+
+  return $stagedManifest
 }
 
 if ([string]::IsNullOrWhiteSpace($ExternalLocation)) {
@@ -30,5 +55,8 @@ if ($existing) {
   }
 }
 
+$manifest = Update-StagedSparsePackage
+
 Write-Host "Register sparse package with ExternalLocation: $ExternalLocation"
+Write-Host "Manifest staging path: $manifest"
 Add-AppxPackage -Register $manifest -ExternalLocation $ExternalLocation -ForceUpdateFromAnyVersion -ForceApplicationShutdown
