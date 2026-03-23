@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:toastification/toastification.dart';
 import 'package:vertree/component/FileUtils.dart';
-import 'dart:io';
 import 'package:vertree/main.dart';
 
 /// 初始化本地通知
@@ -36,7 +37,11 @@ Future<void> showWindowsNotification(String title, String description) async {
 }
 
 /// 显示通知（点击后打开文件）
-Future<void> showWindowsNotificationWithFile(String title, String description, String filePath) async {
+Future<void> showWindowsNotificationWithFile(
+  String title,
+  String description,
+  String filePath,
+) async {
   LocalNotification notification = LocalNotification(
     title: title,
     body: description,
@@ -49,8 +54,13 @@ Future<void> showWindowsNotificationWithFile(String title, String description, S
 
   await notification.show();
 }
+
 /// 显示通知（点击后打开文件夹）
-Future<void> showWindowsNotificationWithFolder(String title, String description, String folderPath) async {
+Future<void> showWindowsNotificationWithFolder(
+  String title,
+  String description,
+  String folderPath,
+) async {
   LocalNotification notification = LocalNotification(
     title: title,
     body: description,
@@ -59,14 +69,17 @@ Future<void> showWindowsNotificationWithFolder(String title, String description,
   notification.onClick = () {
     logger.info('用户点击了通知: ${notification.identifier}');
     FileUtils.openFolder(folderPath);
-
   };
 
   await notification.show();
 }
+
 /// 显示通知（点击后执行自定义任务）
 Future<void> showWindowsNotificationWithTask(
-    String title, String description, Function task) async {
+  String title,
+  String description,
+  FutureOr<void> Function() task,
+) async {
   LocalNotification notification = LocalNotification(
     title: title,
     body: description,
@@ -74,17 +87,11 @@ Future<void> showWindowsNotificationWithTask(
 
   notification.onClick = () {
     logger.info('用户点击了通知: ${notification.identifier}');
-    logger.info('用户点击了通知: ${notification.identifier}');
-    task.call(); // 执行传入的任务
-    logger.info('用户点击了通知: ${notification.identifier}');
-    logger.info('用户点击了通知: ${notification.identifier}');
-
+    unawaited(Future<void>.sync(task));
   };
 
   await notification.show();
 }
-
-
 
 void showToast(String message) {
   toastification.show(

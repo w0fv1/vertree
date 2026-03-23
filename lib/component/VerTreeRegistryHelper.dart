@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:vertree/component/AppLaunchArgs.dart';
 import 'package:vertree/component/ElevatedTask.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/FileUtils.dart';
@@ -25,6 +26,9 @@ class VerTreeRegistryService {
       '{BFD9F3B4-3C8C-4B1C-8E57-1F4BA6A96F3E}';
 
   static String exePath = Platform.resolvedExecutable;
+
+  static String get _autoStartCommand =>
+      buildWindowsLaunchCommand(exePath, arguments: const [startupLaunchArg]);
 
   static bool _retryWithElevation({
     required String actionName,
@@ -367,7 +371,7 @@ class VerTreeRegistryService {
     bool success = RegistryHelper.enableAutoStart(
       runRegistryPath,
       appName,
-      exePath,
+      _autoStartCommand,
     );
     success = _retryWithElevation(
       actionName: '启用开机自启',
@@ -377,7 +381,7 @@ class VerTreeRegistryService {
       payload: {
         'runRegistryPath': runRegistryPath,
         'appName': appName,
-        'appPath': exePath,
+        'appCommand': _autoStartCommand,
       },
     );
     return success;
@@ -416,7 +420,11 @@ class VerTreeRegistryService {
     }
 
     success =
-        RegistryHelper.enableAutoStart(runRegistryPath, appName, exePath) &&
+        RegistryHelper.enableAutoStart(
+          runRegistryPath,
+          appName,
+          _autoStartCommand,
+        ) &&
         success;
 
     if (!packaged) {
@@ -434,7 +442,7 @@ class VerTreeRegistryService {
         'enable': true,
         'runRegistryPath': runRegistryPath,
         'appName': appName,
-        'appPath': exePath,
+        'appCommand': _autoStartCommand,
       },
     };
     final elevatedSuccess = ElevatedTaskRunner.runTaskSync(

@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:toastification/toastification.dart';
+import 'package:vertree/component/AppLaunchArgs.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/api/LocalHttpApiServer.dart';
@@ -52,7 +53,7 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.11.0-alpha4",
+  currentVersion: "V0.11.0-alpha5",
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases",
   readConfigString: (key, defaultValue) =>
       configer.get<String>(key, defaultValue),
@@ -315,16 +316,8 @@ Future<void> quitApplication() async {
     return;
   }
   _isQuittingApplication = true;
-  try {
-    await lanFileShareServer.dispose();
-  } catch (_) {
-    // ignore
-  }
-  try {
-    await localHttpApiServer.stop();
-  } catch (_) {
-    // ignore
-  }
+  unawaited(_disposeBackgroundServicesForQuit());
+  unawaited(_forceExitAfterQuitTimeout());
   try {
     await windowManager.setPreventClose(false);
   } catch (_) {
@@ -337,6 +330,38 @@ Future<void> quitApplication() async {
     // ignore
   }
   exit(0);
+}
+
+Future<void> _disposeBackgroundServicesForQuit() async {
+  await Future.wait<void>([
+    _safeShutdownLanFileShareServer(),
+    _safeStopLocalHttpApiServer(),
+  ], eagerError: false);
+}
+
+Future<void> _safeShutdownLanFileShareServer() async {
+  try {
+    await lanFileShareServer.dispose().timeout(
+      const Duration(milliseconds: 700),
+    );
+  } catch (_) {
+    // ignore
+  }
+}
+
+Future<void> _safeStopLocalHttpApiServer() async {
+  try {
+    await localHttpApiServer.stop().timeout(const Duration(milliseconds: 700));
+  } catch (_) {
+    // ignore
+  }
+}
+
+Future<void> _forceExitAfterQuitTimeout() async {
+  await Future<void>.delayed(const Duration(seconds: 2));
+  if (_isQuittingApplication) {
+    exit(0);
+  }
 }
 
 Future<void> toggleMainWindowVisibility({Widget? page}) async {
@@ -420,6 +445,7 @@ Future<void> runVertreeApp(
   logger.info("启动参数: $args");
 
   try {
+    final bool isStartupLaunch = containsStartupLaunchArg(args);
     final bool launch2Tray = configer.get("launch2Tray", defaultLaunchToTray);
     final bool isSetupDone = configer.get<bool>('isSetupDone', false);
     final bool isGnomeWithoutTray =
@@ -428,7 +454,7 @@ Future<void> runVertreeApp(
     final bool canLaunchToTray =
         PlatformIntegration.supportsTrayOnlyBackgroundMode;
     final bool shouldLaunchToTray =
-        launch2Tray && isSetupDone && canLaunchToTray;
+        launch2Tray && isSetupDone && canLaunchToTray && isStartupLaunch;
 
     WidgetsFlutterBinding.ensureInitialized();
     await bootstrap.setupPlatformChannels(
@@ -1115,6 +1141,8 @@ Future<void> openLanShareDialogForPath(String path) async {
     return;
   }
 
+  final shareData = result.unwrap();
+  await _showShareReadyAttention(path, shareData);
   final shouldRestoreAfterDialog = await _prepareWindowForShareDialog();
   try {
     await _waitForRenderedFrames(
@@ -1123,7 +1151,6 @@ Future<void> openLanShareDialogForPath(String path) async {
     final dialogContext =
         navigatorKey.currentContext ?? navigatorKey.currentState?.context;
     if (dialogContext == null || !dialogContext.mounted) {
-      final shareData = result.unwrap();
       final message = (shareData['sharePageUrl'] as String?) ?? path;
       showToast(message);
       return;
@@ -1132,12 +1159,57 @@ Future<void> openLanShareDialogForPath(String path) async {
     await showDialog<void>(
       context: dialogContext,
       useRootNavigator: true,
-      builder: (context) => LanShareDialog(shareData: result.unwrap()),
+      builder: (context) => LanShareDialog(shareData: shareData),
     );
   } finally {
     if (shouldRestoreAfterDialog) {
       await _restoreWindowAfterShareDialog();
     }
+  }
+}
+
+Future<void> _showShareReadyAttention(
+  String path,
+  Map<String, dynamic> shareData,
+) async {
+  final fileName = (shareData['fileName'] as String?) ?? p.basename(path);
+  final message = appLocale.getText(LocaleKey.fileleaf_shareReady).tr([
+    fileName,
+  ]);
+
+  await _bringWindowToFrontForShareReady();
+  showToast(message);
+  unawaited(
+    showWindowsNotificationWithTask(
+      appLocale.getText(LocaleKey.fileleaf_menuShare),
+      message,
+      _bringWindowToFrontForShareReady,
+    ),
+  );
+}
+
+Future<void> _bringWindowToFrontForShareReady() async {
+  await showMainWindow(animate: false);
+  try {
+    await windowManager.focus();
+  } catch (_) {
+    // ignore
+  }
+  if (!PlatformIntegration.isWindows) {
+    return;
+  }
+  try {
+    await windowManager.setAlwaysOnTop(true);
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      try {
+        await windowManager.setAlwaysOnTop(false);
+      } catch (_) {
+        // ignore
+      }
+    }());
+  } catch (_) {
+    // ignore
   }
 }
 

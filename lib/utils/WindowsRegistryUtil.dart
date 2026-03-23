@@ -221,7 +221,7 @@ class RegistryHelper {
   static bool enableAutoStart(
     String runRegistryPath,
     String appName,
-    String appPath,
+    String appCommand,
   ) {
     try {
       final key = Registry.openPath(
@@ -229,7 +229,7 @@ class RegistryHelper {
         path: runRegistryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
-      key.createValue(RegistryValue.string(appName, '"$appPath"')); // 必须加引号
+      key.createValue(RegistryValue.string(appName, appCommand));
       key.close();
       logger.info('成功设置应用 "$appName" 开机自启');
       return true;

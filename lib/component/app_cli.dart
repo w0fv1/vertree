@@ -1,3 +1,5 @@
+import 'package:vertree/component/AppLaunchArgs.dart';
+
 class AppCliRequest {
   const AppCliRequest({required this.action, required this.path});
 
@@ -45,7 +47,7 @@ AppCliRequest? parseAppCliArgs(List<String> rawArgs) {
     return null;
   }
 
-  final args = rawArgs.where((arg) => arg.trim().isNotEmpty).toList();
+  final args = stripRuntimeLaunchArgs(rawArgs);
   if (args.isEmpty) {
     return null;
   }

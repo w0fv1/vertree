@@ -253,8 +253,10 @@ class ElevatedTaskRunner {
   static bool _enableAutoStart(Map<String, dynamic> payload) {
     final registryPath = _asNonEmptyString(payload['runRegistryPath']);
     final appName = _asNonEmptyString(payload['appName']);
-    final appPath = _asNonEmptyString(payload['appPath']);
-    if (registryPath == null || appName == null || appPath == null) {
+    final appCommand =
+        _asNonEmptyString(payload['appCommand']) ??
+        _quotedExecutablePath(_asNonEmptyString(payload['appPath']));
+    if (registryPath == null || appName == null || appCommand == null) {
       return false;
     }
 
@@ -264,7 +266,7 @@ class ElevatedTaskRunner {
         path: registryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
-      key.createValue(RegistryValue.string(appName, '"$appPath"'));
+      key.createValue(RegistryValue.string(appName, appCommand));
       key.close();
       return true;
     } catch (_) {
@@ -498,6 +500,13 @@ class ElevatedTaskRunner {
       return null;
     }
     return text;
+  }
+
+  static String? _quotedExecutablePath(String? executablePath) {
+    if (executablePath == null || executablePath.isEmpty) {
+      return null;
+    }
+    return '"$executablePath"';
   }
 
   static String _quoteWindowsArg(String value) {

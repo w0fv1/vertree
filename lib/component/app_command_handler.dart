@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:vertree/component/AppLaunchArgs.dart';
 import 'package:vertree/component/app_cli.dart';
 
 typedef FileActionCallback = void Function(String path);
@@ -32,6 +33,10 @@ class AppCommandHandler {
     try {
       final request = parseAppCliArgs(args);
       if (request == null) {
+        if (containsStartupLaunchArg(args) &&
+            stripRuntimeLaunchArgs(args).isEmpty) {
+          return;
+        }
         onLogInfo("不需要处理的参数：$args");
         return;
       }

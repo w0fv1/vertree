@@ -243,6 +243,7 @@ enum LocaleKey {
   fileleaf_menuShare,
   fileleaf_sharePreparing,
   fileleaf_shareCreateFailed,
+  fileleaf_shareReady,
   fileleaf_shareDialogTitle,
   fileleaf_shareDialogHint,
   fileleaf_shareExpiresAt,
@@ -614,6 +615,8 @@ class AppLocale {
     LocaleKey.fileleaf_menuShare: "Share on LAN",
     LocaleKey.fileleaf_sharePreparing: "Preparing LAN share...",
     LocaleKey.fileleaf_shareCreateFailed: "Unable to create LAN share: %a",
+    LocaleKey.fileleaf_shareReady:
+        "LAN download is ready for %a. Click to view.",
     LocaleKey.fileleaf_shareDialogTitle: "LAN share for %a",
     LocaleKey.fileleaf_shareDialogHint:
         "Scan the QR code or send the landing link. The browser will try the candidate LAN addresses automatically, then download the file.",
@@ -879,6 +882,7 @@ class AppLocale {
     LocaleKey.fileleaf_menuShare: "分享到局域网",
     LocaleKey.fileleaf_sharePreparing: "正在准备局域网分享…",
     LocaleKey.fileleaf_shareCreateFailed: "创建局域网分享失败：%a",
+    LocaleKey.fileleaf_shareReady: "%a 的局域网下载已生成，点击查看。",
     LocaleKey.fileleaf_shareDialogTitle: "%a 的局域网分享",
     LocaleKey.fileleaf_shareDialogHint:
         "接收方可以扫码或打开桥接页链接。页面会优先自动探测可达的局域网地址，再触发下载。",
@@ -1148,6 +1152,7 @@ class AppLocale {
     LocaleKey.fileleaf_menuShare: "LAN で共有",
     LocaleKey.fileleaf_sharePreparing: "LAN 共有を準備しています...",
     LocaleKey.fileleaf_shareCreateFailed: "LAN 共有を作成できませんでした: %a",
+    LocaleKey.fileleaf_shareReady: "%a の LAN ダウンロードができました。クリックして確認できます。",
     LocaleKey.fileleaf_shareDialogTitle: "%a の LAN 共有",
     LocaleKey.fileleaf_shareDialogHint:
         "QR コードを共有するか、ランディングページのリンクを送ってください。ブラウザは利用可能な LAN アドレスを自動的に試し、ダウンロードを開始します。",
