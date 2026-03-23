@@ -322,25 +322,33 @@ jobs:
 
           tag="$current_ref"
           notes_file="${{ steps.notes.outputs.notes_file }}"
-          prerelease_flag=()
+          is_prerelease=false
           if [[ "${{ contains(needs.meta.outputs.version, '-') }}" == "true" ]]; then
-            prerelease_flag+=(--prerelease)
+            is_prerelease=true
           fi
 
           echo "Publishing release for tag: $tag"
 
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$tag" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$tag" \
-              --notes-file "$notes_file" \
-              "${prerelease_flag[@]}"
+          release_payload="$(jq -nc \
+            --arg tag "$tag" \
+            --arg name "$tag" \
+            --arg target "$GITHUB_SHA" \
+            --rawfile body "$notes_file" \
+            --argjson prerelease "$is_prerelease" \
+            '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:$prerelease}')"
+
+          release_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" 2>/dev/null || true)"
+          if [[ -n "$release_json" ]]; then
+            release_id="$(jq -r '.id' <<<"$release_json")"
+            release_json="$(printf '%s' "$release_payload" | gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" --method PATCH --input -)"
           else
-            gh release create "$tag" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$tag" \
-              --notes-file "$notes_file" \
-              "${prerelease_flag[@]}"
+            release_json="$(printf '%s' "$release_payload" | gh api "repos/$GITHUB_REPOSITORY/releases" --method POST --input -)"
+            release_id="$(jq -r '.id' <<<"$release_json")"
+          fi
+
+          if [[ -z "$release_id" || "$release_id" == "null" ]]; then
+            echo "Failed to resolve GitHub release id for tag $tag" >&2
+            exit 1
           fi
 
           mapfile -d '' asset_files < <(find release-assets -maxdepth 1 -type f -print0 | sort -z)
@@ -349,13 +357,13 @@ jobs:
             exit 1
           fi
 
-          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.id')"
-          upload_url="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.upload_url')"
+          upload_url="$(jq -r '.upload_url' <<<"$release_json")"
           upload_url="${upload_url%\{*}"
 
           for file in "${asset_files[@]}"; do
             name="$(basename "$file")"
-            asset_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --jq ".[] | select(.name == \"$name\") | .id" | head -n1 || true)"
+            existing_assets_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets")"
+            asset_id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$existing_assets_json" | head -n1)"
             if [[ -n "$asset_id" ]]; then
               gh api "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" --method DELETE >/dev/null
             fi
