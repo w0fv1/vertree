@@ -9,7 +9,7 @@ sidebar_position: 8
 Vertree 已进入 Linux 桌面发布链路，当前仓库会构建：
 
 - `vertree-linux-x64-<version>.tar.gz`
-- `vertree-<version>-*.x86_64.rpm`
+- `vertree-linux-x64-<version>.rpm`
 
 Linux 侧当前最完整的集成目标是 GNOME，会提供：
 

@@ -10,6 +10,7 @@ OUTPUT_DIR="$ROOT_DIR/build/dist"
 RAW_VERSION="$(sed -n 's/^version:[[:space:]]*//p' "$ROOT_DIR/pubspec.yaml" | head -n1)"
 RPM_VERSION="$RAW_VERSION"
 RPM_RELEASE="1%{?dist}"
+RPM_ARTIFACT_NAME="vertree-linux-x64-$RAW_VERSION.rpm"
 RELEASE_BUNDLE_DIR="$ROOT_DIR/build/linux/x64/release/bundle"
 SOURCE_ROOT=""
 SOURCE_TARBALL=""
@@ -81,6 +82,12 @@ else
     bash -lc "dnf -y --disablerepo='*' --repofrompath=vertree-fedora,$FEDORA_RELEASE_MIRROR --repofrompath=vertree-updates,$FEDORA_UPDATES_MIRROR install rpm-build desktop-file-utils appstream && rpmbuild --define '_topdir /src/build/rpm/rpmbuild' -bb /src/build/rpm/rpmbuild/SPECS/vertree.spec"
 fi
 
-find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -f {} "$OUTPUT_DIR/" \;
+RPM_BUILT_PATH="$(find "$TOPDIR/RPMS" -type f -name '*.rpm' | head -n1)"
+if [[ -z "$RPM_BUILT_PATH" ]]; then
+  echo "RPM build completed but no .rpm artifact was found under $TOPDIR/RPMS" >&2
+  exit 1
+fi
+
+cp -f "$RPM_BUILT_PATH" "$OUTPUT_DIR/$RPM_ARTIFACT_NAME"
 
 echo "RPMs are available under: $TOPDIR/RPMS"

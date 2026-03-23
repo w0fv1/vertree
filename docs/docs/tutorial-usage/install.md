@@ -61,7 +61,7 @@ flutter run -d macos
 
 - `vertree-linux-x64-<version>.tar.gz`
 - `vertree-linux-x64-<version>.deb`
-- `vertree-<version>-*.x86_64.rpm`
+- `vertree-linux-x64-<version>.rpm`
 
 ### 前置条件
 

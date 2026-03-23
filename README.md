@@ -59,7 +59,7 @@ flutter run -d macos
 
 - `vertree-linux-x64-<version>.tar.gz`：便携发布包
 - `vertree-linux-x64-<version>.deb`：Debian / Ubuntu 安装包
-- `vertree-<version>-1.*.x86_64.rpm`：RPM 安装包
+- `vertree-linux-x64-<version>.rpm`：RPM 安装包
 
 GNOME 环境下已支持：
 

@@ -171,7 +171,7 @@ linux/build_linux_rpm.sh
 
 - `build/dist/vertree-linux-x64-<version>.tar.gz`
 - `build/dist/vertree-linux-x64-<version>.deb`
-- `build/dist/*.rpm`
+- `build/dist/vertree-linux-x64-<version>.rpm`
 
 ## 文档站
 
