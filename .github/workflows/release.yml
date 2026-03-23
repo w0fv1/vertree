@@ -301,55 +301,86 @@ jobs:
           printf 'Staged release assets:\n'
           printf ' - %s\n' "${release_files[@]#release-assets/}"
 
-      - name: Publish release
+      - name: Ensure GitHub Release
+        id: release_meta
+        uses: actions/github-script@v8
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          EXPECTED_VERSION: ${{ needs.meta.outputs.version }}
+          NOTES_FILE: ${{ steps.notes.outputs.notes_file }}
+          IS_PRERELEASE: ${{ contains(needs.meta.outputs.version, '-') }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const tag = process.env.RELEASE_TAG;
+            const expectedVersion = process.env.EXPECTED_VERSION;
+            const normalizedTag = tag.replace(/^[Vv]/, '');
+            if (normalizedTag !== expectedVersion) {
+              core.setFailed(`Resolved tag ${tag} does not match expected version ${expectedVersion}`);
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prerelease = process.env.IS_PRERELEASE === 'true';
+            const body = fs.readFileSync(process.env.NOTES_FILE, 'utf8');
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              })).data;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              release = (await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                target_commitish: context.sha,
+                name: tag,
+                body,
+                draft: false,
+                prerelease,
+              })).data;
+            }
+
+            release = (await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              tag_name: tag,
+              target_commitish: context.sha,
+              name: tag,
+              body,
+              draft: false,
+              prerelease,
+            })).data;
+
+            core.info(`Using release ${release.id} for tag ${tag}`);
+            core.setOutput('tag', tag);
+            core.setOutput('release_id', String(release.id));
+            core.setOutput('upload_url', release.upload_url.replace(/\{.*$/, ''));
+
+      - name: Publish release assets
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_meta.outputs.tag }}
+          RELEASE_ID: ${{ steps.release_meta.outputs.release_id }}
+          RELEASE_UPLOAD_URL: ${{ steps.release_meta.outputs.upload_url }}
         run: |
-          current_ref="${GITHUB_REF#refs/tags/}"
-          expected_version="${{ needs.meta.outputs.version }}"
-          if [[ -z "$current_ref" || "$current_ref" == "$GITHUB_REF" ]]; then
-            echo "Release workflow did not receive a tag ref. GITHUB_REF=$GITHUB_REF" >&2
-            exit 1
-          fi
+          api_base="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          auth_header="Authorization: Bearer $GH_TOKEN"
+          accept_header="Accept: application/vnd.github+json"
+          version_header="X-GitHub-Api-Version: 2022-11-28"
 
-          normalized_tag="${current_ref#V}"
-          normalized_tag="${normalized_tag#v}"
-          if [[ "$normalized_tag" != "$expected_version" ]]; then
-            echo "Resolved tag $current_ref does not match expected version $expected_version" >&2
-            exit 1
-          fi
-
-          tag="$current_ref"
-          notes_file="${{ steps.notes.outputs.notes_file }}"
-          is_prerelease=false
-          if [[ "${{ contains(needs.meta.outputs.version, '-') }}" == "true" ]]; then
-            is_prerelease=true
-          fi
-
-          echo "Publishing release for tag: $tag"
-
-          release_payload="$(jq -nc \
-            --arg tag "$tag" \
-            --arg name "$tag" \
-            --arg target "$GITHUB_SHA" \
-            --rawfile body "$notes_file" \
-            --argjson prerelease "$is_prerelease" \
-            '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:$prerelease}')"
-
-          release_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" 2>/dev/null || true)"
-          if [[ -n "$release_json" ]]; then
-            release_id="$(jq -r '.id' <<<"$release_json")"
-            release_json="$(printf '%s' "$release_payload" | gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" --method PATCH --input -)"
-          else
-            release_json="$(printf '%s' "$release_payload" | gh api "repos/$GITHUB_REPOSITORY/releases" --method POST --input -)"
-            release_id="$(jq -r '.id' <<<"$release_json")"
-          fi
-
-          if [[ -z "$release_id" || "$release_id" == "null" ]]; then
-            echo "Failed to resolve GitHub release id for tag $tag" >&2
-            exit 1
-          fi
+          echo "Publishing release for tag: $RELEASE_TAG"
 
           mapfile -d '' asset_files < <(find release-assets -maxdepth 1 -type f -print0 | sort -z)
           if [[ ${#asset_files[@]} -eq 0 ]]; then
@@ -357,27 +388,38 @@ jobs:
             exit 1
           fi
 
-          upload_url="$(jq -r '.upload_url' <<<"$release_json")"
-          upload_url="${upload_url%\{*}"
-
           for file in "${asset_files[@]}"; do
             name="$(basename "$file")"
-            existing_assets_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets")"
-            asset_id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$existing_assets_json" | head -n1)"
+            existing_assets_json="$(curl -fsSL \
+              -H "$auth_header" \
+              -H "$accept_header" \
+              -H "$version_header" \
+              "$api_base/releases/$RELEASE_ID/assets")"
+            asset_id="$(jq -r --arg name "$name" 'map(select(.name == $name))[0].id // empty' <<<"$existing_assets_json")"
             if [[ -n "$asset_id" ]]; then
-              gh api "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" --method DELETE >/dev/null
+              curl -fsSL \
+                -X DELETE \
+                -H "$auth_header" \
+                -H "$accept_header" \
+                -H "$version_header" \
+                "$api_base/releases/assets/$asset_id" >/dev/null
             fi
 
             encoded_name="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$name")"
             curl --fail-with-body --silent --show-error \
               -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "$auth_header" \
               -H "Content-Type: application/octet-stream" \
               --data-binary @"$file" \
-              "${upload_url}?name=${encoded_name}" >/dev/null
+              "${RELEASE_UPLOAD_URL}?name=${encoded_name}" >/dev/null
           done
 
-          uploaded_count="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.assets | length')"
+          release_json="$(curl -fsSL \
+            -H "$auth_header" \
+            -H "$accept_header" \
+            -H "$version_header" \
+            "$api_base/releases/tags/$RELEASE_TAG")"
+          uploaded_count="$(jq '.assets | length' <<<"$release_json")"
           echo "Uploaded release asset count: $uploaded_count"
           if (( uploaded_count < ${#asset_files[@]} )); then
             echo "Release asset upload incomplete: expected at least ${#asset_files[@]}, got $uploaded_count" >&2
