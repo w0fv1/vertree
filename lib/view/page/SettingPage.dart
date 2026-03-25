@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
@@ -7,6 +9,7 @@ import 'package:vertree/component/AppVersionInfo.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/platform/linux_gnome_integration.dart';
@@ -455,6 +458,7 @@ class _SettingPageState extends State<SettingPage> {
     setState(() {
       appLocale.changeLang(lang);
     });
+    unawaited(TrayManager().refreshTray(forceRebuild: true));
   }
 
   void _updateThemeMode(String value) {

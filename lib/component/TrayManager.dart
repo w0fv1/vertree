@@ -28,8 +28,10 @@ class TrayManager with lean_tray.TrayListener {
   nativeapi.Menu? _menu;
   List<nativeapi.MenuItem> _menuItems = [];
   nativeapi.MenuItem? _toggleWindowMenuItem;
+  String? _menuLocaleName;
   bool _refreshInFlight = false;
   bool _refreshQueued = false;
+  bool _rebuildQueued = false;
 
   ValueNotifier<bool> shouldForegroundOnContextMenu = ValueNotifier(false);
 
@@ -260,6 +262,13 @@ class TrayManager with lean_tray.TrayListener {
     return (menu, items);
   }
 
+  void _invalidateMenuCache() {
+    _menu = null;
+    _menuItems = [];
+    _toggleWindowMenuItem = null;
+    _menuLocaleName = null;
+  }
+
   Future<void> _ensureMenuBuilt() async {
     if (_menu != null && _menuItems.isNotEmpty) {
       return;
@@ -267,6 +276,7 @@ class TrayManager with lean_tray.TrayListener {
     final (menu, items) = await _buildMenu();
     _menu = menu;
     _menuItems = items;
+    _menuLocaleName = appLocale.lang.name;
   }
 
   Future<void> _updateMenuState() async {
@@ -381,11 +391,16 @@ class TrayManager with lean_tray.TrayListener {
     action(filePath);
   }
 
-  Future<void> refreshTray() async {
+  Future<void> refreshTray({bool forceRebuild = false}) async {
     if (!_initialized ||
         (Platform.isLinux &&
             !PlatformIntegration.supportsTrayOnlyBackgroundMode)) {
       return;
+    }
+    final localeChanged =
+        _menuLocaleName != null && _menuLocaleName != appLocale.lang.name;
+    if (forceRebuild || localeChanged) {
+      _invalidateMenuCache();
     }
     if (Platform.isLinux) {
       if (_iconPath == null) {
@@ -406,6 +421,7 @@ class TrayManager with lean_tray.TrayListener {
     }
     if (_refreshInFlight) {
       _refreshQueued = true;
+      _rebuildQueued = _rebuildQueued || forceRebuild || localeChanged;
       return;
     }
     _refreshInFlight = true;
@@ -429,8 +445,10 @@ class TrayManager with lean_tray.TrayListener {
     } finally {
       _refreshInFlight = false;
       if (_refreshQueued) {
+        final rebuildQueued = _rebuildQueued;
         _refreshQueued = false;
-        unawaited(refreshTray());
+        _rebuildQueued = false;
+        unawaited(refreshTray(forceRebuild: rebuildQueued));
       }
     }
   }

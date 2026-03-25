@@ -352,6 +352,7 @@ jobs:
                 body,
                 draft: false,
                 prerelease,
+                make_latest: prerelease ? 'false' : 'true',
               })).data;
             }
 
@@ -365,6 +366,7 @@ jobs:
               body,
               draft: false,
               prerelease,
+              make_latest: prerelease ? 'false' : 'true',
             })).data;
 
             core.info(`Using release ${release.id} for tag ${tag}`);

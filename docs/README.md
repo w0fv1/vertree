@@ -49,7 +49,7 @@ https://vertree.w0fv1.dev/announcement.json
   "uuid": "2026-03-maintenance",
   "content": "这里填写公告正文。",
   "expiresAt": "2026-04-01T00:00:00Z",
-  "link": "https://github.com/w0fv1/vertree/releases/tag/V0.11.1"
+  "link": "https://github.com/w0fv1/vertree/releases"
 }
 ```
 
