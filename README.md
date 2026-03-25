@@ -2,7 +2,7 @@
 
 Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，并通过系统原生入口尽量不改变你原本的使用习惯。
 
-## 0.11.0-alpha5 现状
+## 0.11.0 正式版现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
 - 支持 macOS 桌面使用，GitHub Release 会生成带架构标识的 `zip` / `dmg` 和符号包，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
@@ -99,11 +99,14 @@ vertree express-backup /path/to/file
 - `POST /api/v1/ui/file-tree/viewport`：让文件树适配视口或设置缩放比例
 - `POST /api/v1/ui/screenshot`：导出当前应用窗口 PNG 截图
 - `GET/POST/PATCH/DELETE /api/v1/monitor-tasks`：监控任务管理
+- `GET /api/v1/monitor-tasks/{id}/backups`：查看某个监控任务对应的备份文件
+- `POST /api/v1/monitor-tasks/{id}/verification-writes`：向监控文件写入内容并验证是否生成新备份
 - `POST /api/v1/backups`：触发单次备份
 - `GET /api/v1/backups`：列出备份目录文件
 - `GET /api/v1/version-files`：列出同一版本族文件
 - `GET /api/v1/version-trees`：生成版本树
 - `GET/POST/DELETE /api/v1/file-shares`：管理局域网文件分享
+- `GET /api/v1/file-shares/{token}`：查看某个局域网分享的详情
 
 用于刷新文档截图时，可以配合本地开发控制器运行：
 

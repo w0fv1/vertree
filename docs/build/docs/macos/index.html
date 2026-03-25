@@ -5,7 +5,7 @@
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">macOS 说明 | Vertree维树</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://vertree.w0fv1.dev/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://vertree.w0fv1.dev/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://vertree.w0fv1.dev/docs/macos"><meta data-rh="true" property="og:locale" content="zh"><meta data-rh="true" name="docusaurus_locale" content="zh"><meta data-rh="true" name="docsearch:language" content="zh"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="macOS 说明 | Vertree维树"><meta data-rh="true" name="description" content="当前支持范围"><meta data-rh="true" property="og:description" content="当前支持范围"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://vertree.w0fv1.dev/docs/macos"><link data-rh="true" rel="alternate" href="https://vertree.w0fv1.dev/docs/macos" hreflang="zh"><link data-rh="true" rel="alternate" href="https://vertree.w0fv1.dev/docs/macos" hreflang="x-default"><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="Vertree维树 RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="Vertree维树 Atom Feed"><link rel="stylesheet" href="/assets/css/styles.b68420cc.css">
-<script src="/assets/js/runtime~main.50f8f5d6.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.816a0517.js" defer="defer"></script>
 <script src="/assets/js/main.3f5b918d.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -31,8 +31,9 @@
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="发布与分发">发布与分发<a href="#发布与分发" class="hash-link" aria-label="发布与分发的直接链接" title="发布与分发的直接链接">​</a></h2>
 <p>仓库中的 GitHub Actions release workflow 会构建 macOS 发布工件：</p>
 <ul>
-<li><code>vertree-macos-&lt;version&gt;.zip</code></li>
-<li><code>vertree-macos-&lt;version&gt;.dmg</code></li>
+<li><code>vertree-macos-&lt;arch&gt;-&lt;version&gt;.zip</code></li>
+<li><code>vertree-macos-&lt;arch&gt;-&lt;version&gt;.dmg</code></li>
+<li><code>vertree-macos-&lt;arch&gt;-&lt;version&gt;-symbols.zip</code>（开发调试用）</li>
 </ul>
 <p>当前仍有这些限制：</p>
 <ul>
@@ -57,6 +58,7 @@
 <li>从菜单栏恢复窗口时会主动刷新 Dock 图标和激活状态</li>
 <li>设置页和常用动作可以从应用菜单直接进入</li>
 <li>开机自启通过原生 channel 接入，不依赖手动编写登录项文件</li>
+<li>“启动后进入托盘 / 菜单栏” 仅对开机自启触发的启动生效，手动打开时会直接显示主界面</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="使用建议">使用建议<a href="#使用建议" class="hash-link" aria-label="使用建议的直接链接" title="使用建议的直接链接">​</a></h2>
 <ul>

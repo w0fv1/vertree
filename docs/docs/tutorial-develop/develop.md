@@ -204,4 +204,4 @@ python tools/update_doc_images.py
    - `npm run build`（在 `docs/` 下）
 7. 提交代码并创建 tag：`V<version>`
 
-GitHub Actions 会在推送 tag 后自动构建三平台工件并创建 prerelease / release。
+如果版本号包含 `-alpha`、`-beta`、`-rc` 等后缀，GitHub Actions 会创建 `prerelease`；像 `0.11.0` 这样的正式版本则会创建正式 Release。

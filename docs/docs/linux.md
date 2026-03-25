@@ -9,6 +9,7 @@ sidebar_position: 8
 Vertree 已进入 Linux 桌面发布链路，当前仓库会构建：
 
 - `vertree-linux-x64-<version>.tar.gz`
+- `vertree-linux-x64-<version>.deb`
 - `vertree-linux-x64-<version>.rpm`
 
 Linux 侧当前最完整的集成目标是 GNOME，会提供：
@@ -98,6 +99,12 @@ linux/build_linux_release.sh
 
 ```bash
 linux/build_linux_rpm.sh
+```
+
+构建 DEB：
+
+```bash
+linux/build_linux_deb.sh
 ```
 
 脚本会从 `pubspec.yaml` 读取版本号，并自动生成与 release 版本一致的归档文件名。

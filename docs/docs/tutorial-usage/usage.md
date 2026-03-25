@@ -126,6 +126,8 @@ sidebar_position: 5
 - `POST /api/v1/ui/file-tree/viewport`
 - `POST /api/v1/ui/screenshot`
 - `GET/POST/PATCH/DELETE /api/v1/monitor-tasks`
+- `GET /api/v1/monitor-tasks/{id}/backups`
+- `POST /api/v1/monitor-tasks/{id}/verification-writes`
 - `POST /api/v1/backups`
 - `GET /api/v1/backups`
 - `GET /api/v1/version-files`
@@ -144,6 +146,8 @@ python tools/update_doc_images.py
 ```
 
 脚本会自动确保应用已启动，跳转页面并导出 PNG。
+
+如果你需要控制 `flutter run` 进程本身，而不只是调用应用内 API，可以再配合仓库根目录的 `dev_server.py` 使用，它提供 `reload`、`hot-restart`、`restart-process` 等本地控制端点。
 
 ## 使用建议
 
