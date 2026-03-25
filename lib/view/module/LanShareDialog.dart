@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/main.dart';
 
@@ -343,7 +344,7 @@ class _DirectDownloadCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.lan_rounded, color: theme.colorScheme.primary),
+                      shareActionImage(size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -375,7 +376,7 @@ class _DirectDownloadCard extends StatelessWidget {
               )
             : Row(
                 children: [
-                  Icon(Icons.lan_rounded, color: theme.colorScheme.primary),
+                  shareActionImage(size: 18),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(

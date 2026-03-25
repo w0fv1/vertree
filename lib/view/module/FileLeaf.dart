@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/core/FileVersionTree.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/tree/CanvasComponent.dart';
@@ -459,15 +460,13 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
 
   Widget _buildMenuEntry(
     BuildContext context, {
-    required IconData icon,
+    required Widget icon,
     required String label,
   }) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: scheme.primary),
+        icon,
         const SizedBox(width: 12),
         Flexible(
           child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -571,7 +570,11 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           enabled: fileNode.child == null,
           child: _buildMenuEntry(
             context,
-            icon: Icons.file_copy_outlined,
+            icon: Icon(
+              Icons.file_copy_outlined,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             label: appLocale.getText(LocaleKey.fileleaf_menuBackup),
           ),
         ),
@@ -579,7 +582,11 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           value: 'branch',
           child: _buildMenuEntry(
             context,
-            icon: Icons.call_split_rounded,
+            icon: Icon(
+              Icons.call_split_rounded,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             label: appLocale.getText(LocaleKey.fileleaf_menuBranch),
           ),
         ),
@@ -587,7 +594,11 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           value: 'monit',
           child: _buildMenuEntry(
             context,
-            icon: Icons.visibility_outlined,
+            icon: Icon(
+              Icons.visibility_outlined,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             label: appLocale.getText(LocaleKey.fileleaf_menuMonit),
           ),
         ),
@@ -595,7 +606,11 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           value: 'property',
           child: _buildMenuEntry(
             context,
-            icon: Icons.info_outline_rounded,
+            icon: Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             label: appLocale.getText(LocaleKey.fileleaf_menuProperty),
           ),
         ),
@@ -603,7 +618,7 @@ class _FileNodeState extends CanvasComponentState<FileLeaf> {
           value: 'share',
           child: _buildMenuEntry(
             context,
-            icon: Icons.qr_code_2_rounded,
+            icon: shareActionImage(size: 18),
             label: appLocale.getText(LocaleKey.fileleaf_menuShare),
           ),
         ),

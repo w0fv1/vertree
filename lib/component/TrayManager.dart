@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:nativeapi/nativeapi.dart' as nativeapi;
 import 'package:tray_manager/tray_manager.dart' as lean_tray;
 import 'package:vertree/component/I18nLang.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/view/page/BrandPage.dart';
@@ -208,7 +209,7 @@ class TrayManager with lean_tray.TrayListener {
         key: 'share',
         label: appLocale.getText(LocaleKey.tray_share),
         toolTip: appLocale.getText(LocaleKey.tray_shareTooltip),
-        iconAsset: 'assets/img/logo/logo.png',
+        iconAsset: Platform.isWindows ? kShareActionIco : kShareActionPng,
         action: () => _pickFileAndRun(share),
       ),
     );
@@ -327,7 +328,7 @@ class TrayManager with lean_tray.TrayListener {
           key: 'share',
           label: appLocale.getText(LocaleKey.tray_share),
           toolTip: appLocale.getText(LocaleKey.tray_shareTooltip),
-          iconAsset: 'assets/img/logo/logo.png',
+          iconAsset: kShareActionPng,
           action: () => _pickFileAndRun(share),
         ),
         _buildLinuxMenuItem(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/view/component/AppBar.dart';
 import 'package:vertree/view/component/AppPageBackground.dart';
@@ -388,7 +389,7 @@ class _MonitPageState extends State<MonitPage> {
             heroTag: 'share_file',
             tooltip: appLocale.getText(LocaleKey.fileleaf_menuShare),
             onPressed: _shareFile,
-            child: const Icon(Icons.lan_rounded, size: 18),
+            child: shareActionImage(size: 18),
           ),
           const SizedBox(height: 10),
           FloatingActionButton.extended(

@@ -25,6 +25,7 @@ import 'package:vertree/platform/bootstrap/platform_bootstrap.dart';
 import 'package:vertree/platform/platform_integration.dart';
 import 'package:vertree/service/LanFileShareServer.dart';
 import 'package:vertree/service/LocalHttpApiService.dart';
+import 'package:vertree/service/AppAnnouncementService.dart';
 import 'package:vertree/view/module/FileTree.dart';
 import 'package:vertree/view/module/LanShareDialog.dart';
 import 'package:vertree/view/page/BrandPage.dart';
@@ -58,6 +59,18 @@ final appVersionInfo = AppVersionInfo(
   readConfigString: (key, defaultValue) =>
       configer.get<String>(key, defaultValue),
   writeConfigString: (key, value) => configer.set<String>(key, value),
+  onLogInfo: logger.info,
+  onLogError: logger.error,
+);
+
+final appAnnouncementService = AppAnnouncementService(
+  announcementUrl: 'https://vertree.w0fv1.dev/announcement.json',
+  readConfigSnapshot: () => configer.toJson(),
+  writeDismissedAnnouncementUuids: (uuids) =>
+      configer.set<List<String>>(
+        AppAnnouncementService.dismissedAnnouncementUuidsKey,
+        uuids,
+      ),
   onLogInfo: logger.info,
   onLogError: logger.error,
 );

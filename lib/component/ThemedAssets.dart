@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 /// 默认品牌 Logo 单一源文件。
 const String kLogoDefault = 'assets/img/logo/logo.png';
+const String kShareActionPng = 'assets/img/icon/share.png';
+const String kShareActionIco = 'assets/img/icon/share.ico';
 
 const List<double> _invertColorMatrix = <double>[
   -1, 0, 0, 0, 255, //
@@ -32,5 +34,17 @@ Widget themedLogoImage({
     );
   }
   return image;
+}
+
+Widget shareActionImage({
+  double size = 18,
+  BoxFit fit = BoxFit.contain,
+}) {
+  return Image.asset(
+    kShareActionPng,
+    width: size,
+    height: size,
+    fit: fit,
+  );
 }
 

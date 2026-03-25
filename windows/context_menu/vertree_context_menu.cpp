@@ -311,6 +311,7 @@ int GetIconResourceIdForVerb(const std::wstring& verb) {
   if (verb == kCmdBackup) return IDI_VERTREE_BACKUP;
   if (verb == kCmdExpressBackup) return IDI_VERTREE_EXPRESS_BACKUP;
   if (verb == kCmdMonitor) return IDI_VERTREE_MONITOR;
+  if (verb == kCmdShare) return IDI_VERTREE_SHARE;
   if (verb == kCmdViewTree) return IDI_VERTREE_VIEWTREE;
   return IDI_VERTREE_ROOT;
 }

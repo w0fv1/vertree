@@ -198,10 +198,11 @@ python tools/update_doc_images.py
 2. 同步更新应用内展示版本号（当前在 `lib/app_runtime.dart`）
 3. 新建 `.github/release-<version>.md`
 4. 更新 README、文档站和必要的站点首页内容
-5. 如有界面变更，执行 `python tools/update_doc_images.py`
-6. 构建并验证：
+5. 如果需要发布站点公告，同步更新 `docs/static/announcement.json`
+6. 如有界面变更，执行 `python tools/update_doc_images.py`
+7. 构建并验证：
    - `flutter analyze`
    - `npm run build`（在 `docs/` 下）
-7. 提交代码并创建 tag：`V<version>`
+8. 提交代码并创建 tag：`V<version>`
 
 如果版本号包含 `-alpha`、`-beta`、`-rc` 等后缀，GitHub Actions 会创建 `prerelease`；像 `0.11.0` 这样的正式版本则会创建正式 Release。

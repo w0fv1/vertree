@@ -5,6 +5,7 @@ import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/core/MonitManager.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 
 class MonitTaskCard extends StatefulWidget {
@@ -179,7 +180,7 @@ class _MonitTaskCardState extends State<MonitTaskCard> {
                     message: appLocale.getText(LocaleKey.fileleaf_menuShare),
                     child: IconButton.filledTonal(
                       onPressed: () => openLanShareDialogForPath(task.filePath),
-                      icon: const Icon(Icons.lan_rounded, size: 20),
+                      icon: shareActionImage(size: 20),
                     ),
                   ),
                   Tooltip(

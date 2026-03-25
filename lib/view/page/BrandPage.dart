@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/service/AppAnnouncementService.dart';
 import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/main.dart';
 import 'package:vertree/platform/platform_integration.dart';
@@ -28,15 +29,141 @@ class BrandPage extends StatefulWidget {
   State<BrandPage> createState() => _BrandPageState();
 }
 
-class _BrandPageState extends State<BrandPage> {
+class _BrandPageState extends State<BrandPage> with WindowListener {
   static const String _expressMenuPromptedKey =
       'expressBackupContextMenuPrompted';
   Timer? _setupTimer;
+  AppAnnouncement? _pendingAnnouncement;
+  bool _announcementLoaded = false;
+  bool _announcementDialogOpen = false;
 
   Future<void> _restoreIfMaximized() async {
     if (await windowManager.isMaximized()) {
       await windowManager.restore();
     }
+  }
+
+  Future<void> _runStartupFlow() async {
+    await setup();
+    await _loadAnnouncementIfNeeded();
+    await _tryShowAnnouncement();
+  }
+
+  Future<void> _loadAnnouncementIfNeeded() async {
+    if (_announcementLoaded) {
+      return;
+    }
+    _announcementLoaded = true;
+    _pendingAnnouncement = await appAnnouncementService.fetchActiveAnnouncement();
+  }
+
+  Future<void> _tryShowAnnouncement() async {
+    final announcement = _pendingAnnouncement;
+    if (!mounted ||
+        announcement == null ||
+        _announcementDialogOpen ||
+        appAnnouncementService.hasShownInSession(announcement.uuid)) {
+      return;
+    }
+
+    final isVisible = await windowManager.isVisible();
+    if (!isVisible || !mounted) {
+      return;
+    }
+
+    _announcementDialogOpen = true;
+    appAnnouncementService.markShownInSession(announcement.uuid);
+    final shouldHideForever = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        final scheme = theme.colorScheme;
+        return AlertDialog(
+          icon: const Icon(Icons.campaign_rounded),
+          title: Text(
+            appLocale.getText(LocaleKey.brand_announcementTitle),
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(
+                  announcement.content,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          appLocale.getText(
+                            LocaleKey.brand_announcementExpiresAt,
+                          ).tr([_formatAnnouncementTime(announcement.expiresAt)]),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                appLocale.getText(LocaleKey.brand_announcementClose),
+              ),
+            ),
+            FilledButton.tonal(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                appLocale.getText(LocaleKey.brand_announcementDontShowAgain),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldHideForever == true) {
+      appAnnouncementService.dismissAnnouncement(announcement.uuid);
+    }
+
+    _pendingAnnouncement = null;
+    _announcementDialogOpen = false;
+  }
+
+  String _formatAnnouncementTime(DateTime value) {
+    final local = value.toLocal();
+    final y = local.year.toString().padLeft(4, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
   }
 
   @override
@@ -247,14 +374,26 @@ class _BrandPageState extends State<BrandPage> {
   void initState() {
     super.initState();
     _restoreIfMaximized();
+    windowManager.addListener(this);
     _setupTimer = Timer(widget.initialSetupDialogDelay, () {
-      unawaited(setup());
+      unawaited(_runStartupFlow());
     });
   }
 
   @override
   void dispose() {
     _setupTimer?.cancel();
+    windowManager.removeListener(this);
     super.dispose();
+  }
+
+  @override
+  void onWindowFocus() {
+    unawaited(_tryShowAnnouncement());
+  }
+
+  @override
+  void onWindowRestore() {
+    unawaited(_tryShowAnnouncement());
   }
 }

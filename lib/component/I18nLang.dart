@@ -94,6 +94,10 @@ enum LocaleKey {
   brand_expressMenuPromptLater,
   brand_expressMenuPromptEnable,
   brand_setupPartialFailedBody,
+  brand_announcementTitle,
+  brand_announcementClose,
+  brand_announcementDontShowAgain,
+  brand_announcementExpiresAt,
 
   // Monitor Page Keys
   monit_title,
@@ -438,6 +442,10 @@ class AppLocale {
     LocaleKey.brand_expressMenuPromptEnable: 'Enable',
     LocaleKey.brand_setupPartialFailedBody:
         'Setup completed partially. Please retry in Settings and review platform integration support.',
+    LocaleKey.brand_announcementTitle: 'Announcement',
+    LocaleKey.brand_announcementClose: 'Close',
+    LocaleKey.brand_announcementDontShowAgain: 'Do not show again',
+    LocaleKey.brand_announcementExpiresAt: 'Visible until %a',
 
     LocaleKey.monit_title: 'Vertree Monitor',
     LocaleKey.monit_empty: 'No monitoring tasks yet',
@@ -728,6 +736,10 @@ class AppLocale {
     LocaleKey.brand_expressMenuPromptLater: '稍后',
     LocaleKey.brand_expressMenuPromptEnable: '启用',
     LocaleKey.brand_setupPartialFailedBody: '初始化部分失败，请在设置页面重试并检查平台集成能力。',
+    LocaleKey.brand_announcementTitle: '公告',
+    LocaleKey.brand_announcementClose: '关闭',
+    LocaleKey.brand_announcementDontShowAgain: '不再显示',
+    LocaleKey.brand_announcementExpiresAt: '显示截止到 %a',
 
     LocaleKey.monit_title: 'Vertree 监控',
     LocaleKey.monit_empty: '暂无监控任务',
@@ -995,6 +1007,10 @@ class AppLocale {
     LocaleKey.brand_expressMenuPromptEnable: '有効にする',
     LocaleKey.brand_setupPartialFailedBody:
         '初期設定の一部に失敗しました。設定画面から再試行し、プラットフォーム連携の状態を確認してください。',
+    LocaleKey.brand_announcementTitle: 'お知らせ',
+    LocaleKey.brand_announcementClose: '閉じる',
+    LocaleKey.brand_announcementDontShowAgain: '今後は表示しない',
+    LocaleKey.brand_announcementExpiresAt: '%a まで表示',
 
     LocaleKey.monit_title: 'Vertree モニター',
     LocaleKey.monit_empty: '監視タスクはありません',

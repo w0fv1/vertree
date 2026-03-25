@@ -32,5 +32,24 @@ npm run build
 - `docs/docs/tutorial-usage/usage.md`
 - `docs/docs/macos.md`
 - `docs/docs/linux.md`
+- `docs/static/announcement.json`
+
+## 公告 JSON
+
+站点会把 `docs/static/announcement.json` 原样发布到：
+
+```text
+https://vertree.w0fv1.dev/announcement.json
+```
+
+当前应用会读取这个 JSON，并在 `uuid` 未被用户忽略、且 `expiresAt` 未过期时弹出公告。格式如下：
+
+```json
+{
+  "uuid": "2026-03-maintenance",
+  "content": "这里填写公告正文。",
+  "expiresAt": "2026-04-01T00:00:00Z"
+}
+```
 
 如果发布内容有变更，优先先改这几处，再重新构建 `docs/build`。
