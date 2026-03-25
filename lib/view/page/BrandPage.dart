@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
 import 'package:vertree/service/AppAnnouncementService.dart';
@@ -14,6 +15,8 @@ import 'package:vertree/view/page/MonitPage.dart';
 import 'package:vertree/view/page/SettingPage.dart';
 
 import 'package:window_manager/window_manager.dart';
+
+enum _AnnouncementDialogAction { close, dismissForever }
 
 class BrandPage extends StatefulWidget {
   const BrandPage({
@@ -54,7 +57,8 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
       return;
     }
     _announcementLoaded = true;
-    _pendingAnnouncement = await appAnnouncementService.fetchActiveAnnouncement();
+    _pendingAnnouncement = await appAnnouncementService
+        .fetchActiveAnnouncement();
   }
 
   Future<void> _tryShowAnnouncement() async {
@@ -73,16 +77,13 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
 
     _announcementDialogOpen = true;
     appAnnouncementService.markShownInSession(announcement.uuid);
-    final shouldHideForever = await showDialog<bool>(
+    final action = await showDialog<_AnnouncementDialogAction>(
       context: context,
       builder: (dialogContext) {
         final theme = Theme.of(dialogContext);
-        final scheme = theme.colorScheme;
         return AlertDialog(
           icon: const Icon(Icons.campaign_rounded),
-          title: Text(
-            appLocale.getText(LocaleKey.brand_announcementTitle),
-          ),
+          title: Text(appLocale.getText(LocaleKey.brand_announcementTitle)),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -93,52 +94,34 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
                   announcement.content,
                   style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
                 ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: 0.5,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 16,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          appLocale.getText(
-                            LocaleKey.brand_announcementExpiresAt,
-                          ).tr([_formatAnnouncementTime(announcement.expiresAt)]),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                appLocale.getText(LocaleKey.brand_announcementClose),
-              ),
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_AnnouncementDialogAction.close),
+              child: Text(appLocale.getText(LocaleKey.brand_announcementClose)),
             ),
+            if (announcement.linkUri != null)
+              FilledButton(
+                onPressed: () async {
+                  final opened = await _openAnnouncementLink(
+                    announcement.linkUri!,
+                  );
+                  if (opened && dialogContext.mounted) {
+                    Navigator.of(
+                      dialogContext,
+                    ).pop(_AnnouncementDialogAction.close);
+                  }
+                },
+                child: Text(appLocale.getText(LocaleKey.brand_announcementGo)),
+              ),
             FilledButton.tonal(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_AnnouncementDialogAction.dismissForever),
               child: Text(
                 appLocale.getText(LocaleKey.brand_announcementDontShowAgain),
               ),
@@ -148,7 +131,7 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
       },
     );
 
-    if (shouldHideForever == true) {
+    if (action == _AnnouncementDialogAction.dismissForever) {
       appAnnouncementService.dismissAnnouncement(announcement.uuid);
     }
 
@@ -156,14 +139,23 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
     _announcementDialogOpen = false;
   }
 
-  String _formatAnnouncementTime(DateTime value) {
-    final local = value.toLocal();
-    final y = local.year.toString().padLeft(4, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final d = local.day.toString().padLeft(2, '0');
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$y-$m-$d $hh:$mm';
+  Future<bool> _openAnnouncementLink(Uri uri) async {
+    try {
+      final didLaunch = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (didLaunch) {
+        return true;
+      }
+    } catch (e) {
+      logger.error('Failed to open announcement link $uri: $e');
+    }
+
+    if (mounted) {
+      showToast(appLocale.getText(LocaleKey.brand_announcementOpenFailed));
+    }
+    return false;
   }
 
   @override

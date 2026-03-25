@@ -42,13 +42,14 @@ npm run build
 https://vertree.w0fv1.dev/announcement.json
 ```
 
-当前应用会读取这个 JSON，并在 `uuid` 未被用户忽略、且 `expiresAt` 未过期时弹出公告。格式如下：
+当前应用会读取这个 JSON，并在 `uuid` 未被用户忽略、且 `expiresAt` 未过期时弹出公告。`link` 是可选字段；只有在它是合法的 `http/https` 绝对地址时，应用里才会显示“前往”按钮。格式如下：
 
 ```json
 {
   "uuid": "2026-03-maintenance",
   "content": "这里填写公告正文。",
-  "expiresAt": "2026-04-01T00:00:00Z"
+  "expiresAt": "2026-04-01T00:00:00Z",
+  "link": "https://github.com/w0fv1/vertree/releases/tag/V0.11.0"
 }
 ```
 

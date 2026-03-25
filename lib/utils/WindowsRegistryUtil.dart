@@ -181,13 +181,19 @@ class RegistryHelper {
       );
 
       // 递归删除整个键
-      key.deleteKey(menuName, recursive: true);
+      try {
+        key.deleteKey(menuName, recursive: true);
+      } catch (e) {
+        if (!_isKeyMissingError(e)) {
+          rethrow;
+        }
+      }
       key.close();
 
       logger.info('成功删除右键菜单项: $registryPath');
       return true;
     } catch (e) {
-      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+      if (_isAccessDeniedError(e)) {
         return false;
       }
       logger.error('删除右键菜单失败: $e');
@@ -203,13 +209,19 @@ class RegistryHelper {
         desiredAccessRights: AccessRights.allAccess,
       );
 
-      parentKey.deleteKey(keyName, recursive: true);
+      try {
+        parentKey.deleteKey(keyName, recursive: true);
+      } catch (e) {
+        if (!_isKeyMissingError(e)) {
+          rethrow;
+        }
+      }
       parentKey.close();
 
       logger.info('成功通过键名 "$keyName" 删除右键菜单项');
       return true;
     } catch (e) {
-      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+      if (_isAccessDeniedError(e)) {
         return false;
       }
       logger.error('通过键名 "$keyName" 删除右键菜单项失败: $e');
@@ -250,12 +262,18 @@ class RegistryHelper {
         path: runRegistryPath,
         desiredAccessRights: AccessRights.allAccess,
       );
-      key.deleteValue(appName);
+      try {
+        key.deleteValue(appName);
+      } catch (e) {
+        if (!_isKeyMissingError(e)) {
+          rethrow;
+        }
+      }
       key.close();
       logger.info('成功移除应用 "$appName" 的开机自启');
       return true;
     } catch (e) {
-      if (_isAccessDeniedError(e) || _isKeyMissingError(e)) {
+      if (_isAccessDeniedError(e)) {
         return false;
       }
       logger.error('移除开机自启失败: $e');

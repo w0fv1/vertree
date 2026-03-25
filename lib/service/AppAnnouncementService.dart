@@ -7,11 +7,13 @@ class AppAnnouncement {
     required this.uuid,
     required this.content,
     required this.expiresAt,
+    this.linkUri,
   });
 
   final String uuid;
   final String content;
   final DateTime expiresAt;
+  final Uri? linkUri;
 
   static AppAnnouncement? tryParse(dynamic raw) {
     if (raw is! Map) {
@@ -21,8 +23,12 @@ class AppAnnouncement {
     final map = Map<String, dynamic>.from(raw);
     final uuid = map['uuid']?.toString().trim() ?? '';
     final content = map['content']?.toString().trim() ?? '';
-    final expiresAtRaw = map['expiresAt'] ?? map['expireAt'] ?? map['expiredAt'];
+    final expiresAtRaw =
+        map['expiresAt'] ?? map['expireAt'] ?? map['expiredAt'];
     final expiresAtText = expiresAtRaw?.toString().trim() ?? '';
+    final linkUri = _tryParseLinkUri(
+      map['link'] ?? map['url'] ?? map['href'] ?? map['linkUrl'],
+    );
 
     if (uuid.isEmpty || content.isEmpty || expiresAtText.isEmpty) {
       return null;
@@ -37,7 +43,25 @@ class AppAnnouncement {
       uuid: uuid,
       content: content,
       expiresAt: expiresAt.toUtc(),
+      linkUri: linkUri,
     );
+  }
+
+  static Uri? _tryParseLinkUri(dynamic raw) {
+    final text = raw?.toString().trim() ?? '';
+    if (text.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(text);
+    if (uri == null || !uri.hasScheme || uri.host.trim().isEmpty) {
+      return null;
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return null;
+    }
+
+    return uri;
   }
 }
 

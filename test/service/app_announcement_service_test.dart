@@ -13,7 +13,7 @@ void main() {
           config[AppAnnouncementService.dismissedAnnouncementUuidsKey] = uuids;
         },
         httpGet: (_) async => http.Response(
-          '{"uuid":"hello-1","content":"Hello Vertree","expiresAt":"2099-01-01T00:00:00Z"}',
+          '{"uuid":"hello-1","content":"Hello Vertree","expiresAt":"2099-01-01T00:00:00Z","link":"https://example.com/releases/v0.11.0"}',
           200,
         ),
         now: () => DateTime.utc(2026, 3, 25),
@@ -24,6 +24,10 @@ void main() {
       expect(announcement, isNotNull);
       expect(announcement?.uuid, 'hello-1');
       expect(announcement?.content, 'Hello Vertree');
+      expect(
+        announcement?.linkUri?.toString(),
+        'https://example.com/releases/v0.11.0',
+      );
     });
 
     test('ignores expired announcements', () async {
@@ -83,6 +87,24 @@ void main() {
         config[AppAnnouncementService.dismissedAnnouncementUuidsKey],
         <String>['a-1', 'b-2'],
       );
+    });
+
+    test('ignores invalid announcement link values', () async {
+      final service = AppAnnouncementService(
+        announcementUrl: 'https://example.com/announcement.json',
+        readConfigSnapshot: () => const <String, dynamic>{},
+        writeDismissedAnnouncementUuids: (_) {},
+        httpGet: (_) async => http.Response(
+          '{"uuid":"hello-2","content":"Hello Vertree","expiresAt":"2099-01-01T00:00:00Z","link":"javascript:alert(1)"}',
+          200,
+        ),
+        now: () => DateTime.utc(2026, 3, 25),
+      );
+
+      final announcement = await service.fetchActiveAnnouncement();
+
+      expect(announcement, isNotNull);
+      expect(announcement?.linkUri, isNull);
     });
   });
 }

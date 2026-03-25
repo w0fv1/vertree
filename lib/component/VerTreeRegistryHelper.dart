@@ -57,31 +57,9 @@ class VerTreeRegistryService {
   }
 
   static void reAddContextMenu() {
-    if (checkBackupKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(registry_backupKeyName);
-      addVerTreeBackupContextMenu();
-    }
-
-    if (checkMonitorKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(registry_monitorKeyName);
-      addVerTreeMonitorContextMenu();
-    }
-
-    if (checkViewTreeKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(registry_viewTreeKeyName);
-      addVerTreeViewContextMenu();
-    }
-
-    if (checkShareKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(registry_shareKeyName);
-      addVerTreeShareContextMenu();
-    }
-
-    if (checkExpressBackupKeyExists()) {
-      RegistryHelper.removeContextMenuOptionByKey(
-        registry_expressBackupKeyName,
-      );
-      addVerTreeExpressBackupContextMenu();
+    final success = _refreshRegisteredContextMenus();
+    if (!success) {
+      logger.error('刷新已注册右键菜单文案失败');
     }
   }
 
@@ -273,6 +251,9 @@ class VerTreeRegistryService {
   static bool removeVerTreeExpressBackupContextMenu({
     bool allowElevation = true,
   }) {
+    if (!checkExpressBackupKeyExists()) {
+      return true;
+    }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_expressBackupKeyName,
     );
@@ -287,6 +268,9 @@ class VerTreeRegistryService {
   }
 
   static bool removeVerTreeViewContextMenu({bool allowElevation = true}) {
+    if (!checkViewTreeKeyExists()) {
+      return true;
+    }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_viewTreeKeyName,
     );
@@ -301,6 +285,9 @@ class VerTreeRegistryService {
   }
 
   static bool removeVerTreeShareContextMenu({bool allowElevation = true}) {
+    if (!checkShareKeyExists()) {
+      return true;
+    }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_shareKeyName,
     );
@@ -315,6 +302,9 @@ class VerTreeRegistryService {
   }
 
   static bool removeVerTreeMonitorContextMenu({bool allowElevation = true}) {
+    if (!checkMonitorKeyExists()) {
+      return true;
+    }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_monitorKeyName,
     );
@@ -329,6 +319,9 @@ class VerTreeRegistryService {
   }
 
   static bool removeVerTreeBackupContextMenu({bool allowElevation = true}) {
+    if (!checkBackupKeyExists()) {
+      return true;
+    }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_backupKeyName,
     );
@@ -388,6 +381,9 @@ class VerTreeRegistryService {
   }
 
   static bool disableAutoStart({bool allowElevation = true}) {
+    if (!isAutoStartEnabled()) {
+      return true;
+    }
     bool success = RegistryHelper.disableAutoStart(runRegistryPath, appName);
     success = _retryWithElevation(
       actionName: '禁用开机自启',
@@ -513,9 +509,9 @@ class VerTreeRegistryService {
   }
 
   static bool addWin11ContextMenuHandler({bool allowElevation = true}) {
-    final cleaned = _removeLegacyWin11ContextMenuHandler(
-      allowElevation: allowElevation,
-    );
+    final cleaned = _hasLegacyWin11ContextMenuHandler()
+        ? _removeLegacyWin11ContextMenuHandler(allowElevation: allowElevation)
+        : true;
     if (WindowsPackageIdentity.isPackagedOrRegistered()) {
       return cleaned;
     }
@@ -532,16 +528,27 @@ class VerTreeRegistryService {
   }
 
   static bool removeWin11ContextMenuHandler({bool allowElevation = true}) {
+    final packagedOrRegistered =
+        WindowsPackageIdentity.isPackagedOrRegistered();
+    final hasLegacyHandler = _hasLegacyWin11ContextMenuHandler();
+    if (!packagedOrRegistered && !hasLegacyHandler) {
+      return true;
+    }
+
     bool success = true;
-    if (WindowsPackageIdentity.isPackagedOrRegistered()) {
+    if (packagedOrRegistered) {
       if (_hasWin11PackagingAssets()) {
         success =
             _runWin11PackagingScript('uninstall_sparse_package.ps1') && success;
       }
     }
-    success =
-        _removeLegacyWin11ContextMenuHandler(allowElevation: allowElevation) &&
-        success;
+    if (hasLegacyHandler) {
+      success =
+          _removeLegacyWin11ContextMenuHandler(
+            allowElevation: allowElevation,
+          ) &&
+          success;
+    }
     return success;
   }
 
@@ -563,6 +570,41 @@ class VerTreeRegistryService {
 
   static bool checkWin11ContextMenuHandler() {
     return WindowsPackageIdentity.isPackagedOrRegistered();
+  }
+
+  static bool _refreshRegisteredContextMenus() {
+    final entries = _registeredLegacyMenuEntries();
+    if (entries.isEmpty) {
+      return true;
+    }
+
+    bool success = true;
+    for (final entry in entries) {
+      success =
+          RegistryHelper.addContextMenuOption(
+            entry['keyName']!,
+            entry['menuText']!,
+            entry['command']!,
+            iconPath: entry['iconPath'],
+          ) &&
+          success;
+    }
+
+    if (success) {
+      return true;
+    }
+
+    logger.info('刷新右键菜单文案普通权限失败，尝试一次性提权...');
+    final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
+      ElevatedTaskRunner.opApplySetup,
+      payload: {'contextMenus': entries},
+    );
+    if (!elevatedSuccess) {
+      logger.error(
+        '刷新右键菜单文案提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
+      );
+    }
+    return elevatedSuccess;
   }
 
   static Map<String, String?> _contextMenuPayload(
@@ -624,6 +666,21 @@ class VerTreeRegistryService {
         _iconPath('express-save.ico'),
       ),
     ];
+  }
+
+  static List<Map<String, String?>> _registeredLegacyMenuEntries() {
+    return _legacyMenuEntries().where((entry) {
+      final keyName = entry['keyName'];
+      return keyName != null &&
+          RegistryHelper.checkRegistryMenuExistsByKey(keyName);
+    }).toList();
+  }
+
+  static bool _hasLegacyWin11ContextMenuHandler() {
+    return RegistryHelper.checkWin11ContextMenuHandler(
+      win11HandlerName,
+      win11HandlerClsid,
+    );
   }
 
   static String _win11PackagingDir() {

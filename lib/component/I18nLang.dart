@@ -76,6 +76,7 @@ enum LocaleKey {
   app_monitFailedTitle,
   app_monitSuccessTitle,
   app_monitSuccessContent,
+  app_adminPermissionTooFrequent,
 
   // Brand Keys
   brand_title,
@@ -97,6 +98,8 @@ enum LocaleKey {
   brand_announcementTitle,
   brand_announcementClose,
   brand_announcementDontShowAgain,
+  brand_announcementGo,
+  brand_announcementOpenFailed,
   brand_announcementExpiresAt,
 
   // Monitor Page Keys
@@ -302,6 +305,8 @@ enum LocaleKey {
 // --- AppLocale Class ---
 class AppLocale {
   Lang lang = Lang.ZH_CN;
+  Future<void>? _contextMenuRefreshTask;
+  bool _contextMenuRefreshQueued = false;
 
   AppLocale() {
     _initializeLocale();
@@ -338,11 +343,34 @@ class AppLocale {
     lang = newLang;
     configer.set<String>('locale', newLang.name); // ✅ Save to config
 
-    unawaited(PlatformIntegration.reAddContextMenu());
+    _scheduleContextMenuRefresh();
     // If you use flutter_localization or intl, refresh here
     // Example: LocalizationService().setLocale(newLang.toLocale());
     logger.info("AppLocale language changed to: ${lang.name}");
     // You might need to trigger a UI rebuild here if using Flutter UI framework
+  }
+
+  void _scheduleContextMenuRefresh() {
+    if (!PlatformIntegration.isWindows) {
+      return;
+    }
+    if (_contextMenuRefreshTask != null) {
+      _contextMenuRefreshQueued = true;
+      return;
+    }
+
+    _contextMenuRefreshTask = _refreshContextMenus();
+  }
+
+  Future<void> _refreshContextMenus() async {
+    try {
+      do {
+        _contextMenuRefreshQueued = false;
+        await PlatformIntegration.reAddContextMenu();
+      } while (_contextMenuRefreshQueued);
+    } finally {
+      _contextMenuRefreshTask = null;
+    }
   }
 
   List<Lang> get supportedLangs => [Lang.ZH_CN, Lang.EN, Lang.JA];
@@ -420,6 +448,8 @@ class AppLocale {
     LocaleKey.app_monitFailedTitle: "Vertree monitoring failed",
     LocaleKey.app_monitSuccessTitle: "Vertree started monitoring file",
     LocaleKey.app_monitSuccessContent: "Click to open backup folder",
+    LocaleKey.app_adminPermissionTooFrequent:
+        "Administrator elevation is being requested too frequently. Please try again later.",
 
     LocaleKey.brand_title: 'Vertree',
     LocaleKey.brand_slogan:
@@ -445,6 +475,9 @@ class AppLocale {
     LocaleKey.brand_announcementTitle: 'Announcement',
     LocaleKey.brand_announcementClose: 'Close',
     LocaleKey.brand_announcementDontShowAgain: 'Do not show again',
+    LocaleKey.brand_announcementGo: 'Open',
+    LocaleKey.brand_announcementOpenFailed:
+        'Unable to open the announcement link',
     LocaleKey.brand_announcementExpiresAt: 'Visible until %a',
 
     LocaleKey.monit_title: 'Vertree Monitor',
@@ -719,6 +752,7 @@ class AppLocale {
     LocaleKey.app_monitFailedTitle: "Vertree监控失败",
     LocaleKey.app_monitSuccessTitle: "Vertree已开始监控文件",
     LocaleKey.app_monitSuccessContent: "点击我打开备份目录",
+    LocaleKey.app_adminPermissionTooFrequent: "获得管理员权限频率过高，请稍后再试。",
 
     LocaleKey.brand_title: 'Vertree维树',
     LocaleKey.brand_slogan: 'Vertree维树，树状文件版本管理🌲，让每一次迭代都有备无患！',
@@ -739,6 +773,8 @@ class AppLocale {
     LocaleKey.brand_announcementTitle: '公告',
     LocaleKey.brand_announcementClose: '关闭',
     LocaleKey.brand_announcementDontShowAgain: '不再显示',
+    LocaleKey.brand_announcementGo: '前往',
+    LocaleKey.brand_announcementOpenFailed: '无法打开公告链接',
     LocaleKey.brand_announcementExpiresAt: '显示截止到 %a',
 
     LocaleKey.monit_title: 'Vertree 监控',
@@ -988,6 +1024,8 @@ class AppLocale {
     LocaleKey.app_monitFailedTitle: "Vertree の監視に失敗しました",
     LocaleKey.app_monitSuccessTitle: "Vertree はファイルの監視を開始しました",
     LocaleKey.app_monitSuccessContent: "クリックしてバックアップフォルダーを開く",
+    LocaleKey.app_adminPermissionTooFrequent:
+        "管理者権限の要求回数が多すぎます。しばらくしてから再試行してください。",
 
     LocaleKey.brand_title: 'Vertree',
     LocaleKey.brand_slogan: 'Vertree、ツリー型のファイルバージョン管理🌲、すべての変更を安全に！',
@@ -1010,6 +1048,8 @@ class AppLocale {
     LocaleKey.brand_announcementTitle: 'お知らせ',
     LocaleKey.brand_announcementClose: '閉じる',
     LocaleKey.brand_announcementDontShowAgain: '今後は表示しない',
+    LocaleKey.brand_announcementGo: '開く',
+    LocaleKey.brand_announcementOpenFailed: 'お知らせのリンクを開けませんでした',
     LocaleKey.brand_announcementExpiresAt: '%a まで表示',
 
     LocaleKey.monit_title: 'Vertree モニター',

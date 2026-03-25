@@ -199,6 +199,7 @@ python tools/update_doc_images.py
 3. 新建 `.github/release-<version>.md`
 4. 更新 README、文档站和必要的站点首页内容
 5. 如果需要发布站点公告，同步更新 `docs/static/announcement.json`
+   `link` 是可选字段；只有填入合法的 `http/https` 绝对地址时，应用里才会显示“前往”按钮
 6. 如有界面变更，执行 `python tools/update_doc_images.py`
 7. 构建并验证：
    - `flutter analyze`
