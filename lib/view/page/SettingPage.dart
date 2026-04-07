@@ -9,6 +9,7 @@ import 'package:vertree/component/AppVersionInfo.dart';
 import 'package:vertree/component/FileUtils.dart';
 import 'package:vertree/component/I18nLang.dart';
 import 'package:vertree/component/Notifier.dart';
+import 'package:vertree/component/ThemedAssets.dart';
 import 'package:vertree/component/TrayManager.dart';
 import 'package:vertree/core/Result.dart';
 import 'package:vertree/main.dart';
@@ -602,18 +603,104 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Widget _buildSwitchTile({
-    required IconData icon,
+    IconData? icon,
+    Widget? leading,
     required String title,
     required bool value,
     required ValueChanged<bool?>? onChanged,
   }) {
-    return SwitchListTile(
-      mouseCursor: SystemMouseCursors.click,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      secondary: Icon(icon, size: 20),
+    return _buildSettingRow(
+      icon: icon,
+      leading: leading,
       title: Text(title),
-      value: value,
-      onChanged: onChanged,
+      trailing: Switch(value: value, onChanged: onChanged),
+      onTap: onChanged == null ? null : () => onChanged(!value),
+    );
+  }
+
+  Widget _buildSettingRow({
+    IconData? icon,
+    Widget? leading,
+    required Widget title,
+    Widget? supportingText,
+    Widget? trailing,
+    VoidCallback? onTap,
+    bool topAlignLeading = false,
+  }) {
+    assert(icon != null || leading != null);
+    final scheme = Theme.of(context).colorScheme;
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodyLarge!,
+          child: title,
+        ),
+        if (supportingText != null) ...[
+          const SizedBox(height: 4),
+          DefaultTextStyle(
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium!.copyWith(color: scheme.onSurfaceVariant),
+            child: supportingText,
+          ),
+        ],
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: MouseRegion(
+        cursor: onTap == null
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.click,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                crossAxisAlignment: topAlignLeading || supportingText != null
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: topAlignLeading || supportingText != null ? 2 : 0,
+                    ),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(child: leading ?? Icon(icon, size: 20)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: topAlignLeading || supportingText != null ? 0 : 1,
+                      ),
+                      child: content,
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: topAlignLeading || supportingText != null ? 0 : 0,
+                      ),
+                      child: trailing,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -723,11 +810,10 @@ class _SettingPageState extends State<SettingPage> {
     required String configKey,
     required int fallback,
   }) {
-    return ListTile(
-      mouseCursor: SystemMouseCursors.basic,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading: Icon(icon, size: 20),
+    return _buildSettingRow(
+      icon: icon,
       title: Text(title),
+      topAlignLeading: true,
       trailing: SizedBox(
         width: 120,
         child: TextFormField(
@@ -950,7 +1036,7 @@ class _SettingPageState extends State<SettingPage> {
                                 icon: Icons.history_toggle_off_rounded,
                                 title: PlatformIntegration.isLinux
                                     ? contextMenuGroupTitle
-                                    : "$contextMenuGroupTitle ${appLocale.getText(LocaleKey.setting_contextMenuLegacySuffix)}",
+                                    : "$contextMenuGroupTitle${appLocale.getText(LocaleKey.setting_contextMenuLegacySuffix)}",
                                 trailing: IconButton.filledTonal(
                                   onPressed: () {
                                     setState(() {
@@ -1009,7 +1095,7 @@ class _SettingPageState extends State<SettingPage> {
                                           onChanged: _toggleMonitorFile,
                                         ),
                                         _buildSwitchTile(
-                                          icon: Icons.lan_outlined,
+                                          leading: shareActionImage(size: 20),
                                           title: appLocale.getText(
                                             LocaleKey.setting_addShareMenu,
                                           ),
@@ -1095,38 +1181,64 @@ class _SettingPageState extends State<SettingPage> {
                             value: localHttpApiEnabled,
                             onChanged: _toggleLocalHttpApi,
                           ),
-                          ListTile(
-                            mouseCursor: SystemMouseCursors.basic,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                            ),
-                            leading: const Icon(Icons.info_outline_rounded),
-                            title: Text(
-                              appLocale
-                                  .getText(LocaleKey.setting_httpApiStatus)
-                                  .tr([
-                                    localHttpApiServer.isRunning
-                                        ? appLocale
-                                              .getText(
-                                                LocaleKey
-                                                    .setting_httpApiRunning,
-                                              )
-                                              .tr([
-                                                localHttpApiServer.baseUrl ??
-                                                    'http://127.0.0.1:${localHttpApiServer.port ?? LocalHttpApiServer.defaultPort}/api/v1',
-                                              ])
-                                        : appLocale.getText(
-                                            LocaleKey.setting_httpApiStopped,
-                                          ),
-                                  ]),
-                            ),
-                            subtitle: localHttpApiServer.isRunning
-                                ? Text(
-                                    'Port ${localHttpApiServer.port} · 127.0.0.1 only',
-                                  )
-                                : const Text(
-                                    'Default port 31414, auto-increment on conflict',
+                          _buildSettingRow(
+                            icon: Icons.info_outline_rounded,
+                            topAlignLeading: true,
+                            title: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    appLocale
+                                        .getText(
+                                          LocaleKey.setting_httpApiStatus,
+                                        )
+                                        .tr([
+                                          localHttpApiServer.isRunning
+                                              ? appLocale.getText(
+                                                  LocaleKey
+                                                      .setting_httpApiRunning,
+                                                )
+                                              : appLocale.getText(
+                                                  LocaleKey
+                                                      .setting_httpApiStopped,
+                                                ),
+                                        ]),
                                   ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  localHttpApiServer.isRunning
+                                      ? Icons.check_circle_rounded
+                                      : Icons.pause_circle_outline_rounded,
+                                  size: 18,
+                                  color: localHttpApiServer.isRunning
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                ),
+                              ],
+                            ),
+                            supportingText: localHttpApiServer.isRunning
+                                ? InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () => _openUrl(
+                                      localHttpApiServer.baseUrl ??
+                                          'http://127.0.0.1:${localHttpApiServer.port ?? LocalHttpApiServer.defaultPort}/api/v1',
+                                    ),
+                                    child: Text(
+                                      localHttpApiServer.baseUrl ??
+                                          'http://127.0.0.1:${localHttpApiServer.port ?? LocalHttpApiServer.defaultPort}/api/v1',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  )
+                                : null,
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1153,66 +1265,9 @@ class _SettingPageState extends State<SettingPage> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                FilledButton.tonalIcon(
-                                  onPressed: () => FileUtils.openFile(
-                                    configer.configFilePath,
-                                  ),
-                                  icon: const Icon(Icons.description_outlined),
-                                  label: Text(
-                                    appLocale.getText(
-                                      LocaleKey.setting_openConfig,
-                                    ),
-                                  ),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () =>
-                                      FileUtils.openFolder(logger.logDirPath),
-                                  icon: const Icon(Icons.receipt_long_outlined),
-                                  label: Text(
-                                    appLocale.getText(
-                                      LocaleKey.setting_openLogs,
-                                    ),
-                                  ),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () =>
-                                      _openUrl("https://vertree.w0fv1.dev/"),
-                                  icon: const Icon(Icons.language_rounded),
-                                  label: Text(
-                                    appLocale.getText(
-                                      LocaleKey.setting_visitWebsite,
-                                    ),
-                                  ),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () => _openUrl(
-                                    "https://github.com/w0fv1/vertree",
-                                  ),
-                                  icon: const Icon(
-                                    MaterialCommunityIcons.github,
-                                  ),
-                                  label: Text(
-                                    appLocale.getText(
-                                      LocaleKey.setting_openGithub,
-                                    ),
-                                  ),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () => _openUrl(
-                                    "https://firco.cn/w0fv1?focusProduct=product-8283788fa5724d25ae65958d1b61b288",
-                                  ),
-                                  icon: const Icon(
-                                    Icons.volunteer_activism_rounded,
-                                  ),
-                                  label: Text(
-                                    appLocale.getText(LocaleKey.setting_donate),
-                                  ),
-                                ),
                                 Tooltip(
                                   message: appLocale.getText(
                                     LocaleKey.setting_versionInfo,
@@ -1262,6 +1317,90 @@ class _SettingPageState extends State<SettingPage> {
                                       return checkUpdateResult.unwrap();
                                     },
                                   ),
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      onPressed: () => FileUtils.openFile(
+                                        configer.configFilePath,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.description_outlined,
+                                      ),
+                                      label: Text(
+                                        appLocale.getText(
+                                          LocaleKey.setting_openConfig,
+                                        ),
+                                      ),
+                                    ),
+                                    FilledButton.tonalIcon(
+                                      onPressed: () => FileUtils.openFolder(
+                                        logger.logDirPath,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.receipt_long_outlined,
+                                      ),
+                                      label: Text(
+                                        appLocale.getText(
+                                          LocaleKey.setting_openLogs,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      onPressed: () => _openUrl(
+                                        "https://vertree.w0fv1.dev/",
+                                      ),
+                                      icon: const Icon(Icons.language_rounded),
+                                      label: Text(
+                                        appLocale.getText(
+                                          LocaleKey.setting_visitWebsite,
+                                        ),
+                                      ),
+                                    ),
+                                    FilledButton.tonalIcon(
+                                      onPressed: () => _openUrl(
+                                        "https://github.com/w0fv1/vertree",
+                                      ),
+                                      icon: const Icon(
+                                        MaterialCommunityIcons.github,
+                                      ),
+                                      label: Text(
+                                        appLocale.getText(
+                                          LocaleKey.setting_openGithub,
+                                        ),
+                                      ),
+                                    ),
+                                    FilledButton.icon(
+                                      style: FilledButton.styleFrom(
+                                        textStyle: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      onPressed: () => _openUrl(
+                                        "https://firco.cn/w0fv1?focusProduct=product-8283788fa5724d25ae65958d1b61b288",
+                                      ),
+                                      icon: const Icon(
+                                        Icons.volunteer_activism_rounded,
+                                      ),
+                                      label: Text(
+                                        appLocale.getText(
+                                          LocaleKey.setting_donate,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

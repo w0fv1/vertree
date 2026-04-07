@@ -81,18 +81,48 @@ class _BrandPageState extends State<BrandPage> with WindowListener {
       context: context,
       builder: (dialogContext) {
         final theme = Theme.of(dialogContext);
+        final scheme = theme.colorScheme;
         return AlertDialog(
-          icon: const Icon(Icons.campaign_rounded),
-          title: Text(appLocale.getText(LocaleKey.brand_announcementTitle)),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
-                  announcement.content,
-                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.campaign_rounded,
+                    color: scheme.onPrimaryContainer,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        appLocale.getText(LocaleKey.brand_announcementTitle),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SelectableText(
+                        announcement.content,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -378,20 +378,22 @@ class _MonitPageState extends State<MonitPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          FloatingActionButton.small(
-            heroTag: 'clean_invalid_tasks',
-            tooltip: appLocale.getText(LocaleKey.monit_cleanInvalidAction),
-            onPressed: _cleanInvalidTask,
-            child: const Icon(Icons.cleaning_services_rounded, size: 18),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton.small(
-            heroTag: 'share_file',
-            tooltip: appLocale.getText(LocaleKey.fileleaf_menuShare),
-            onPressed: _shareFile,
-            child: shareActionImage(size: 18),
-          ),
-          const SizedBox(height: 10),
+          if (_allMonitTasks.isNotEmpty) ...[
+            FloatingActionButton.small(
+              heroTag: 'clean_invalid_tasks',
+              tooltip: appLocale.getText(LocaleKey.monit_cleanInvalidAction),
+              onPressed: _cleanInvalidTask,
+              child: const Icon(Icons.cleaning_services_rounded, size: 18),
+            ),
+            const SizedBox(height: 10),
+            FloatingActionButton.small(
+              heroTag: 'share_file',
+              tooltip: appLocale.getText(LocaleKey.fileleaf_menuShare),
+              onPressed: _shareFile,
+              child: shareActionImage(size: 18),
+            ),
+            const SizedBox(height: 10),
+          ],
           FloatingActionButton.extended(
             heroTag: 'add_monitor_task',
             tooltip: appLocale.getText(LocaleKey.monit_addTaskAction),

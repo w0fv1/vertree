@@ -89,9 +89,7 @@ class TrayManager with lean_tray.TrayListener {
     }
     _iconPath = Platform.isWindows
         ? 'assets/img/logo/logo.ico'
-        : (Platform.isMacOS
-              ? 'assets/img/logo/tray_template.png'
-              : 'assets/img/logo/tray_colored.png');
+        : 'assets/icon/app_icon.png';
     if (Platform.isLinux) {
       await refreshTray();
       return;

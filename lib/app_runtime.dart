@@ -54,7 +54,7 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.11.2",
+  currentVersion: "V0.11.3",
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases",
   readConfigString: (key, defaultValue) =>
       configer.get<String>(key, defaultValue),
@@ -66,11 +66,10 @@ final appVersionInfo = AppVersionInfo(
 final appAnnouncementService = AppAnnouncementService(
   announcementUrl: 'https://vertree.w0fv1.dev/announcement.json',
   readConfigSnapshot: () => configer.toJson(),
-  writeDismissedAnnouncementUuids: (uuids) =>
-      configer.set<List<String>>(
-        AppAnnouncementService.dismissedAnnouncementUuidsKey,
-        uuids,
-      ),
+  writeDismissedAnnouncementUuids: (uuids) => configer.set<List<String>>(
+    AppAnnouncementService.dismissedAnnouncementUuidsKey,
+    uuids,
+  ),
   onLogInfo: logger.info,
   onLogError: logger.error,
 );

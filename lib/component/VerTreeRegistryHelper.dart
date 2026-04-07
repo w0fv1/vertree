@@ -657,7 +657,7 @@ class VerTreeRegistryService {
         registry_shareKeyName,
         appLocale.getText(LocaleKey.registry_shareKeyName),
         '"$exePath" share "%1"',
-        _iconPath('logo.ico', isLogo: true),
+        _iconPath('share.ico'),
       ),
       _contextMenuPayload(
         registry_expressBackupKeyName,
