@@ -143,6 +143,30 @@ class WindowsRegistryBridge {
     return registry.VerTreeRegistryService.applyLegacyMenus(enabled);
   }
 
+  static Future<bool> applyLegacyMenusWithLayout(
+    bool enabled, {
+    required bool collapsed,
+  }) async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.applyLegacyMenusWithLayout(
+      enabled,
+      collapsed: collapsed,
+    );
+  }
+
+  static Future<bool> checkLegacyMenuRootExists() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.checkLegacyMenuRootExists();
+  }
+
+  static Future<bool> migrateLegacyMenuLayoutConfig() async {
+    if (!Platform.isWindows) return false;
+    await _ensureLoaded();
+    return registry.VerTreeRegistryService.migrateLegacyMenuLayoutConfig();
+  }
+
   static Future<bool> applyInitialSetup() async {
     if (!Platform.isWindows) return true;
     await _ensureLoaded();

@@ -41,6 +41,7 @@ class _SettingPageState extends State<SettingPage> {
   bool autoStart = false;
   bool launchToTray = PlatformIntegration.defaultLaunchToTray;
   bool legacyMenuEnabled = false;
+  bool legacyMenuCollapsed = false;
   bool win11MenuEnabled = false;
   bool localHttpApiEnabled = true;
   bool _showLegacyMenuDetails = false;
@@ -152,6 +153,9 @@ class _SettingPageState extends State<SettingPage> {
 
   Future<void> _loadPlatformState() async {
     await PlatformIntegration.refreshLinuxCapabilityCache();
+    if (PlatformIntegration.isWindows) {
+      await PlatformIntegration.migrateLegacyMenuLayoutConfig();
+    }
     if (PlatformIntegration.isLinuxGnome) {
       _gnomeFilesSupportInfo =
           await LinuxGnomeIntegration.getFilesMenuSupportInfo();
@@ -167,12 +171,24 @@ class _SettingPageState extends State<SettingPage> {
       monitorFile = await PlatformIntegration.checkMonitorKeyExists();
       shareFile = await PlatformIntegration.checkShareKeyExists();
       viewTreeFile = await PlatformIntegration.checkViewTreeKeyExists();
+      legacyMenuCollapsed = configer.get<bool>('legacyMenuCollapsed', false);
+      final groupedLegacyMenu = PlatformIntegration.isWindows
+          ? await PlatformIntegration.checkLegacyMenuRootExists()
+          : false;
       legacyMenuEnabled =
-          backupFile &&
-          expressBackupFile &&
-          monitorFile &&
-          shareFile &&
-          viewTreeFile;
+          groupedLegacyMenu ||
+          (backupFile &&
+              expressBackupFile &&
+              monitorFile &&
+              shareFile &&
+              viewTreeFile);
+      if (groupedLegacyMenu) {
+        backupFile = true;
+        expressBackupFile = true;
+        monitorFile = true;
+        shareFile = true;
+        viewTreeFile = true;
+      }
       if (PlatformIntegration.isWindows) {
         final configuredWin11MenuEnabled = configer.get(
           "win11MenuEnabled",
@@ -228,7 +244,10 @@ class _SettingPageState extends State<SettingPage> {
     if (value == null) return;
     setState(() => isLoading = true);
 
-    final success = await PlatformIntegration.applyLegacyMenus(value);
+    final success = await PlatformIntegration.applyLegacyMenus(
+      value,
+      collapsed: PlatformIntegration.isWindows ? legacyMenuCollapsed : false,
+    );
 
     await Future.delayed(const Duration(milliseconds: 200));
     await _refreshLegacyMenuState();
@@ -242,6 +261,24 @@ class _SettingPageState extends State<SettingPage> {
     if (mounted) {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _toggleLegacyMenuCollapsed(bool? value) async {
+    if (value == null || !PlatformIntegration.isWindows || !legacyMenuEnabled) {
+      return;
+    }
+    setState(() => isLoading = true);
+    final success = await PlatformIntegration.applyLegacyMenus(
+      true,
+      collapsed: value,
+    );
+    if (success) {
+      configer.set<bool>('legacyMenuCollapsed', value);
+    }
+    await Future.delayed(const Duration(milliseconds: 200));
+    await _refreshLegacyMenuState();
+    if (!mounted) return;
+    setState(() => isLoading = false);
   }
 
   Future<void> _toggleWin11Menu(bool? value) async {
@@ -1061,6 +1098,19 @@ class _SettingPageState extends State<SettingPage> {
                                     value: legacyMenuEnabled,
                                     onChanged: _toggleLegacyMenus,
                                   ),
+                                  if (PlatformIntegration.isWindows)
+                                    _buildSwitchTile(
+                                      icon: Icons
+                                          .subdirectory_arrow_right_rounded,
+                                      title: appLocale.getText(
+                                        LocaleKey
+                                            .setting_legacyMenuCollapseToggle,
+                                      ),
+                                      value: legacyMenuCollapsed,
+                                      onChanged: legacyMenuEnabled
+                                          ? _toggleLegacyMenuCollapsed
+                                          : null,
+                                    ),
                                   AnimatedCrossFade(
                                     duration: const Duration(milliseconds: 180),
                                     crossFadeState: _showLegacyMenuDetails
@@ -1075,7 +1125,9 @@ class _SettingPageState extends State<SettingPage> {
                                             LocaleKey.setting_addBackupMenu,
                                           ),
                                           value: backupFile,
-                                          onChanged: _toggleBackupFile,
+                                          onChanged: legacyMenuCollapsed
+                                              ? null
+                                              : _toggleBackupFile,
                                         ),
                                         _buildSwitchTile(
                                           icon: Icons.flash_on_outlined,
@@ -1084,7 +1136,9 @@ class _SettingPageState extends State<SettingPage> {
                                                 .setting_addExpressBackupMenu,
                                           ),
                                           value: expressBackupFile,
-                                          onChanged: _toggleExpressBackupFile,
+                                          onChanged: legacyMenuCollapsed
+                                              ? null
+                                              : _toggleExpressBackupFile,
                                         ),
                                         _buildSwitchTile(
                                           icon: Icons.monitor_heart_outlined,
@@ -1092,7 +1146,9 @@ class _SettingPageState extends State<SettingPage> {
                                             LocaleKey.setting_addMonitorMenu,
                                           ),
                                           value: monitorFile,
-                                          onChanged: _toggleMonitorFile,
+                                          onChanged: legacyMenuCollapsed
+                                              ? null
+                                              : _toggleMonitorFile,
                                         ),
                                         _buildSwitchTile(
                                           leading: shareActionImage(size: 20),
@@ -1100,7 +1156,9 @@ class _SettingPageState extends State<SettingPage> {
                                             LocaleKey.setting_addShareMenu,
                                           ),
                                           value: shareFile,
-                                          onChanged: _toggleShareFile,
+                                          onChanged: legacyMenuCollapsed
+                                              ? null
+                                              : _toggleShareFile,
                                         ),
                                         _buildSwitchTile(
                                           icon: Icons.account_tree_outlined,
@@ -1108,7 +1166,9 @@ class _SettingPageState extends State<SettingPage> {
                                             LocaleKey.setting_addViewtreeMenu,
                                           ),
                                           value: viewTreeFile,
-                                          onChanged: _toggleViewTreeFile,
+                                          onChanged: legacyMenuCollapsed
+                                              ? null
+                                              : _toggleViewTreeFile,
                                         ),
                                       ],
                                     ),

@@ -184,39 +184,58 @@ class ElevatedTaskRunner {
   }
 
   static bool _addContextMenu(Map<String, dynamic> payload) {
+    final hive = _parseHive(payload['hive']);
+    final parentPath =
+        _asNonEmptyString(payload['parentPath']) ?? _classesShellPath;
     final keyName = _asNonEmptyString(payload['keyName']);
     final menuText = _asNonEmptyString(payload['menuText']);
-    final command = _asNonEmptyString(payload['command']);
+    final command = _asString(payload['command']);
     final iconPath = _asString(payload['iconPath']);
+    final isSubmenu = payload['isSubmenu'] == true;
 
-    if (keyName == null || menuText == null || command == null) {
+    if (keyName == null || menuText == null) {
+      return false;
+    }
+    if (!isSubmenu && (command == null || command.isEmpty)) {
       return false;
     }
 
     try {
-      final shellKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: _classesShellPath,
+      final shellKey = _openOrCreatePath(
+        hive,
+        parentPath,
         desiredAccessRights: AccessRights.allAccess,
       );
+      if (shellKey == null) {
+        return false;
+      }
 
       final menuKey = shellKey.createKey(keyName);
       menuKey.createValue(RegistryValue.string('MUIVerb', menuText));
       if (iconPath != null && iconPath.isNotEmpty) {
         menuKey.createValue(RegistryValue.string('Icon', iconPath));
       }
+      if (isSubmenu) {
+        menuKey.createValue(RegistryValue.string('SubCommands', ''));
+        menuKey.createKey('shell').close();
+      }
       menuKey.close();
       shellKey.close();
 
-      final menuCommandKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: '$_classesShellPath\\$keyName',
-        desiredAccessRights: AccessRights.allAccess,
-      );
-      final commandKey = menuCommandKey.createKey('command');
-      commandKey.createValue(RegistryValue.string('', command));
-      commandKey.close();
-      menuCommandKey.close();
+      if (!isSubmenu) {
+        final menuCommandKey = _openOrCreatePath(
+          hive,
+          '$parentPath\\$keyName',
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        if (menuCommandKey == null) {
+          return false;
+        }
+        final commandKey = menuCommandKey.createKey('command');
+        commandKey.createValue(RegistryValue.string('', command!));
+        commandKey.close();
+        menuCommandKey.close();
+      }
       return true;
     } catch (_) {
       return false;
@@ -224,17 +243,23 @@ class ElevatedTaskRunner {
   }
 
   static bool _removeContextMenuByKey(Map<String, dynamic> payload) {
+    final hive = _parseHive(payload['hive']);
+    final parentPath =
+        _asNonEmptyString(payload['parentPath']) ?? _classesShellPath;
     final keyName = _asNonEmptyString(payload['keyName']);
     if (keyName == null) {
       return false;
     }
 
     try {
-      final shellKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: _classesShellPath,
+      final shellKey = _openOrCreatePath(
+        hive,
+        parentPath,
         desiredAccessRights: AccessRights.allAccess,
       );
+      if (shellKey == null) {
+        return false;
+      }
       try {
         shellKey.deleteKey(keyName, recursive: true);
       } catch (_) {}
@@ -264,6 +289,40 @@ class ElevatedTaskRunner {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  static RegistryKey? _openOrCreatePath(
+    RegistryHive hive,
+    String fullPath, {
+    required AccessRights desiredAccessRights,
+  }) {
+    final normalized = fullPath
+        .split('\\')
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    RegistryKey? current;
+    var currentPath = normalized.first;
+    try {
+      current = Registry.openPath(
+        hive,
+        path: currentPath,
+        desiredAccessRights: desiredAccessRights,
+      );
+      for (final segment in normalized.skip(1)) {
+        final next = current!.createKey(segment);
+        current.close();
+        current = next;
+        currentPath = '$currentPath\\$segment';
+      }
+      return current;
+    } catch (_) {
+      current?.close();
+      return null;
     }
   }
 
@@ -318,33 +377,54 @@ class ElevatedTaskRunner {
     final contextMenus = payload['contextMenus'];
     final autostart = payload['autostart'];
     final win11Menu = payload['win11Menu'];
+    final removeKeys = payload['removeKeys'];
     if (contextMenus is! List) {
-      return false;
+      if (removeKeys is! List && autostart is! Map && win11Menu is! Map) {
+        return false;
+      }
     }
 
     bool success = true;
-    for (final entry in contextMenus) {
-      if (entry is! Map) {
-        success = false;
-        continue;
-      }
-      final keyName = _asNonEmptyString(entry['keyName']);
-      final menuText = _asNonEmptyString(entry['menuText']);
-      final command = _asNonEmptyString(entry['command']);
-      final iconPath = _asString(entry['iconPath']);
-      if (keyName == null || menuText == null || command == null) {
-        success = false;
-        continue;
-      }
 
-      success =
-          _addContextMenu({
-            'keyName': keyName,
-            'menuText': menuText,
-            'command': command,
-            'iconPath': iconPath,
-          }) &&
-          success;
+    if (removeKeys is List) {
+      for (final entry in removeKeys) {
+        if (entry is! Map) {
+          success = false;
+          continue;
+        }
+        final keyName = _asNonEmptyString(entry['keyName']);
+        if (keyName == null) {
+          success = false;
+          continue;
+        }
+        success =
+            _removeContextMenuByKey({
+              'keyName': keyName,
+              'parentPath': _asString(entry['parentPath']),
+            }) &&
+            success;
+      }
+    }
+
+    if (contextMenus is List) {
+      for (final entry in contextMenus) {
+        if (entry is! Map) {
+          success = false;
+          continue;
+        }
+
+        success =
+            _addContextMenu({
+              'keyName': _asString(entry['keyName']),
+              'menuText': _asString(entry['menuText']),
+              'command': _asString(entry['command']),
+              'iconPath': _asString(entry['iconPath']),
+              'parentPath': _asString(entry['parentPath']),
+              'hive': _asString(entry['hive']),
+              'isSubmenu': entry['isSubmenu'] == true,
+            }) &&
+            success;
+      }
     }
 
     if (autostart is Map) {
@@ -367,6 +447,7 @@ class ElevatedTaskRunner {
 
   static bool _removeLegacyMenus(Map<String, dynamic> payload) {
     final keys = payload['keys'];
+    final hive = _asString(payload['hive']);
     if (keys is! List) {
       return false;
     }
@@ -376,9 +457,16 @@ class ElevatedTaskRunner {
         success = false;
         continue;
       }
-      success = _removeContextMenuByKey({'keyName': entry}) && success;
+      success =
+          _removeContextMenuByKey({'keyName': entry, 'hive': hive}) && success;
     }
     return success;
+  }
+
+  static RegistryHive _parseHive(Object? value) {
+    return _asString(value) == 'machine'
+        ? RegistryHive.localMachine
+        : RegistryHive.currentUser;
   }
 
   static bool _addWin11Menu(Map<String, dynamic> payload) {

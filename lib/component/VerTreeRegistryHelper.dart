@@ -16,6 +16,8 @@ class VerTreeRegistryService {
   static const String registry_monitorKeyName = "RegistryVerTreeMonitor";
   static const String registry_shareKeyName = "RegistryVerTreeShare";
   static const String registry_viewTreeKeyName = "RegistryVerTreeViewTree";
+  static const String legacyMenuRootKeyName = "RegistryVerTreeLegacyRoot";
+  static const String legacyMenuCollapsedConfigKey = "legacyMenuCollapsed";
 
   static const String appName = "VerTree"; // 应用名称
 
@@ -83,20 +85,6 @@ class VerTreeRegistryService {
       command,
       iconPath: iconPath,
     );
-
-    success = _retryWithElevation(
-      actionName: '添加右键菜单[Backup]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddContextMenu,
-      payload: {
-        'keyName': registry_backupKeyName,
-        'menuText': menuText,
-        'command': command,
-        'iconPath': iconPath,
-      },
-    );
-
     return success;
   }
 
@@ -120,20 +108,6 @@ class VerTreeRegistryService {
       command,
       iconPath: iconPath,
     );
-
-    success = _retryWithElevation(
-      actionName: '添加右键菜单[Monitor]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddContextMenu,
-      payload: {
-        'keyName': registry_monitorKeyName,
-        'menuText': menuText,
-        'command': command,
-        'iconPath': iconPath,
-      },
-    );
-
     return success;
   }
 
@@ -157,20 +131,6 @@ class VerTreeRegistryService {
       command,
       iconPath: iconPath,
     );
-
-    success = _retryWithElevation(
-      actionName: '添加右键菜单[ViewTree]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddContextMenu,
-      payload: {
-        'keyName': registry_viewTreeKeyName,
-        'menuText': menuText,
-        'command': command,
-        'iconPath': iconPath,
-      },
-    );
-
     return success;
   }
 
@@ -182,8 +142,8 @@ class VerTreeRegistryService {
       'flutter_assets',
       'assets',
       'img',
-      'logo',
-      'logo.ico',
+      'icon',
+      'share.ico',
     );
     final menuText = appLocale.getText(LocaleKey.registry_shareKeyName);
     final command = '"$exePath" share "%1"';
@@ -194,20 +154,6 @@ class VerTreeRegistryService {
       command,
       iconPath: iconPath,
     );
-
-    success = _retryWithElevation(
-      actionName: '添加右键菜单[Share]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddContextMenu,
-      payload: {
-        'keyName': registry_shareKeyName,
-        'menuText': menuText,
-        'command': command,
-        'iconPath': iconPath,
-      },
-    );
-
     return success;
   }
 
@@ -231,20 +177,6 @@ class VerTreeRegistryService {
       command,
       iconPath: iconPath,
     );
-
-    success = _retryWithElevation(
-      actionName: '添加右键菜单[ExpressBackup]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opAddContextMenu,
-      payload: {
-        'keyName': registry_expressBackupKeyName,
-        'menuText': menuText,
-        'command': command,
-        'iconPath': iconPath,
-      },
-    );
-
     return success;
   }
 
@@ -257,13 +189,6 @@ class VerTreeRegistryService {
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_expressBackupKeyName,
     );
-    success = _retryWithElevation(
-      actionName: '移除右键菜单[ExpressBackup]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
-      payload: {'keyName': registry_expressBackupKeyName},
-    );
     return success;
   }
 
@@ -273,13 +198,6 @@ class VerTreeRegistryService {
     }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_viewTreeKeyName,
-    );
-    success = _retryWithElevation(
-      actionName: '移除右键菜单[ViewTree]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
-      payload: {'keyName': registry_viewTreeKeyName},
     );
     return success;
   }
@@ -291,13 +209,6 @@ class VerTreeRegistryService {
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_shareKeyName,
     );
-    success = _retryWithElevation(
-      actionName: '移除右键菜单[Share]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
-      payload: {'keyName': registry_shareKeyName},
-    );
     return success;
   }
 
@@ -307,13 +218,6 @@ class VerTreeRegistryService {
     }
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_monitorKeyName,
-    );
-    success = _retryWithElevation(
-      actionName: '移除右键菜单[Monitor]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
-      payload: {'keyName': registry_monitorKeyName},
     );
     return success;
   }
@@ -325,38 +229,61 @@ class VerTreeRegistryService {
     bool success = RegistryHelper.removeContextMenuOptionByKey(
       registry_backupKeyName,
     );
-    success = _retryWithElevation(
-      actionName: '移除右键菜单[Backup]',
-      success: success,
-      allowElevation: allowElevation,
-      operation: ElevatedTaskRunner.opRemoveContextMenuByKey,
-      payload: {'keyName': registry_backupKeyName},
-    );
     return success;
   }
 
   static bool checkBackupKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_backupKeyName);
+    return _checkLegacyEntryExists(registry_backupKeyName);
   }
 
   static bool checkExpressBackupKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(
-      registry_expressBackupKeyName,
-    );
+    return _checkLegacyEntryExists(registry_expressBackupKeyName);
   }
 
   static bool checkMonitorKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName);
+    return _checkLegacyEntryExists(registry_monitorKeyName);
   }
 
   static bool checkShareKeyExists() {
-    return RegistryHelper.checkRegistryMenuExistsByKey(registry_shareKeyName);
+    return _checkLegacyEntryExists(registry_shareKeyName);
   }
 
   static bool checkViewTreeKeyExists() {
+    return _checkLegacyEntryExists(registry_viewTreeKeyName);
+  }
+
+  static bool checkLegacyMenuRootExists() {
+    return RegistryHelper.checkRegistryMenuExistsByKey(legacyMenuRootKeyName) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          legacyMenuRootKeyName,
+        );
+  }
+
+  static bool checkAnyTopLevelLegacyMenuExists() {
     return RegistryHelper.checkRegistryMenuExistsByKey(
-      registry_viewTreeKeyName,
-    );
+          registry_backupKeyName,
+        ) ||
+        RegistryHelper.checkRegistryMenuExistsByKey(
+          registry_expressBackupKeyName,
+        ) ||
+        RegistryHelper.checkRegistryMenuExistsByKey(registry_monitorKeyName) ||
+        RegistryHelper.checkRegistryMenuExistsByKey(registry_shareKeyName) ||
+        RegistryHelper.checkRegistryMenuExistsByKey(registry_viewTreeKeyName) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_backupKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_expressBackupKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_monitorKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_shareKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_viewTreeKeyName,
+        );
   }
 
   // 开机自启相关
@@ -457,55 +384,51 @@ class VerTreeRegistryService {
   }
 
   static bool applyLegacyMenus(bool enable) {
-    final entries = _legacyMenuEntries();
+    return applyLegacyMenusWithLayout(
+      enable,
+      collapsed: configer.get<bool>(legacyMenuCollapsedConfigKey, false),
+    );
+  }
+
+  static bool applyLegacyMenusWithLayout(
+    bool enable, {
+    required bool collapsed,
+  }) {
+    final entries = _legacyMenuEntries(collapsed: collapsed);
     bool success = true;
 
     if (enable) {
+      success =
+          _removeLegacyMenuRepresentations(removeMachineEntries: false) &&
+          success;
       for (final entry in entries) {
-        success =
-            RegistryHelper.addContextMenuOption(
-              entry['keyName']!,
-              entry['menuText']!,
-              entry['command']!,
-              iconPath: entry['iconPath'],
-            ) &&
-            success;
+        final applied = _applyContextMenuPayload(entry);
+        success = applied && success;
+        if (!applied) {
+          break;
+        }
       }
-      if (success) {
-        return true;
+      if (!success) {
+        return false;
       }
-      logger.info('旧版菜单普通权限失败，尝试一次性提权...');
-      final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
-        ElevatedTaskRunner.opApplySetup,
-        payload: {'contextMenus': entries},
-      );
-      if (!elevatedSuccess) {
-        logger.error(
-          '旧版菜单提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
-        );
+      if (_hasMachineLevelLegacyMenuRemnants()) {
+        final cleanupSuccess = _removeLegacyMachineMenuRepresentations();
+        if (!cleanupSuccess) {
+          logger.error('检测到旧的 HKLM 旧版右键菜单残留，自动清理失败');
+        } else {
+          logger.info('已清理旧的 HKLM 旧版右键菜单残留');
+        }
       }
-      return elevatedSuccess;
+      return true;
     }
 
-    for (final entry in entries) {
-      success =
-          RegistryHelper.removeContextMenuOptionByKey(entry['keyName']!) &&
-          success;
-    }
+    success = _removeLegacyMenuRepresentations(removeMachineEntries: false);
+    final machineCleanupSuccess = _removeLegacyMachineMenuRepresentations();
+    success = machineCleanupSuccess && success;
     if (success) {
       return true;
     }
-    logger.info('旧版菜单移除普通权限失败，尝试一次性提权...');
-    final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
-      ElevatedTaskRunner.opRemoveLegacyMenus,
-      payload: {'keys': entries.map((entry) => entry['keyName']).toList()},
-    );
-    if (!elevatedSuccess) {
-      logger.error(
-        '旧版菜单移除提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
-      );
-    }
-    return elevatedSuccess;
+    return false;
   }
 
   static bool addWin11ContextMenuHandler({bool allowElevation = true}) {
@@ -572,52 +495,58 @@ class VerTreeRegistryService {
     return WindowsPackageIdentity.isPackagedOrRegistered();
   }
 
+  static bool migrateLegacyMenuLayoutConfig() {
+    final groupedLegacyMenu = checkLegacyMenuRootExists();
+
+    if (groupedLegacyMenu) {
+      if (configer.get<bool>(legacyMenuCollapsedConfigKey, false) != true) {
+        configer.set<bool>(legacyMenuCollapsedConfigKey, true);
+      }
+      return true;
+    }
+
+    if (configer.get<bool>(legacyMenuCollapsedConfigKey, false) != false) {
+      configer.set<bool>(legacyMenuCollapsedConfigKey, false);
+    }
+    return true;
+  }
+
   static bool _refreshRegisteredContextMenus() {
-    final entries = _registeredLegacyMenuEntries();
+    final collapsed = RegistryHelper.checkRegistryMenuExistsByKey(
+      legacyMenuRootKeyName,
+    );
+    final entries = _registeredLegacyMenuEntries(collapsed: collapsed);
     if (entries.isEmpty) {
       return true;
     }
 
     bool success = true;
     for (final entry in entries) {
-      success =
-          RegistryHelper.addContextMenuOption(
-            entry['keyName']!,
-            entry['menuText']!,
-            entry['command']!,
-            iconPath: entry['iconPath'],
-          ) &&
-          success;
+      final applied = _applyContextMenuPayload(entry);
+      success = applied && success;
+      if (!applied) {
+        break;
+      }
     }
 
-    if (success) {
-      return true;
-    }
-
-    logger.info('刷新右键菜单文案普通权限失败，尝试一次性提权...');
-    final elevatedSuccess = ElevatedTaskRunner.runTaskSync(
-      ElevatedTaskRunner.opApplySetup,
-      payload: {'contextMenus': entries},
-    );
-    if (!elevatedSuccess) {
-      logger.error(
-        '刷新右键菜单文案提权失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
-      );
-    }
-    return elevatedSuccess;
+    return success;
   }
 
-  static Map<String, String?> _contextMenuPayload(
+  static Map<String, dynamic> _contextMenuPayload(
     String keyName,
     String menuText,
-    String command,
-    String? iconPath,
-  ) {
+    String? command,
+    String? iconPath, {
+    String? parentPath,
+    bool isSubmenu = false,
+  }) {
     return {
       'keyName': keyName,
       'menuText': menuText,
       'command': command,
       'iconPath': iconPath,
+      'parentPath': parentPath,
+      'isSubmenu': isSubmenu,
     };
   }
 
@@ -633,47 +562,179 @@ class VerTreeRegistryService {
     );
   }
 
-  static List<Map<String, String?>> _legacyMenuEntries() {
-    return [
+  static List<Map<String, dynamic>> _legacyMenuEntries({
+    bool collapsed = false,
+  }) {
+    final childParentPath = collapsed
+        ? '${RegistryHelper.currentUserClassesShellPath}\\$legacyMenuRootKeyName\\shell'
+        : null;
+    final entries = <Map<String, dynamic>>[
+      if (collapsed)
+        _contextMenuPayload(
+          legacyMenuRootKeyName,
+          'Vertree',
+          null,
+          _iconPath('logo.ico', isLogo: true),
+          parentPath: RegistryHelper.currentUserClassesShellPath,
+          isSubmenu: true,
+        ),
       _contextMenuPayload(
         registry_backupKeyName,
         appLocale.getText(LocaleKey.registry_backupKeyName),
         '"$exePath" backup "%1"',
         _iconPath('save.ico'),
+        parentPath: childParentPath,
       ),
       _contextMenuPayload(
         registry_monitorKeyName,
         appLocale.getText(LocaleKey.registry_monitorKeyName),
         '"$exePath" monit "%1"',
         _iconPath('monit.ico'),
+        parentPath: childParentPath,
       ),
       _contextMenuPayload(
         registry_viewTreeKeyName,
         appLocale.getText(LocaleKey.registry_viewTreeKeyName),
         '"$exePath" "%1"',
         _iconPath('logo.ico', isLogo: true),
+        parentPath: childParentPath,
       ),
       _contextMenuPayload(
         registry_shareKeyName,
         appLocale.getText(LocaleKey.registry_shareKeyName),
         '"$exePath" share "%1"',
         _iconPath('share.ico'),
+        parentPath: childParentPath,
       ),
       _contextMenuPayload(
         registry_expressBackupKeyName,
         appLocale.getText(LocaleKey.registry_expressBackupKeyName),
         '"$exePath" express-backup "%1"',
         _iconPath('express-save.ico'),
+        parentPath: childParentPath,
       ),
     ];
+    return entries;
   }
 
-  static List<Map<String, String?>> _registeredLegacyMenuEntries() {
+  static List<Map<String, dynamic>> _registeredLegacyMenuEntries({
+    required bool collapsed,
+  }) {
+    if (collapsed) {
+      return _legacyMenuEntries(collapsed: true);
+    }
     return _legacyMenuEntries().where((entry) {
-      final keyName = entry['keyName'];
+      final keyName = entry['keyName'] as String?;
       return keyName != null &&
           RegistryHelper.checkRegistryMenuExistsByKey(keyName);
     }).toList();
+  }
+
+  static List<Map<String, String?>> _legacyMenuRemovalPayloads({
+    required String hive,
+  }) {
+    return [
+      {'keyName': registry_backupKeyName, 'hive': hive},
+      {'keyName': registry_monitorKeyName, 'hive': hive},
+      {'keyName': registry_viewTreeKeyName, 'hive': hive},
+      {'keyName': registry_shareKeyName, 'hive': hive},
+      {'keyName': registry_expressBackupKeyName, 'hive': hive},
+      {'keyName': legacyMenuRootKeyName, 'hive': hive},
+    ];
+  }
+
+  static bool _removeLegacyMenuRepresentations({
+    required bool removeMachineEntries,
+  }) {
+    bool success = true;
+    for (final entry in _legacyMenuRemovalPayloads(hive: 'user')) {
+      final keyName = entry['keyName'];
+      if (keyName == null) continue;
+      success = RegistryHelper.removeContextMenuOptionByKey(keyName) && success;
+    }
+    if (removeMachineEntries) {
+      success = _removeLegacyMachineMenuRepresentations() && success;
+    }
+    return success;
+  }
+
+  static bool _removeLegacyMachineMenuRepresentations() {
+    if (!_hasMachineLevelLegacyMenuRemnants()) {
+      return true;
+    }
+    final machineKeys = _legacyMenuRemovalPayloads(
+      hive: 'machine',
+    ).map((entry) => entry['keyName']).whereType<String>().toList();
+    final success = ElevatedTaskRunner.runTaskSync(
+      ElevatedTaskRunner.opRemoveLegacyMenus,
+      payload: {'keys': machineKeys, 'hive': 'machine'},
+    );
+    if (!success) {
+      logger.error(
+        '清理 HKLM 旧版右键菜单残留失败: ${ElevatedTaskRunner.lastError ?? "unknown error"}',
+      );
+    }
+    return success;
+  }
+
+  static bool _applyContextMenuPayload(Map<String, dynamic> entry) {
+    final keyName = entry['keyName'] as String?;
+    final menuText = entry['menuText'] as String?;
+    final command = entry['command'] as String?;
+    final iconPath = entry['iconPath'] as String?;
+    final parentPath = entry['parentPath'] as String?;
+    final isSubmenu = entry['isSubmenu'] == true;
+    if (keyName == null || menuText == null) {
+      return false;
+    }
+    return RegistryHelper.addContextMenuOptionAtPath(
+      parentPath ?? RegistryHelper.currentUserClassesShellPath,
+      keyName,
+      menuText,
+      command: command,
+      iconPath: iconPath,
+      isSubmenu: isSubmenu,
+    );
+  }
+
+  static bool _checkLegacyEntryExists(String keyName) {
+    if (RegistryHelper.checkRegistryMenuExistsByKey(keyName)) {
+      return true;
+    }
+    if (RegistryHelper.checkRegistryMenuExistsByKeyAtPath(
+      '${RegistryHelper.currentUserClassesShellPath}\\$legacyMenuRootKeyName\\shell',
+      keyName,
+    )) {
+      return true;
+    }
+    if (RegistryHelper.checkMachineRegistryMenuExistsByKey(keyName)) {
+      return true;
+    }
+    return RegistryHelper.checkMachineRegistryMenuExistsByKeyAtPath(
+      '${RegistryHelper.allUsersClassesShellPath}\\$legacyMenuRootKeyName\\shell',
+      keyName,
+    );
+  }
+
+  static bool _hasMachineLevelLegacyMenuRemnants() {
+    return RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          legacyMenuRootKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_backupKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_expressBackupKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_monitorKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_shareKeyName,
+        ) ||
+        RegistryHelper.checkMachineRegistryMenuExistsByKey(
+          registry_viewTreeKeyName,
+        );
   }
 
   static bool _hasLegacyWin11ContextMenuHandler() {

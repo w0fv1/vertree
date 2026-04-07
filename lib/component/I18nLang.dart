@@ -142,6 +142,7 @@ enum LocaleKey {
   setting_themeModeDark,
   setting_contextMenuToggle,
   setting_contextMenuLegacySuffix,
+  setting_legacyMenuCollapseToggle,
   setting_addBackupMenu,
   setting_addExpressBackupMenu,
   setting_addMonitorMenu,
@@ -525,6 +526,8 @@ class AppLocale {
     LocaleKey.setting_themeModeDark: "Dark",
     LocaleKey.setting_contextMenuToggle: "Context menu options",
     LocaleKey.setting_contextMenuLegacySuffix: " (Legacy)",
+    LocaleKey.setting_legacyMenuCollapseToggle:
+        "Collapse legacy menu into a Vertree submenu",
     LocaleKey.setting_addBackupMenu: "Add 'Backup this file' to context menu",
     LocaleKey.setting_addExpressBackupMenu:
         "Add 'Express backup this file' to context menu",
@@ -818,6 +821,7 @@ class AppLocale {
     LocaleKey.setting_themeModeDark: "暗色",
     LocaleKey.setting_contextMenuToggle: "右键菜单选项",
     LocaleKey.setting_contextMenuLegacySuffix: "（旧版）",
+    LocaleKey.setting_legacyMenuCollapseToggle: "将旧版右键菜单收起到 Vertree 二级菜单",
     LocaleKey.setting_addBackupMenu: "将“备份该文件”增加到右键菜单",
     LocaleKey.setting_addExpressBackupMenu: "将“快速备份该文件”增加到右键菜单",
     LocaleKey.setting_addMonitorMenu: "将“监控该文件”增加到右键菜单",
@@ -1094,6 +1098,7 @@ class AppLocale {
     LocaleKey.setting_themeModeDark: "ダーク",
     LocaleKey.setting_contextMenuToggle: "右クリックメニュー項目",
     LocaleKey.setting_contextMenuLegacySuffix: "（旧版）",
+    LocaleKey.setting_legacyMenuCollapseToggle: "旧版メニューを Vertree サブメニューに折りたたむ",
     LocaleKey.setting_addBackupMenu: "「このファイルをバックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addExpressBackupMenu: "「このファイルを即時バックアップ」を右クリックメニューに追加",
     LocaleKey.setting_addMonitorMenu: "「このファイルを監視」を右クリックメニューに追加",

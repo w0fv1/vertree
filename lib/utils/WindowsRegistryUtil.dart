@@ -5,6 +5,7 @@ import 'package:win32_registry/win32_registry.dart';
 import 'WindowsShellNotify.dart';
 
 class RegistryHelper {
+  static const String currentUserClassesShellPath = r'Software\Classes\*\shell';
   static const String allUsersClassesShellPath = r'Software\Classes\*\shell';
   static const String allUsersClassesRootPath = r'Software\Classes';
   static const String approvedShellExtPath =
@@ -52,17 +53,79 @@ class RegistryHelper {
   /// 检查注册表项是否存在
   static bool checkRegistryMenuExistsByMenuName(String menuName) {
     return checkRegistryKeyExists(
-      RegistryHive.localMachine,
-      '$allUsersClassesShellPath\\$menuName',
+      RegistryHive.currentUser,
+      '$currentUserClassesShellPath\\$menuName',
     );
   }
 
   /// 通过注册表键名检查右键菜单项是否存在
   static bool checkRegistryMenuExistsByKey(String keyName) {
     return checkRegistryKeyExists(
+      RegistryHive.currentUser,
+      '$currentUserClassesShellPath\\$keyName',
+    );
+  }
+
+  static bool checkMachineRegistryMenuExistsByKey(String keyName) {
+    return checkRegistryKeyExists(
       RegistryHive.localMachine,
       '$allUsersClassesShellPath\\$keyName',
     );
+  }
+
+  static bool checkRegistryMenuExistsByKeyAtPath(
+    String parentPath,
+    String keyName,
+  ) {
+    return checkRegistryKeyExists(
+      RegistryHive.currentUser,
+      '$parentPath\\$keyName',
+    );
+  }
+
+  static bool checkMachineRegistryMenuExistsByKeyAtPath(
+    String parentPath,
+    String keyName,
+  ) {
+    return checkRegistryKeyExists(
+      RegistryHive.localMachine,
+      '$parentPath\\$keyName',
+    );
+  }
+
+  static RegistryKey? _openOrCreatePath(
+    RegistryHive hive,
+    String fullPath, {
+    required AccessRights desiredAccessRights,
+  }) {
+    final normalized = fullPath
+        .split('\\')
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    RegistryKey? current;
+    var currentPath = normalized.first;
+    try {
+      current = Registry.openPath(
+        hive,
+        path: currentPath,
+        desiredAccessRights: desiredAccessRights,
+      );
+      for (final segment in normalized.skip(1)) {
+        final next = current!.createKey(segment);
+        current.close();
+        current = next;
+        currentPath = '$currentPath\\$segment';
+      }
+      return current;
+    } catch (e) {
+      current?.close();
+      logger.error('打开或创建注册表路径失败: "$fullPath" error=$e');
+      return null;
+    }
   }
 
   /// 添加或更新注册表项
@@ -116,29 +179,53 @@ class RegistryHelper {
     String command, {
     String? iconPath,
   }) {
+    return addContextMenuOptionAtPath(
+      currentUserClassesShellPath,
+      keyName,
+      muiVerb,
+      command: command,
+      iconPath: iconPath,
+    );
+  }
+
+  static bool addContextMenuOptionAtPath(
+    String parentPath,
+    String keyName,
+    String muiVerb, {
+    String? command,
+    String? iconPath,
+    bool isSubmenu = false,
+    RegistryHive hive = RegistryHive.currentUser,
+  }) {
     try {
-      String registryPath = '$allUsersClassesShellPath\\$keyName';
+      String registryPath = '$parentPath\\$keyName';
       String commandPath = '$registryPath\\command';
 
       logger.info(
         '尝试创建右键菜单: registryPath="$registryPath", commandPath="$commandPath"',
       );
 
-      // 打开或创建 registryPath
-      final shellKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: allUsersClassesShellPath,
+      final shellKey = _openOrCreatePath(
+        hive,
+        parentPath,
         desiredAccessRights: AccessRights.allAccess,
       );
+      if (shellKey == null) {
+        return false;
+      }
 
       final menuKey = shellKey.createKey(keyName);
-      // 使用 MUIVerb 来设置显示名称
       menuKey.createValue(RegistryValue.string('MUIVerb', muiVerb));
 
-      // 如果提供了 iconPath，则添加图标
       if (iconPath != null && iconPath.isNotEmpty) {
         menuKey.createValue(RegistryValue.string('Icon', iconPath));
         logger.info('已为 "$keyName" 设置图标: $iconPath');
+      }
+
+      if (isSubmenu) {
+        // Mark this verb as a cascading menu so Explorer shows child items.
+        menuKey.createValue(RegistryValue.string('SubCommands', ''));
+        menuKey.createKey('shell').close();
       }
 
       menuKey.close();
@@ -146,18 +233,22 @@ class RegistryHelper {
 
       logger.info('成功创建 registryPath: $registryPath');
 
-      // 打开或创建 commandPath
-      final menuCommandKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: registryPath,
-        desiredAccessRights: AccessRights.allAccess,
-      );
-      final commandKey = menuCommandKey.createKey('command');
-      commandKey.createValue(RegistryValue.string('', command));
-      commandKey.close();
-      menuCommandKey.close();
+      if (!isSubmenu && command != null && command.isNotEmpty) {
+        final menuCommandKey = _openOrCreatePath(
+          hive,
+          registryPath,
+          desiredAccessRights: AccessRights.allAccess,
+        );
+        if (menuCommandKey == null) {
+          return false;
+        }
+        final commandKey = menuCommandKey.createKey('command');
+        commandKey.createValue(RegistryValue.string('', command));
+        commandKey.close();
+        menuCommandKey.close();
 
-      logger.info('成功创建 commandPath: $commandPath -> $command');
+        logger.info('成功创建 commandPath: $commandPath -> $command');
+      }
 
       return true;
     } catch (e) {
@@ -171,12 +262,12 @@ class RegistryHelper {
 
   static bool removeContextMenuOptionByMenuName(String menuName) {
     try {
-      String registryPath = '$allUsersClassesShellPath\\$menuName';
+      String registryPath = '$currentUserClassesShellPath\\$menuName';
 
       // 直接打开完整路径
       final key = Registry.openPath(
-        RegistryHive.localMachine,
-        path: allUsersClassesShellPath,
+        RegistryHive.currentUser,
+        path: currentUserClassesShellPath,
         desiredAccessRights: AccessRights.allAccess,
       );
 
@@ -202,12 +293,26 @@ class RegistryHelper {
   }
 
   static bool removeContextMenuOptionByKey(String keyName) {
+    return removeContextMenuOptionByKeyAtPath(
+      currentUserClassesShellPath,
+      keyName,
+    );
+  }
+
+  static bool removeContextMenuOptionByKeyAtPath(
+    String parentPath,
+    String keyName, {
+    RegistryHive hive = RegistryHive.currentUser,
+  }) {
     try {
-      final parentKey = Registry.openPath(
-        RegistryHive.localMachine,
-        path: allUsersClassesShellPath,
+      final parentKey = _openOrCreatePath(
+        hive,
+        parentPath,
         desiredAccessRights: AccessRights.allAccess,
       );
+      if (parentKey == null) {
+        return false;
+      }
 
       try {
         parentKey.deleteKey(keyName, recursive: true);
@@ -227,6 +332,25 @@ class RegistryHelper {
       logger.error('通过键名 "$keyName" 删除右键菜单项失败: $e');
       return false;
     }
+  }
+
+  static bool removeMachineContextMenuOptionByKey(String keyName) {
+    return removeContextMenuOptionByKeyAtPath(
+      allUsersClassesShellPath,
+      keyName,
+      hive: RegistryHive.localMachine,
+    );
+  }
+
+  static bool removeMachineContextMenuOptionByKeyAtPath(
+    String parentPath,
+    String keyName,
+  ) {
+    return removeContextMenuOptionByKeyAtPath(
+      parentPath,
+      keyName,
+      hive: RegistryHive.localMachine,
+    );
   }
 
   /// 启用开机自启
