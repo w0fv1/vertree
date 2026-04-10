@@ -58,7 +58,7 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.13.0",
+  currentVersion: "V0.13.1",
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases",
   readConfigString: (key, defaultValue) =>
       configer.get<String>(key, defaultValue),
