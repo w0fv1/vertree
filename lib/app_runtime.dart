@@ -1008,12 +1008,11 @@ void backup(String path) {
   Future.delayed(const Duration(milliseconds: 500), () async {
     await windowManager.show();
     await windowManager.focus();
-    final overlayContext = navigatorKey.currentState?.overlay?.context;
-    if (overlayContext == null) return;
-
     String? label;
 
     try {
+      final overlayContext = navigatorKey.currentState?.overlay?.context;
+      if (overlayContext == null || !overlayContext.mounted) return;
       label = await showDialog<String>(
         context: overlayContext,
         builder: (context) {
@@ -1083,8 +1082,14 @@ void backup(String path) {
         backup.mate.fullPath,
       );
 
+      final monitorDialogContext = navigatorKey.currentState?.overlay?.context;
+      if (monitorDialogContext == null || !monitorDialogContext.mounted) {
+        viewtree(backup.mate.fullPath);
+        return;
+      }
+
       bool? enableMonit = await showDialog<bool>(
-        context: overlayContext,
+        context: monitorDialogContext,
         builder: (context) {
           return AlertDialog(
             title: Text(appLocale.getText(LocaleKey.app_enableMonitTitle)),

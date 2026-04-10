@@ -320,6 +320,18 @@ function supportsLanSharePage() {
   );
 }
 
+function isLikelyLocalNetworkPermissionError(error) {
+  const text = String(error?.message || error || '').toLowerCase();
+  return (
+    text.includes('failed to fetch') ||
+    text.includes('networkerror') ||
+    text.includes('network access') ||
+    text.includes('err_network_access_denied') ||
+    text.includes('load failed') ||
+    text.includes('image probe failed')
+  );
+}
+
 async function fetchShareInfo(candidate, timeoutMs = 2400) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -411,6 +423,7 @@ export default function FileSharePage() {
   const [candidateStates, setCandidateStates] = useState({});
   const [resolvedInfo, setResolvedInfo] = useState(null);
   const [showAllFailedCandidates, setShowAllFailedCandidates] = useState(false);
+  const [needsLocalNetworkPermission, setNeedsLocalNetworkPermission] = useState(false);
 
   useEffect(() => {
     const onHashChange = () => setFragment(window.location.hash || '');
@@ -462,6 +475,7 @@ export default function FileSharePage() {
   useEffect(() => {
     setResolvedInfo(null);
     setShowAllFailedCandidates(false);
+    setNeedsLocalNetworkPermission(false);
   }, [fragment]);
 
   useEffect(() => {
@@ -518,6 +532,7 @@ export default function FileSharePage() {
     }
 
     let cancelled = false;
+    const probeErrors = [];
 
     setStatus('probing');
     setSelectedCandidate(null);
@@ -550,6 +565,7 @@ export default function FileSharePage() {
           if (cancelled) {
             return;
           }
+          probeErrors.push(error);
           logShareDebug('warn', 'Candidate probe failed.', {
             candidate,
             error,
@@ -568,7 +584,12 @@ export default function FileSharePage() {
       logShareDebug('error', 'All candidate probes failed.', {
         fragment: stripRetrySuffix(fragment),
         candidates,
+        probeErrors,
       });
+      setNeedsLocalNetworkPermission(
+        probeErrors.length > 0 &&
+          probeErrors.every((error) => isLikelyLocalNetworkPermissionError(error)),
+      );
       setStatus('failed');
     };
 
@@ -635,7 +656,9 @@ export default function FileSharePage() {
                 : status === 'unsupported'
                   ? '当前浏览器缺少解析局域网分享页所需的现代能力。请改用较新的 Chrome、Edge、Firefox 或 Safari 打开这个链接。'
                 : status === 'failed'
-                  ? '浏览器没有自动探测到可用地址。你可以手动点击下面的候选下载页，并先确认是否和分享者连接在同一个网络。'
+                  ? (needsLocalNetworkPermission
+                    ? '浏览器没有拿到访问本地网络的权限。请先允许访问本地网络中的其他设备，然后重新探测或直接手动打开下面的候选下载页。'
+                    : '浏览器没有自动探测到可用地址。你可以手动点击下面的候选下载页，并先确认是否和分享者连接在同一个网络。')
                   : status === 'invalid'
                     ? '当前链接不是有效的局域网分享链接，请让分享者重新生成。'
                     : '正在后台按顺序测试候选地址和端口，请稍候。'}
@@ -647,8 +670,10 @@ export default function FileSharePage() {
               <div className={styles.failureHint}>
                 {status === 'unsupported'
                   ? '这个分享页需要现代浏览器能力来解析短链接和探测局域网地址。请升级浏览器后重试。'
+                  : needsLocalNetworkPermission
+                    ? '如果浏览器顶部弹出了“访问本地网络中的其他设备”或类似提示，请点击允许，然后再点“重新探测”。'
                   : '没有探测到任何可用候选地址。请先确认接收方和分享方是否连接在同一个网络；'}
-                {status !== 'unsupported'
+                {status !== 'unsupported' && !needsLocalNetworkPermission
                   ? (displayNetworkName
                     ? `当前分享网络是“${displayNetworkName}”。`
                     : '如果分享方使用的是 Wi‑Fi，也请确认两端连接的是同一个 Wi‑Fi。')

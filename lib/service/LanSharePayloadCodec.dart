@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class LanSharePayloadCodec {
   static const String base62Alphabet =
       '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
