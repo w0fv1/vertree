@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 import 'package:vertree/core/Result.dart';
+import 'package:vertree/service/LanSharePayloadCodec.dart';
 
 class LanFileShareServer {
   LanFileShareServer({
@@ -36,7 +37,9 @@ class LanFileShareServer {
   final void Function(String message)? _onLogError;
 
   late final Timer _cleanupTimer;
-  final Map<String, _LanFileShareEntry> _shares =
+  final Map<String, _LanFileShareEntry> _sharesByToken =
+      <String, _LanFileShareEntry>{};
+  final Map<String, _LanFileShareEntry> _sharesByKey =
       <String, _LanFileShareEntry>{};
   final Random _random = Random.secure();
 
@@ -44,6 +47,7 @@ class LanFileShareServer {
   int? _port;
   List<String> _lastKnownLanIps = const <String>[];
   String? _lastKnownWifiName;
+  int _nextShareSequence = 1;
 
   bool get isRunning => _server != null;
   int? get port => _port;
@@ -54,7 +58,7 @@ class LanFileShareServer {
       'running': isRunning,
       'port': _port,
       'sharePageBaseUrl': sharePageBaseUrl,
-      'activeShareCount': _shares.length,
+      'activeShareCount': _sharesByToken.length,
       'lastKnownLanIps': _lastKnownLanIps,
       'lastKnownWifiName': _lastKnownWifiName,
     };
@@ -135,6 +139,7 @@ class LanFileShareServer {
     final stat = file.statSync();
     final now = DateTime.now();
     final entry = _LanFileShareEntry(
+      shareKey: _generateShareKey(),
       token: _generateToken(),
       filePath: normalizedPath,
       fileName: p.basename(normalizedPath),
@@ -142,7 +147,8 @@ class LanFileShareServer {
       createdAt: now,
       expiresAt: now.add(Duration(minutes: expiresInMinutes)),
     );
-    _shares[entry.token] = entry;
+    _sharesByToken[entry.token] = entry;
+    _sharesByKey[entry.shareKey] = entry;
 
     return Result.ok(_shareToMap(entry, lanIps, wifiName: wifiName));
   }
@@ -151,7 +157,7 @@ class LanFileShareServer {
     _purgeExpiredShares();
     final lanIps = await _resolveLanIps();
     final wifiName = await _resolveWifiName();
-    final items = _shares.values
+    final items = _sharesByToken.values
         .map((entry) => _shareToMap(entry, lanIps, wifiName: wifiName))
         .toList(growable: false);
     items.sort(
@@ -164,7 +170,7 @@ class LanFileShareServer {
 
   Future<Result<Map<String, dynamic>, String>> getShare(String token) async {
     _purgeExpiredShares();
-    final entry = _shares[token];
+    final entry = _findActiveShare(token);
     if (entry == null) {
       return Result.eMsg('LAN file share not found: $token');
     }
@@ -175,12 +181,15 @@ class LanFileShareServer {
 
   Result<Map<String, dynamic>, String> revokeShare(String token) {
     _purgeExpiredShares();
-    final entry = _shares.remove(token);
+    final entry = _findActiveShare(token);
     if (entry == null) {
       return Result.eMsg('LAN file share not found: $token');
     }
+    _removeShare(entry);
     return Result.ok({
-      'token': token,
+      'shareRef': token,
+      'token': entry.token,
+      'shareKey': entry.shareKey,
       'revoked': true,
       'fileName': entry.fileName,
     });
@@ -317,6 +326,7 @@ class LanFileShareServer {
       body: {
         'success': true,
         'data': {
+          'shareKey': entry.shareKey,
           'token': entry.token,
           'fileName': entry.fileName,
           'fileSize': entry.fileSize,
@@ -342,7 +352,7 @@ class LanFileShareServer {
 
     final file = File(entry.filePath);
     if (!file.existsSync()) {
-      _shares.remove(token);
+      _removeShare(entry);
       await _writeText(
         request,
         statusCode: HttpStatus.notFound,
@@ -367,24 +377,28 @@ class LanFileShareServer {
   }
 
   _LanFileShareEntry? _findActiveShare(String token) {
-    final entry = _shares[token];
+    final normalizedRef = token.trim();
+    if (normalizedRef.isEmpty) {
+      return null;
+    }
+
+    final entry = _sharesByToken[normalizedRef] ?? _sharesByKey[normalizedRef];
     if (entry == null) {
       return null;
     }
     if (entry.isExpired) {
-      _shares.remove(token);
+      _removeShare(entry);
       return null;
     }
     return entry;
   }
 
   void _purgeExpiredShares() {
-    final expiredTokens = _shares.values
+    final expiredEntries = _sharesByToken.values
         .where((entry) => entry.isExpired)
-        .map((entry) => entry.token)
         .toList(growable: false);
-    for (final token in expiredTokens) {
-      _shares.remove(token);
+    for (final entry in expiredEntries) {
+      _removeShare(entry);
     }
   }
 
@@ -406,6 +420,13 @@ class LanFileShareServer {
     String? wifiName,
   }) {
     final currentPort = _port;
+    final compactShareCode = currentPort == null
+        ? null
+        : LanSharePayloadCodec.encodeCompactRoute(
+            shareKey: entry.shareKey,
+            port: currentPort,
+            lanIps: lanIps,
+          );
     final directDownloads = currentPort == null
         ? const <Map<String, dynamic>>[]
         : lanIps
@@ -413,17 +434,18 @@ class LanFileShareServer {
                 (ip) => {
                   'ip': ip,
                   'downloadUrl':
-                      'http://$ip:$currentPort/file-share/download/${entry.token}',
+                      'http://$ip:$currentPort/file-share/download/${entry.shareKey}',
                   'probeUrl':
-                      'http://$ip:$currentPort/file-share/probe/${entry.token}',
+                      'http://$ip:$currentPort/file-share/probe/${entry.shareKey}',
                   'pixelProbeUrl':
-                      'http://$ip:$currentPort/file-share/pixel/${entry.token}',
+                      'http://$ip:$currentPort/file-share/pixel/${entry.shareKey}',
                 },
               )
               .toList(growable: false);
 
     return {
       'token': entry.token,
+      'shareKey': entry.shareKey,
       'fileName': entry.fileName,
       'fileSize': entry.fileSize,
       'createdAt': entry.createdAt.toIso8601String(),
@@ -431,17 +453,10 @@ class LanFileShareServer {
       'downloadCount': entry.downloadCount,
       'lastDownloadedAt': entry.lastDownloadedAt?.toIso8601String(),
       'networkName': wifiName,
+      'shareCode': compactShareCode,
       'sharePageUrl': currentPort == null
           ? null
-          : _buildSharePageUrl(
-              token: entry.token,
-              fileName: entry.fileName,
-              fileSize: entry.fileSize,
-              expiresAt: entry.expiresAt,
-              port: currentPort,
-              lanIps: lanIps,
-              wifiName: wifiName,
-            ),
+          : _buildSharePageUrl(compactShareCode: compactShareCode!),
       'server': {
         'port': currentPort,
         'running': isRunning,
@@ -452,33 +467,24 @@ class LanFileShareServer {
     };
   }
 
-  String _buildSharePageUrl({
-    required String token,
-    required String fileName,
-    required int fileSize,
-    required DateTime expiresAt,
-    required int port,
-    required List<String> lanIps,
-    String? wifiName,
-  }) {
-    final queryParameters = <String, String>{
-      't': token,
-      'p': port.toString(),
-      'ips': lanIps.join(','),
-      'name': base64Url.encode(utf8.encode(fileName)),
-      'size': fileSize.toString(),
-      'exp': expiresAt.millisecondsSinceEpoch.toString(),
-    };
-    if (wifiName != null && wifiName.isNotEmpty) {
-      queryParameters['net'] = base64Url.encode(utf8.encode(wifiName));
-    }
-    final fragment = Uri(queryParameters: queryParameters).query;
-    return '$sharePageBaseUrl#$fragment';
+  String _buildSharePageUrl({required String compactShareCode}) {
+    return '$sharePageBaseUrl#${LanSharePayloadCodec.compactFragmentPrefix}$compactShareCode';
   }
 
   String _generateToken() {
     final bytes = List<int>.generate(24, (_) => _random.nextInt(256));
     return base64Url.encode(bytes).replaceAll('=', '');
+  }
+
+  String _generateShareKey() {
+    final shareKey = _nextShareSequence.toRadixString(36);
+    _nextShareSequence += 1;
+    return shareKey;
+  }
+
+  void _removeShare(_LanFileShareEntry entry) {
+    _sharesByToken.remove(entry.token);
+    _sharesByKey.remove(entry.shareKey);
   }
 
   String _contentDisposition(String fileName) {
@@ -661,6 +667,7 @@ class LanFileShareServer {
 
 class _LanFileShareEntry {
   _LanFileShareEntry({
+    required this.shareKey,
     required this.token,
     required this.filePath,
     required this.fileName,
@@ -669,6 +676,7 @@ class _LanFileShareEntry {
     required this.expiresAt,
   });
 
+  final String shareKey;
   final String token;
   final String filePath;
   final String fileName;

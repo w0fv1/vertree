@@ -2,9 +2,291 @@ import React, {useEffect, useMemo, useState} from 'react';
 import Layout from '@theme/Layout';
 import styles from './index.module.css';
 
+const PAYLOAD_FRAGMENT_PREFIX = '#c1:';
+const ROUTE_FRAGMENT_PREFIX = '#c2:';
+const BASE85_ALPHABET =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!$%&()*+-;<=>?@^_~[]:,.';
+const BASE85_LOOKUP = Object.fromEntries(
+  [...BASE85_ALPHABET].map((char, index) => [char, index]),
+);
+
+function logShareDebug(level, message, details = undefined) {
+  const logger = console[level] || console.log;
+  if (details === undefined) {
+    logger(`[Vertree file_share] ${message}`);
+    return;
+  }
+  logger(`[Vertree file_share] ${message}`, details);
+}
+
+function stripRetrySuffix(hash) {
+  const retryIndex = hash.indexOf('&retry=');
+  return retryIndex >= 0 ? hash.slice(0, retryIndex) : hash;
+}
+
 function parseFragmentParams(hash) {
-  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+  const normalizedHash = stripRetrySuffix(hash);
+  const raw = normalizedHash.startsWith('#') ? normalizedHash.slice(1) : normalizedHash;
   return new URLSearchParams(raw);
+}
+
+function decodeBase85(value) {
+  if (!value) {
+    return new Uint8Array();
+  }
+  if (value.length % 5 === 1) {
+    throw new Error('Invalid Base85 input length');
+  }
+
+  const output = [];
+  for (let offset = 0; offset < value.length; ) {
+    const chunkLength = Math.min(5, value.length - offset);
+    let chunkValue = 0;
+    for (let index = 0; index < 5; index += 1) {
+      const digit =
+        index < chunkLength ? BASE85_LOOKUP[value[offset + index]] : 84;
+      if (digit === undefined) {
+        throw new Error(`Invalid Base85 character: ${value[offset + index]}`);
+      }
+      chunkValue = chunkValue * 85 + digit;
+    }
+
+    const chunkBytes = [
+      (chunkValue >>> 24) & 0xff,
+      (chunkValue >>> 16) & 0xff,
+      (chunkValue >>> 8) & 0xff,
+      chunkValue & 0xff,
+    ];
+    const outputLength = chunkLength === 5 ? 4 : chunkLength - 1;
+    output.push(...chunkBytes.slice(0, outputLength));
+    offset += chunkLength;
+  }
+
+  return Uint8Array.from(output);
+}
+
+function readVarInt(bytes, offset) {
+  let result = 0;
+  let shift = 0;
+  let cursor = offset;
+
+  while (cursor < bytes.length) {
+    const byte = bytes[cursor];
+    cursor += 1;
+    result |= (byte & 0x7f) << shift;
+    if ((byte & 0x80) === 0) {
+      return {value: result, offset: cursor};
+    }
+    shift += 7;
+    if (shift > 63) {
+      throw new Error('VarInt too large');
+    }
+  }
+
+  throw new Error('Unexpected end of payload while reading VarInt');
+}
+
+function readUtf8(bytes, offset) {
+  const {value: length, offset: start} = readVarInt(bytes, offset);
+  const end = start + length;
+  if (end > bytes.length) {
+    throw new Error('UTF-8 field extends beyond payload size');
+  }
+  return {
+    text: new TextDecoder().decode(bytes.slice(start, end)),
+    offset: end,
+  };
+}
+
+function readAscii(bytes, offset) {
+  const {value: length, offset: start} = readVarInt(bytes, offset);
+  const end = start + length;
+  if (end > bytes.length) {
+    throw new Error('ASCII field extends beyond payload size');
+  }
+  return {
+    text: String.fromCharCode(...bytes.slice(start, end)),
+    offset: end,
+  };
+}
+
+function parseCompactShare(hash) {
+  const normalizedHash = stripRetrySuffix(hash);
+  if (!normalizedHash.startsWith(PAYLOAD_FRAGMENT_PREFIX)) {
+    return null;
+  }
+
+  try {
+    const payload = decodeURIComponent(
+      normalizedHash.slice(PAYLOAD_FRAGMENT_PREFIX.length),
+    );
+    const bytes = decodeBase85(payload);
+    if (bytes.length === 0) {
+      logShareDebug('error', 'c1 payload is empty after decoding.', {
+        hash: normalizedHash,
+      });
+      return null;
+    }
+
+    let offset = 0;
+    const version = bytes[offset];
+    offset += 1;
+    if (version !== 1) {
+      logShareDebug('error', 'Unsupported c1 payload version.', {
+        hash: normalizedHash,
+        version,
+      });
+      return null;
+    }
+
+    const tokenResult = readAscii(bytes, offset);
+    const token = tokenResult.text;
+    offset = tokenResult.offset;
+
+    if (offset + 2 > bytes.length) {
+      logShareDebug('error', 'c1 payload is truncated before port.', {
+        hash: normalizedHash,
+        offset,
+        byteLength: bytes.length,
+      });
+      return null;
+    }
+    const port = (bytes[offset] << 8) | bytes[offset + 1];
+    offset += 2;
+
+    const ipCountResult = readVarInt(bytes, offset);
+    const ipCount = ipCountResult.value;
+    offset = ipCountResult.offset;
+
+    const ips = [];
+    for (let index = 0; index < ipCount; index += 1) {
+      if (offset + 4 > bytes.length) {
+        logShareDebug('error', 'c1 payload is truncated before LAN IP list ends.', {
+          hash: normalizedHash,
+          offset,
+          index,
+          ipCount,
+          byteLength: bytes.length,
+        });
+        return null;
+      }
+      ips.push(
+        `${bytes[offset]}.${bytes[offset + 1]}.${bytes[offset + 2]}.${bytes[offset + 3]}`,
+      );
+      offset += 4;
+    }
+
+    const fileSizeResult = readVarInt(bytes, offset);
+    const fileSize = fileSizeResult.value;
+    offset = fileSizeResult.offset;
+
+    const expiresAtResult = readVarInt(bytes, offset);
+    const expiresAt = String(expiresAtResult.value);
+    offset = expiresAtResult.offset;
+
+    const fileNameResult = readUtf8(bytes, offset);
+    const fileName = fileNameResult.text;
+    offset = fileNameResult.offset;
+
+    const networkNameResult = readUtf8(bytes, offset);
+    const networkName = networkNameResult.text;
+    offset = networkNameResult.offset;
+
+    if (offset !== bytes.length) {
+      logShareDebug('error', 'c1 payload contains trailing bytes.', {
+        hash: normalizedHash,
+        offset,
+        byteLength: bytes.length,
+      });
+      return null;
+    }
+
+    return {
+      shareRef: token,
+      port: String(port),
+      ips,
+      fileName,
+      fileSize,
+      expiresAt,
+      networkName: networkName || '',
+    };
+  } catch (error) {
+    logShareDebug('error', 'Failed to parse c1 payload.', {
+      hash: normalizedHash,
+      error,
+    });
+    return null;
+  }
+}
+
+function parseCompactRoute(hash) {
+  const normalizedHash = stripRetrySuffix(hash);
+  if (!normalizedHash.startsWith(ROUTE_FRAGMENT_PREFIX)) {
+    return null;
+  }
+
+  try {
+    const payload = decodeURIComponent(
+      normalizedHash.slice(ROUTE_FRAGMENT_PREFIX.length),
+    );
+    const [shareRef, portText, ipText] = payload.split('@');
+    if (!shareRef || !portText || !ipText) {
+      logShareDebug('error', 'c2 route payload is missing required parts.', {
+        hash: normalizedHash,
+        payload,
+      });
+      return null;
+    }
+
+    const port = parseInt(portText, 36);
+    if (!Number.isFinite(port) || port <= 0 || port > 65535) {
+      logShareDebug('error', 'c2 route port is invalid.', {
+        hash: normalizedHash,
+        portText,
+      });
+      return null;
+    }
+
+    const ips = ipText
+      .split('.')
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean)
+      .map((item) => {
+        if (!/^[0-9a-f]{8}$/.test(item)) {
+          throw new Error(`Invalid compact IPv4 hex: ${item}`);
+        }
+        return [
+          parseInt(item.slice(0, 2), 16),
+          parseInt(item.slice(2, 4), 16),
+          parseInt(item.slice(4, 6), 16),
+          parseInt(item.slice(6, 8), 16),
+        ].join('.');
+      });
+
+    if (ips.length === 0) {
+      logShareDebug('error', 'c2 route did not produce any candidate LAN IP.', {
+        hash: normalizedHash,
+        payload,
+      });
+      return null;
+    }
+
+    return {
+      shareRef,
+      port: String(port),
+      ips,
+      fileName: '',
+      fileSize: 0,
+      expiresAt: '',
+      networkName: '',
+    };
+  } catch (error) {
+    logShareDebug('error', 'Failed to parse c2 route payload.', {
+      hash: normalizedHash,
+      error,
+    });
+    return null;
+  }
 }
 
 function decodeBase64UrlUtf8(value) {
@@ -56,23 +338,20 @@ function formatTime(timestamp) {
 }
 
 function buildCandidates(params) {
-  const token = params.get('t') || '';
-  const port = params.get('p') || '';
-  const ips = (params.get('ips') || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const shareRef = params.shareRef || params.token || '';
+  const port = params.port || '';
+  const ips = (params.ips || []).filter(Boolean);
 
-  if (!token || !port || ips.length === 0) {
+  if (!shareRef || !port || ips.length === 0) {
     return [];
   }
 
   return ips.map((ip) => ({
     id: `${ip}:${port}`,
     ip,
-    downloadUrl: `http://${ip}:${port}/file-share/download/${token}`,
-    probeUrl: `http://${ip}:${port}/file-share/probe/${token}`,
-    pixelProbeUrl: `http://${ip}:${port}/file-share/pixel/${token}`,
+    downloadUrl: `http://${ip}:${port}/file-share/download/${shareRef}`,
+    probeUrl: `http://${ip}:${port}/file-share/probe/${shareRef}`,
+    pixelProbeUrl: `http://${ip}:${port}/file-share/pixel/${shareRef}`,
   }));
 }
 
@@ -144,21 +423,53 @@ export default function FileSharePage() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const params = useMemo(() => parseFragmentParams(fragment), [fragment]);
-  const fileName = useMemo(
-    () => decodeBase64UrlUtf8(params.get('name')),
-    [params],
-  );
-  const fileSize = useMemo(() => Number(params.get('size') || 0), [params]);
-  const expiresAt = useMemo(() => params.get('exp'), [params]);
+  const shareParams = useMemo(() => {
+    const normalizedFragment = stripRetrySuffix(fragment);
+    const compactRoute = parseCompactRoute(fragment);
+    if (compactRoute) {
+      return compactRoute;
+    }
+    const compactShare = parseCompactShare(fragment);
+    if (compactShare) {
+      return compactShare;
+    }
+    const params = parseFragmentParams(fragment);
+    const legacyParams = {
+      shareRef: params.get('t') || '',
+      port: params.get('p') || '',
+      ips: (params.get('ips') || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      fileName: decodeBase64UrlUtf8(params.get('name')),
+      fileSize: Number(params.get('size') || 0),
+      expiresAt: params.get('exp') || '',
+      networkName: decodeBase64UrlUtf8(params.get('net')),
+    };
+    const hasLegacyRoute =
+      legacyParams.shareRef && legacyParams.port && legacyParams.ips.length > 0;
+    if (!hasLegacyRoute && normalizedFragment) {
+      logShareDebug('error', 'Unable to resolve share params from fragment.', {
+        fragment: normalizedFragment,
+      });
+    }
+    return legacyParams;
+  }, [fragment]);
+  const fileName = useMemo(() => shareParams.fileName || '', [shareParams]);
+  const fileSize = useMemo(() => Number(shareParams.fileSize || 0), [shareParams]);
+  const expiresAt = useMemo(() => shareParams.expiresAt || '', [shareParams]);
   const networkName = useMemo(
-    () => decodeBase64UrlUtf8(params.get('net')),
-    [params],
+    () => shareParams.networkName || '',
+    [shareParams],
   );
-  const candidates = useMemo(() => buildCandidates(params), [params]);
+  const candidates = useMemo(() => buildCandidates(shareParams), [shareParams]);
 
   useEffect(() => {
     if (candidates.length === 0) {
+      logShareDebug('error', 'No candidate routes resolved from current share params.', {
+        fragment: stripRetrySuffix(fragment),
+        shareParams,
+      });
       setStatus('invalid');
       return undefined;
     }
@@ -194,16 +505,24 @@ export default function FileSharePage() {
             window.location.replace(candidate.downloadUrl);
           }, 350);
         })
-        .catch(() => {
+        .catch((error) => {
           if (cancelled || resolved) {
             return;
           }
           pending -= 1;
+          logShareDebug('warn', 'Candidate probe failed.', {
+            candidate,
+            error,
+          });
           setCandidateStates((previous) => ({
             ...previous,
             [candidate.id]: 'failed',
           }));
           if (pending <= 0) {
+            logShareDebug('error', 'All candidate probes failed.', {
+              fragment: stripRetrySuffix(fragment),
+              candidates,
+            });
             setStatus('failed');
           }
         });
@@ -212,7 +531,7 @@ export default function FileSharePage() {
     return () => {
       cancelled = true;
     };
-  }, [candidates]);
+  }, [candidates, fragment, shareParams]);
 
   const headline = {
     idle: '准备开始局域网探测',
