@@ -349,10 +349,36 @@ function buildCandidates(params) {
   return ips.map((ip) => ({
     id: `${ip}:${port}`,
     ip,
+    pageUrl: `http://${ip}:${port}/file-share/page/${shareRef}`,
+    infoUrl: `http://${ip}:${port}/file-share/info/${shareRef}`,
     downloadUrl: `http://${ip}:${port}/file-share/download/${shareRef}`,
     probeUrl: `http://${ip}:${port}/file-share/probe/${shareRef}`,
     pixelProbeUrl: `http://${ip}:${port}/file-share/pixel/${shareRef}`,
   }));
+}
+
+async function fetchShareInfo(candidate, timeoutMs = 2400) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${candidate.infoUrl}?ts=${Date.now()}`, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`info failed: ${response.status}`);
+    }
+    const payload = await response.json();
+    if (!payload?.success || !payload?.data) {
+      throw new Error('info payload missing success/data');
+    }
+    return payload.data;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function probeWithFetch(candidate, timeoutMs = 2400) {
@@ -416,6 +442,7 @@ export default function FileSharePage() {
   const [status, setStatus] = useState('idle');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [candidateStates, setCandidateStates] = useState({});
+  const [resolvedInfo, setResolvedInfo] = useState(null);
 
   useEffect(() => {
     const onHashChange = () => setFragment(window.location.hash || '');
@@ -463,6 +490,52 @@ export default function FileSharePage() {
     [shareParams],
   );
   const candidates = useMemo(() => buildCandidates(shareParams), [shareParams]);
+  const displayFileName = resolvedInfo?.fileName || fileName;
+  const displayFileSize = resolvedInfo?.fileSize ?? fileSize;
+  const displayExpiresAt = resolvedInfo?.expiresAt || expiresAt;
+
+  useEffect(() => {
+    setResolvedInfo(null);
+  }, [fragment]);
+
+  useEffect(() => {
+    if (
+      candidates.length === 0 ||
+      (fileName && fileSize > 0 && expiresAt)
+    ) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const hydrateInfo = async () => {
+      for (const candidate of candidates) {
+        try {
+          const info = await fetchShareInfo(candidate, 1800);
+          if (cancelled) {
+            return;
+          }
+          setResolvedInfo(info);
+          logShareDebug('log', 'Resolved share info from LAN endpoint.', {
+            candidate,
+            info,
+          });
+          return;
+        } catch (error) {
+          logShareDebug('warn', 'Failed to hydrate share info from candidate.', {
+            candidate,
+            error,
+          });
+        }
+      }
+    };
+
+    hydrateInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates, expiresAt, fileName, fileSize]);
 
   useEffect(() => {
     if (candidates.length === 0) {
@@ -502,7 +575,7 @@ export default function FileSharePage() {
           );
           setStatus('redirecting');
           window.setTimeout(() => {
-            window.location.replace(candidate.downloadUrl);
+            window.location.replace(candidate.pageUrl);
           }, 350);
         })
         .catch((error) => {
@@ -561,15 +634,15 @@ export default function FileSharePage() {
             <div className={styles.metaList}>
               <div>
                 <span>文件名</span>
-                <strong>{fileName || '未提供'}</strong>
+                <strong>{displayFileName || '未提供'}</strong>
               </div>
               <div>
                 <span>文件大小</span>
-                <strong>{formatBytes(fileSize)}</strong>
+                <strong>{formatBytes(displayFileSize)}</strong>
               </div>
               <div>
                 <span>失效时间</span>
-                <strong>{formatTime(expiresAt)}</strong>
+                <strong>{formatTime(displayExpiresAt)}</strong>
               </div>
               {networkName ? (
                 <div>
@@ -619,7 +692,7 @@ export default function FileSharePage() {
               <div className={styles.candidateCard} key={candidate.id}>
                 <div>
                   <div className={styles.candidateIp}>{candidate.ip}</div>
-                  <div className={styles.candidateUrl}>{candidate.downloadUrl}</div>
+                  <div className={styles.candidateUrl}>{candidate.pageUrl}</div>
                 </div>
                 <div className={styles.candidateActions}>
                   <span
@@ -634,7 +707,7 @@ export default function FileSharePage() {
                   </span>
                   <a
                     className={styles.downloadButton}
-                    href={candidate.downloadUrl}
+                    href={candidate.pageUrl}
                   >
                     手动下载
                   </a>

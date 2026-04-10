@@ -105,6 +105,14 @@ void main() {
 
         expect(directDownloads, hasLength(2));
         expect(
+          (directDownloads.first as Map<String, dynamic>)['pageUrl'],
+          'http://192.168.10.8:${server.port}/file-share/page/$shareKey',
+        );
+        expect(
+          (directDownloads.first as Map<String, dynamic>)['infoUrl'],
+          'http://192.168.10.8:${server.port}/file-share/info/$shareKey',
+        );
+        expect(
           (directDownloads.first as Map<String, dynamic>)['downloadUrl'],
           'http://192.168.10.8:${server.port}/file-share/download/$shareKey',
         );

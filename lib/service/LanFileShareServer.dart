@@ -249,6 +249,13 @@ class LanFileShareServer {
 
       if (request.method == 'GET' &&
           segments.length == 3 &&
+          segments[1] == 'page') {
+        await _handleLandingPage(request, segments[2]);
+        return;
+      }
+
+      if (request.method == 'GET' &&
+          segments.length == 3 &&
           segments[1] == 'info') {
         await _handleInfo(request, segments[2]);
         return;
@@ -337,6 +344,47 @@ class LanFileShareServer {
         },
       },
     );
+  }
+
+  Future<void> _handleLandingPage(HttpRequest request, String token) async {
+    final entry = _findActiveShare(token);
+    if (entry == null) {
+      await _writeText(
+        request,
+        statusCode: HttpStatus.notFound,
+        body: 'Share not found',
+      );
+      return;
+    }
+
+    final currentPort = _port;
+    if (currentPort == null) {
+      await _writeText(
+        request,
+        statusCode: HttpStatus.serviceUnavailable,
+        body: 'LAN file share server is not ready',
+      );
+      return;
+    }
+
+    final hostHeader = request.headers.value(HttpHeaders.hostHeader) ?? '';
+    final host = request.requestedUri.host.isNotEmpty
+        ? request.requestedUri.host
+        : (hostHeader.contains(':')
+              ? hostHeader.split(':').first
+              : hostHeader.isNotEmpty
+              ? hostHeader
+              : '127.0.0.1');
+    final downloadUrl =
+        'http://$host:$currentPort/file-share/download/${entry.shareKey}';
+
+    request.response.statusCode = HttpStatus.ok;
+    _setCommonHeaders(request.response);
+    request.response.headers.contentType = ContentType.html;
+    request.response.write(
+      _buildLandingPageHtml(entry, downloadUrl: downloadUrl),
+    );
+    await request.response.close();
   }
 
   Future<void> _handleDownload(HttpRequest request, String token) async {
@@ -433,6 +481,10 @@ class LanFileShareServer {
               .map(
                 (ip) => {
                   'ip': ip,
+                  'pageUrl':
+                      'http://$ip:$currentPort/file-share/page/${entry.shareKey}',
+                  'infoUrl':
+                      'http://$ip:$currentPort/file-share/info/${entry.shareKey}',
                   'downloadUrl':
                       'http://$ip:$currentPort/file-share/download/${entry.shareKey}',
                   'probeUrl':
@@ -493,6 +545,175 @@ class LanFileShareServer {
         .replaceAll('"', '');
     final encoded = Uri.encodeComponent(fileName);
     return 'attachment; filename="$ascii"; filename*=UTF-8\'\'$encoded';
+  }
+
+  String _buildLandingPageHtml(
+    _LanFileShareEntry entry, {
+    required String downloadUrl,
+  }) {
+    final title = '${entry.fileName} - Vertree LAN Share';
+    final safeTitle = htmlEscape.convert(title);
+    final safeFileName = htmlEscape.convert(entry.fileName);
+    final safeFileSize = htmlEscape.convert(_formatBytes(entry.fileSize));
+    final safeExpiresAt = htmlEscape.convert(
+      entry.expiresAt.toLocal().toIso8601String(),
+    );
+    final safeDownloadUrl = htmlEscape.convert(downloadUrl);
+    final downloadUrlJson = jsonEncode(downloadUrl);
+
+    return '''
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$safeTitle</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef4ea 0%, #f8fbf7 100%);
+      color: #173b24;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 20px 56px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(23, 59, 36, 0.1);
+      border-radius: 28px;
+      box-shadow: 0 18px 60px rgba(60, 90, 70, 0.08);
+      padding: 28px;
+    }
+    h1 {
+      font-size: 34px;
+      line-height: 1.15;
+      margin: 0 0 12px;
+    }
+    p {
+      margin: 0 0 16px;
+      color: #3f5e4a;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 24px 0;
+    }
+    .meta {
+      border-radius: 20px;
+      background: #f4f8f2;
+      padding: 16px;
+    }
+    .label {
+      color: #5e7768;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 20px;
+      font-weight: 700;
+      word-break: break-word;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .button-primary {
+      background: #2f6b42;
+      color: white;
+    }
+    .button-secondary {
+      background: #e8f0e6;
+      color: #29553a;
+    }
+    .hint {
+      margin-top: 18px;
+      font-size: 14px;
+      color: #607565;
+    }
+    code {
+      display: block;
+      margin-top: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      background: #f4f8f2;
+      color: #325240;
+      word-break: break-all;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>准备下载 $safeFileName</h1>
+      <p>你已经进入分享者电脑提供的局域网下载页。下载会从当前这个本地 HTTP 页面发起，比直接从公网桥接页跳到下载更稳定。</p>
+      <div class="grid">
+        <div class="meta">
+          <div class="label">文件名</div>
+          <div class="value">$safeFileName</div>
+        </div>
+        <div class="meta">
+          <div class="label">文件大小</div>
+          <div class="value">$safeFileSize</div>
+        </div>
+        <div class="meta">
+          <div class="label">失效时间</div>
+          <div class="value">$safeExpiresAt</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a id="downloadLink" class="button button-primary" href="$safeDownloadUrl">立即下载</a>
+        <button id="retryButton" class="button button-secondary" type="button">重新触发下载</button>
+      </div>
+      <p class="hint">如果浏览器没有自动开始下载，可以点击上面的按钮。下载地址：</p>
+      <code>$safeDownloadUrl</code>
+    </section>
+  </main>
+  <script>
+    const downloadUrl = $downloadUrlJson;
+    const triggerDownload = () => {
+      window.location.assign(downloadUrl);
+    };
+    document.getElementById('retryButton')?.addEventListener('click', triggerDownload);
+    window.setTimeout(triggerDownload, 320);
+  </script>
+</body>
+</html>
+''';
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   Future<void> _writeOptionsResponse(HttpRequest request) async {
