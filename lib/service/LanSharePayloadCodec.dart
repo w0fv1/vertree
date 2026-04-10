@@ -1,385 +1,371 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 class LanSharePayloadCodec {
-  static const int payloadVersion = 1;
-  static const String payloadFragmentPrefix = 'c1:';
-  static const String compactFragmentPrefix = 'c2:';
-  static const String base85Alphabet =
-      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\$%&()*+-;<=>?@^_~[]:,.';
+  static const String base62Alphabet =
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-  static final Map<int, int> _base85DecodeMap = <int, int>{
-    for (var index = 0; index < base85Alphabet.length; index++)
-      base85Alphabet.codeUnitAt(index): index,
+  static const int _base62 = 62;
+  static const int _payloadVersion = 0;
+  static const int _private192168Span = 1 << 16;
+  static const int _private172Span = 16 << 16;
+  static const int _private10Span = 1 << 24;
+  static const int _private172Offset = _private192168Span;
+  static const int _private10Offset = _private172Offset + _private172Span;
+  static const int _privateTotalSpan = _private10Offset + _private10Span;
+  static const int _firstIdBitWidth = 25;
+
+  static final Map<int, int> _base62DecodeMap = <int, int>{
+    for (var index = 0; index < base62Alphabet.length; index++)
+      base62Alphabet.codeUnitAt(index): index,
   };
-
-  @Deprecated('Use payloadFragmentPrefix or compactFragmentPrefix instead.')
-  static const String fragmentPrefix = payloadFragmentPrefix;
-
-  static String encode({
-    required String token,
-    required int port,
-    required List<String> lanIps,
-    required String fileName,
-    required int fileSize,
-    required DateTime expiresAt,
-    String? wifiName,
-  }) {
-    final builder = BytesBuilder(copy: false);
-    final tokenBytes = ascii.encode(token);
-    final fileNameBytes = utf8.encode(fileName);
-    final wifiNameBytes = wifiName == null || wifiName.isEmpty
-        ? const <int>[]
-        : utf8.encode(wifiName);
-
-    builder.add(<int>[payloadVersion]);
-    _writeVarInt(builder, tokenBytes.length);
-    builder.add(tokenBytes);
-    builder.add(_uint16Bytes(port));
-    _writeVarInt(builder, lanIps.length);
-    for (final ip in lanIps) {
-      builder.add(_ipv4ToBytes(ip));
-    }
-    _writeVarInt(builder, fileSize);
-    _writeVarInt(builder, expiresAt.millisecondsSinceEpoch);
-    _writeVarInt(builder, fileNameBytes.length);
-    builder.add(fileNameBytes);
-    _writeVarInt(builder, wifiNameBytes.length);
-    builder.add(wifiNameBytes);
-
-    return _encodeBase85(builder.takeBytes());
-  }
-
-  static Map<String, dynamic> decode(String payload) {
-    final bytes = _decodeBase85(payload);
-    var offset = 0;
-
-    if (bytes.isEmpty) {
-      throw const FormatException('Share payload is empty.');
-    }
-
-    final version = bytes[offset++];
-    if (version != payloadVersion) {
-      throw FormatException('Unsupported share payload version: $version');
-    }
-
-    final tokenResult = _readLengthPrefixedAscii(bytes, offset);
-    final token = tokenResult.text;
-    offset = tokenResult.offset;
-
-    if (offset + 2 > bytes.length) {
-      throw const FormatException('Share payload is truncated before port.');
-    }
-    final port = _readUint16(bytes, offset);
-    offset += 2;
-
-    final ipCountResult = _readVarInt(bytes, offset);
-    final ipCount = ipCountResult.value;
-    offset = ipCountResult.offset;
-
-    final lanIps = <String>[];
-    for (var index = 0; index < ipCount; index++) {
-      if (offset + 4 > bytes.length) {
-        throw const FormatException(
-          'Share payload is truncated before LAN address list ends.',
-        );
-      }
-      lanIps.add(_bytesToIpv4(bytes, offset));
-      offset += 4;
-    }
-
-    final fileSizeResult = _readVarInt(bytes, offset);
-    final fileSize = fileSizeResult.value;
-    offset = fileSizeResult.offset;
-
-    final expiresAtResult = _readVarInt(bytes, offset);
-    final expiresAtMilliseconds = expiresAtResult.value;
-    offset = expiresAtResult.offset;
-
-    final fileNameResult = _readLengthPrefixedUtf8(bytes, offset);
-    final fileName = fileNameResult.text;
-    offset = fileNameResult.offset;
-
-    final wifiNameResult = _readLengthPrefixedUtf8(bytes, offset);
-    final wifiName = wifiNameResult.text;
-    offset = wifiNameResult.offset;
-
-    if (offset != bytes.length) {
-      throw const FormatException(
-        'Share payload contains unexpected trailing bytes.',
-      );
-    }
-
-    return <String, dynamic>{
-      'token': token,
-      'port': port,
-      'lanIps': lanIps,
-      'fileName': fileName,
-      'fileSize': fileSize,
-      'expiresAt': DateTime.fromMillisecondsSinceEpoch(
-        expiresAtMilliseconds,
-      ).toIso8601String(),
-      'networkName': wifiName.isEmpty ? null : wifiName,
-    };
-  }
 
   static String encodeCompactRoute({
     required String shareKey,
-    required int port,
     required List<String> lanIps,
   }) {
-    if (shareKey.isEmpty) {
+    final normalizedShareKey = shareKey.trim();
+    if (normalizedShareKey.isEmpty) {
       throw ArgumentError.value(
         shareKey,
         'shareKey',
         'shareKey cannot be empty.',
       );
     }
-    final normalizedIps = lanIps.map(_ipv4ToHex).join('.');
-    return '$shareKey@${port.toRadixString(36)}@$normalizedIps';
+    if (!_isBase62(normalizedShareKey)) {
+      throw ArgumentError.value(
+        shareKey,
+        'shareKey',
+        'shareKey must use Base62 characters only.',
+      );
+    }
+    if (normalizedShareKey.length > base62Alphabet.length) {
+      throw ArgumentError.value(
+        shareKey,
+        'shareKey',
+        'shareKey is too long to encode in a single length marker.',
+      );
+    }
+
+    final routePayload = _encodeIpv4ListPayload(lanIps);
+    final shareKeyLengthMarker =
+        base62Alphabet[normalizedShareKey.length - 1];
+    return '$shareKeyLengthMarker$normalizedShareKey$routePayload';
   }
 
   static Map<String, dynamic> decodeCompactRoute(String payload) {
     final normalized = Uri.decodeComponent(payload.trim());
-    final parts = normalized.split('@');
-    if (parts.length != 3) {
+    if (normalized.isEmpty) {
+      throw const FormatException('Compact route payload cannot be empty.');
+    }
+    if (!_isBase62(normalized)) {
       throw const FormatException(
-        'Compact route payload must contain 3 parts.',
+        'Compact route payload must use Base62 characters only.',
       );
     }
 
-    final shareKey = parts[0].trim();
-    if (shareKey.isEmpty) {
-      throw const FormatException('Compact route shareKey cannot be empty.');
+    final shareKeyLengthMarker = normalized.codeUnitAt(0);
+    final shareKeyLengthDigit = _base62DecodeMap[shareKeyLengthMarker];
+    if (shareKeyLengthDigit == null) {
+      throw const FormatException('Compact route shareKey length is invalid.');
+    }
+    final shareKeyLength = shareKeyLengthDigit + 1;
+    if (normalized.length <= shareKeyLength) {
+      throw const FormatException(
+        'Compact route payload is truncated before route payload begins.',
+      );
     }
 
-    final port = int.tryParse(parts[1], radix: 36);
-    if (port == null || port < 1 || port > 0xffff) {
-      throw FormatException('Invalid compact route port: ${parts[1]}');
+    final shareKey = normalized.substring(1, 1 + shareKeyLength);
+    if (!_isBase62(shareKey)) {
+      throw const FormatException(
+        'Compact route shareKey must be a non-empty Base62 string.',
+      );
     }
 
-    final lanIps = parts[2]
-        .split('.')
-        .where((item) => item.isNotEmpty)
-        .map(_hexToIpv4)
-        .toList(growable: false);
-    if (lanIps.isEmpty) {
+    final routePayload = normalized.substring(1 + shareKeyLength);
+    final lanIps = _decodeIpv4ListPayload(routePayload);
+    return <String, dynamic>{'shareKey': shareKey, 'lanIps': lanIps};
+  }
+
+  static String encodeBase62(int value) {
+    if (value < 0) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'Base62 value cannot be negative.',
+      );
+    }
+    if (value == 0) {
+      return base62Alphabet[0];
+    }
+
+    final chars = <String>[];
+    var remaining = value;
+    while (remaining > 0) {
+      final digit = remaining % _base62;
+      chars.add(base62Alphabet[digit]);
+      remaining ~/= _base62;
+    }
+    return chars.reversed.join();
+  }
+
+  static String _encodeIpv4ListPayload(List<String> lanIps) {
+    final ids = lanIps.map(_mapRfc1918Ipv4ToOrdinal).toSet().toList(growable: false)
+      ..sort();
+    if (ids.isEmpty) {
+      throw ArgumentError.value(
+        lanIps,
+        'lanIps',
+        'At least one RFC1918 IPv4 address is required.',
+      );
+    }
+
+    final bits = StringBuffer();
+    _writeUleb128Bits(bits, _payloadVersion);
+    _writeUleb128Bits(bits, ids.length);
+    _writeFixedWidthBits(bits, ids.first, _firstIdBitWidth);
+    for (var index = 1; index < ids.length; index += 1) {
+      _writeUleb128Bits(bits, ids[index] - ids[index - 1]);
+    }
+
+    final payloadBits = '1${bits.toString()}';
+    final value = BigInt.parse(payloadBits, radix: 2);
+    return encodeBase62BigInt(value);
+  }
+
+  static List<String> _decodeIpv4ListPayload(String payload) {
+    if (payload.isEmpty || !_isBase62(payload)) {
+      throw const FormatException(
+        'Compact route IPv4 payload must be a non-empty Base62 string.',
+      );
+    }
+
+    final value = _decodeBase62BigInt(payload);
+    final binary = value.toRadixString(2);
+    if (binary.isEmpty || binary[0] != '1') {
+      throw const FormatException(
+        'Compact route IPv4 payload is missing sentinel bit.',
+      );
+    }
+
+    final reader = _BitReader(binary.substring(1));
+    final version = _readUleb128Bits(reader);
+    if (version != _payloadVersion) {
+      throw FormatException('Unsupported compact route version: $version');
+    }
+
+    final count = _readUleb128Bits(reader);
+    if (count <= 0) {
       throw const FormatException(
         'Compact route must contain at least one LAN IP.',
       );
     }
 
-    return <String, dynamic>{
-      'shareKey': shareKey,
-      'port': port,
-      'lanIps': lanIps,
-    };
-  }
-
-  static void _writeVarInt(BytesBuilder builder, int value) {
-    if (value < 0) {
-      throw ArgumentError.value(value, 'value', 'VarInt cannot be negative.');
+    final ids = <int>[];
+    final firstId = _readFixedWidthBits(reader, _firstIdBitWidth);
+    ids.add(firstId);
+    for (var index = 1; index < count; index += 1) {
+      final delta = _readUleb128Bits(reader);
+      ids.add(ids.last + delta);
     }
 
+    if (!reader.isAtEnd) {
+      throw const FormatException(
+        'Compact route IPv4 payload contains unexpected trailing bits.',
+      );
+    }
+
+    return ids.map(_mapOrdinalToRfc1918Ipv4).toList(growable: false);
+  }
+
+  static String encodeBase62BigInt(BigInt value) {
+    if (value < BigInt.zero) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'Base62 BigInt value cannot be negative.',
+      );
+    }
+    if (value == BigInt.zero) {
+      return base62Alphabet[0];
+    }
+
+    final chars = <String>[];
+    final radix = BigInt.from(_base62);
     var remaining = value;
-    while (remaining >= 0x80) {
-      builder.addByte((remaining & 0x7f) | 0x80);
-      remaining >>= 7;
+    while (remaining > BigInt.zero) {
+      final digit = (remaining % radix).toInt();
+      chars.add(base62Alphabet[digit]);
+      remaining ~/= radix;
     }
-    builder.addByte(remaining);
+    return chars.reversed.join();
   }
 
-  static ({int value, int offset}) _readVarInt(Uint8List bytes, int offset) {
-    var result = 0;
-    var shift = 0;
-    var cursor = offset;
-
-    while (cursor < bytes.length) {
-      final byte = bytes[cursor++];
-      result |= (byte & 0x7f) << shift;
-      if ((byte & 0x80) == 0) {
-        return (value: result, offset: cursor);
+  static BigInt _decodeBase62BigInt(String encoded) {
+    var value = BigInt.zero;
+    final radix = BigInt.from(_base62);
+    for (final codeUnit in encoded.codeUnits) {
+      final digit = _base62DecodeMap[codeUnit];
+      if (digit == null) {
+        throw FormatException(
+          'Invalid Base62 character: ${String.fromCharCode(codeUnit)}',
+        );
       }
-      shift += 7;
-      if (shift > 63) {
-        throw const FormatException('VarInt is too large.');
-      }
+      value = value * radix + BigInt.from(digit);
+    }
+    return value;
+  }
+
+  static int _mapRfc1918Ipv4ToOrdinal(String ip) {
+    final segments = _parseIpv4Segments(ip);
+    final first = segments[0];
+    final second = segments[1];
+    final third = segments[2];
+    final fourth = segments[3];
+
+    if (first == 192 && second == 168) {
+      return (third << 8) | fourth;
+    }
+    if (first == 172 && second >= 16 && second <= 31) {
+      return _private172Offset +
+          ((second - 16) << 16) +
+          (third << 8) +
+          fourth;
+    }
+    if (first == 10) {
+      return _private10Offset + (second << 16) + (third << 8) + fourth;
     }
 
-    throw const FormatException(
-      'Unexpected end of payload while reading VarInt.',
-    );
+    throw FormatException('IPv4 address is not inside RFC1918 private space: $ip');
   }
 
-  static ({String text, int offset}) _readLengthPrefixedAscii(
-    Uint8List bytes,
-    int offset,
-  ) {
-    final lengthResult = _readVarInt(bytes, offset);
-    final length = lengthResult.value;
-    final start = lengthResult.offset;
-    final end = start + length;
-    if (end > bytes.length) {
-      throw const FormatException('ASCII field extends beyond payload size.');
+  static String _mapOrdinalToRfc1918Ipv4(int ordinal) {
+    if (ordinal < 0 || ordinal >= _privateTotalSpan) {
+      throw FormatException(
+        'Compact IPv4 ordinal is outside RFC1918 private space: $ordinal',
+      );
     }
-    return (text: ascii.decode(bytes.sublist(start, end)), offset: end);
-  }
 
-  static ({String text, int offset}) _readLengthPrefixedUtf8(
-    Uint8List bytes,
-    int offset,
-  ) {
-    final lengthResult = _readVarInt(bytes, offset);
-    final length = lengthResult.value;
-    final start = lengthResult.offset;
-    final end = start + length;
-    if (end > bytes.length) {
-      throw const FormatException('UTF-8 field extends beyond payload size.');
+    if (ordinal < _private172Offset) {
+      return '192.168.${(ordinal >> 8) & 0xff}.${ordinal & 0xff}';
     }
-    return (text: utf8.decode(bytes.sublist(start, end)), offset: end);
-  }
 
-  static Uint8List _uint16Bytes(int value) {
-    if (value < 0 || value > 0xffff) {
-      throw ArgumentError.value(value, 'value', 'Port must fit in uint16.');
+    if (ordinal < _private10Offset) {
+      final value = ordinal - _private172Offset;
+      return '172.${16 + ((value >> 16) & 0x0f)}.${(value >> 8) & 0xff}.${value & 0xff}';
     }
-    return Uint8List.fromList(<int>[(value >> 8) & 0xff, value & 0xff]);
+
+    final value = ordinal - _private10Offset;
+    return '10.${(value >> 16) & 0xff}.${(value >> 8) & 0xff}.${value & 0xff}';
   }
 
-  static int _readUint16(Uint8List bytes, int offset) {
-    return (bytes[offset] << 8) | bytes[offset + 1];
-  }
-
-  static Uint8List _ipv4ToBytes(String ip) {
+  static List<int> _parseIpv4Segments(String ip) {
     final segments = ip.split('.');
     if (segments.length != 4) {
       throw FormatException('Invalid IPv4 address: $ip');
     }
-    return Uint8List.fromList(
-      segments
-          .map((segment) {
-            final value = int.tryParse(segment);
-            if (value == null || value < 0 || value > 255) {
-              throw FormatException('Invalid IPv4 address: $ip');
-            }
-            return value;
-          })
-          .toList(growable: false),
-    );
+    return segments
+        .map((segment) {
+          final value = int.tryParse(segment);
+          if (value == null || value < 0 || value > 255) {
+            throw FormatException('Invalid IPv4 address: $ip');
+          }
+          return value;
+        })
+        .toList(growable: false);
   }
 
-  static String _ipv4ToHex(String ip) {
-    final bytes = _ipv4ToBytes(ip);
-    final buffer = StringBuffer();
-    for (final byte in bytes) {
-      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
-    }
-    return buffer.toString();
-  }
-
-  static String _hexToIpv4(String value) {
-    if (value.length != 8) {
-      throw FormatException('Invalid IPv4 hex payload: $value');
-    }
-    final segments = <String>[];
-    for (var index = 0; index < 8; index += 2) {
-      final part = int.tryParse(value.substring(index, index + 2), radix: 16);
-      if (part == null) {
-        throw FormatException('Invalid IPv4 hex payload: $value');
-      }
-      segments.add(part.toString());
-    }
-    return segments.join('.');
-  }
-
-  static String _bytesToIpv4(Uint8List bytes, int offset) {
-    return [
-      bytes[offset],
-      bytes[offset + 1],
-      bytes[offset + 2],
-      bytes[offset + 3],
-    ].join('.');
-  }
-
-  static String _encodeBase85(Uint8List data) {
-    if (data.isEmpty) {
-      return '';
-    }
-
-    final output = StringBuffer();
-    var offset = 0;
-    while (offset < data.length) {
-      final remaining = data.length - offset;
-      final chunkLength = remaining >= 4 ? 4 : remaining;
-      var value = 0;
-      for (var index = 0; index < 4; index++) {
-        value <<= 8;
-        if (index < chunkLength) {
-          value |= data[offset + index];
-        }
-      }
-
-      final digits = List<int>.filled(5, 0);
-      for (var index = 4; index >= 0; index--) {
-        digits[index] = value % 85;
-        value ~/= 85;
-      }
-
-      final outputLength = chunkLength == 4 ? 5 : chunkLength + 1;
-      for (var index = 0; index < outputLength; index++) {
-        output.writeCharCode(base85Alphabet.codeUnitAt(digits[index]));
-      }
-
-      offset += chunkLength;
-    }
-
-    return output.toString();
-  }
-
-  static Uint8List _decodeBase85(String input) {
-    if (input.isEmpty) {
-      return Uint8List(0);
-    }
-    if (input.length % 5 == 1) {
-      throw const FormatException('Invalid Base85 input length.');
-    }
-
-    final output = BytesBuilder(copy: false);
-    var offset = 0;
-
-    while (offset < input.length) {
-      final remaining = input.length - offset;
-      final chunkLength = remaining >= 5 ? 5 : remaining;
-      var value = 0;
-
-      for (var index = 0; index < 5; index++) {
-        final digit = index < chunkLength
-            ? _decodeBase85Digit(input.codeUnitAt(offset + index))
-            : 84;
-        value = value * 85 + digit;
-      }
-
-      final chunkBytes = Uint8List.fromList(<int>[
-        (value >> 24) & 0xff,
-        (value >> 16) & 0xff,
-        (value >> 8) & 0xff,
-        value & 0xff,
-      ]);
-      final outputLength = chunkLength == 5 ? 4 : chunkLength - 1;
-      output.add(chunkBytes.sublist(0, outputLength));
-      offset += chunkLength;
-    }
-
-    return output.takeBytes();
-  }
-
-  static int _decodeBase85Digit(int codeUnit) {
-    final value = _base85DecodeMap[codeUnit];
-    if (value == null) {
-      throw FormatException(
-        'Invalid Base85 character: ${String.fromCharCode(codeUnit)}',
+  static void _writeUleb128Bits(StringBuffer bits, int value) {
+    if (value < 0) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'ULEB128 value cannot be negative.',
       );
     }
+
+    var remaining = value;
+    while (true) {
+      var byte = remaining & 0x7f;
+      remaining >>= 7;
+      if (remaining != 0) {
+        byte |= 0x80;
+      }
+      _writeFixedWidthBits(bits, byte, 8);
+      if (remaining == 0) {
+        return;
+      }
+    }
+  }
+
+  static int _readUleb128Bits(_BitReader reader) {
+    var value = 0;
+    var shift = 0;
+    while (true) {
+      final byte = _readFixedWidthBits(reader, 8);
+      value |= (byte & 0x7f) << shift;
+      if ((byte & 0x80) == 0) {
+        return value;
+      }
+      shift += 7;
+      if (shift > 63) {
+        throw const FormatException('ULEB128 value is too large.');
+      }
+    }
+  }
+
+  static void _writeFixedWidthBits(StringBuffer bits, int value, int width) {
+    if (width <= 0) {
+      throw ArgumentError.value(width, 'width', 'width must be positive.');
+    }
+    for (var index = width - 1; index >= 0; index -= 1) {
+      bits.write(((value >> index) & 1) == 1 ? '1' : '0');
+    }
+  }
+
+  static int _readFixedWidthBits(_BitReader reader, int width) {
+    if (reader.remaining < width) {
+      throw const FormatException('Bitstream ended unexpectedly.');
+    }
+    var value = 0;
+    for (var index = 0; index < width; index += 1) {
+      value = (value << 1) | reader.readBit();
+    }
     return value;
+  }
+
+  static bool _isBase62(String value) {
+    if (value.isEmpty) {
+      return false;
+    }
+    for (final codeUnit in value.codeUnits) {
+      if (!_base62DecodeMap.containsKey(codeUnit)) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+class _BitReader {
+  _BitReader(this._bits);
+
+  final String _bits;
+  int _offset = 0;
+
+  int get remaining => _bits.length - _offset;
+  bool get isAtEnd => _offset >= _bits.length;
+
+  int readBit() {
+    if (_offset >= _bits.length) {
+      throw const FormatException('Bitstream ended unexpectedly.');
+    }
+    final bit = _bits.codeUnitAt(_offset);
+    _offset += 1;
+    if (bit == 48) {
+      return 0;
+    }
+    if (bit == 49) {
+      return 1;
+    }
+    throw const FormatException('Bitstream contains a non-binary character.');
   }
 }

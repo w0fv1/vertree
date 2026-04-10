@@ -28,7 +28,7 @@ class LanFileShareServer {
   static const int maxPortSearchSpan = 100;
   static const int defaultExpiryMinutes = 30;
   static const String defaultSharePageBaseUrl =
-      'https://vertree.w0fv1.dev/file_share';
+      'https://vertree.w0fv1.dev/f';
 
   final String sharePageBaseUrl;
   final Future<List<String>> Function() _addressResolver;
@@ -57,6 +57,8 @@ class LanFileShareServer {
     return {
       'running': isRunning,
       'port': _port,
+      'defaultPort': defaultPort,
+      'maxPortSearchSpan': maxPortSearchSpan,
       'sharePageBaseUrl': sharePageBaseUrl,
       'activeShareCount': _sharesByToken.length,
       'lastKnownLanIps': _lastKnownLanIps,
@@ -132,7 +134,7 @@ class LanFileShareServer {
     final wifiName = await _resolveWifiName();
     if (lanIps.isEmpty || _port == null) {
       return Result.eMsg(
-        'No reachable LAN IPv4 address was detected for this machine.',
+        'No reachable RFC1918 LAN IPv4 address was detected for this machine.',
       );
     }
 
@@ -251,6 +253,13 @@ class LanFileShareServer {
           segments.length == 3 &&
           segments[1] == 'page') {
         await _handleLandingPage(request, segments[2]);
+        return;
+      }
+
+      if (request.method == 'GET' &&
+          segments.length == 3 &&
+          segments[1] == 'preview') {
+        await _handlePreview(request, segments[2]);
         return;
       }
 
@@ -377,14 +386,64 @@ class LanFileShareServer {
               : '127.0.0.1');
     final downloadUrl =
         'http://$host:$currentPort/file-share/download/${entry.shareKey}';
+    final previewUrl =
+        'http://$host:$currentPort/file-share/preview/${entry.shareKey}';
 
     request.response.statusCode = HttpStatus.ok;
     _setCommonHeaders(request.response);
     request.response.headers.contentType = ContentType.html;
     request.response.write(
-      _buildLandingPageHtml(entry, downloadUrl: downloadUrl),
+      _buildLandingPageHtml(
+        entry,
+        downloadUrl: downloadUrl,
+        previewUrl: previewUrl,
+      ),
     );
     await request.response.close();
+  }
+
+  Future<void> _handlePreview(HttpRequest request, String token) async {
+    final entry = _findActiveShare(token);
+    if (entry == null) {
+      await _writeText(
+        request,
+        statusCode: HttpStatus.notFound,
+        body: 'Share not found',
+      );
+      return;
+    }
+
+    final file = File(entry.filePath);
+    if (!file.existsSync()) {
+      _removeShare(entry);
+      await _writeText(
+        request,
+        statusCode: HttpStatus.notFound,
+        body: 'Source file no longer exists',
+      );
+      return;
+    }
+
+    final contentType = _previewContentTypeForFile(entry.fileName);
+    if (contentType == null) {
+      await _writeText(
+        request,
+        statusCode: HttpStatus.unsupportedMediaType,
+        body: 'Preview is not available for this file type',
+      );
+      return;
+    }
+
+    final stat = file.statSync();
+    request.response.statusCode = HttpStatus.ok;
+    _setCommonHeaders(request.response);
+    request.response.headers.contentType = contentType;
+    request.response.headers.set(HttpHeaders.contentLengthHeader, stat.size);
+    request.response.headers.set(
+      'content-disposition',
+      'inline; filename="${entry.fileName.replaceAll('"', '')}"',
+    );
+    await file.openRead().pipe(request.response);
   }
 
   Future<void> _handleDownload(HttpRequest request, String token) async {
@@ -472,7 +531,6 @@ class LanFileShareServer {
         ? null
         : LanSharePayloadCodec.encodeCompactRoute(
             shareKey: entry.shareKey,
-            port: currentPort,
             lanIps: lanIps,
           );
     final directDownloads = currentPort == null
@@ -511,6 +569,8 @@ class LanFileShareServer {
           : _buildSharePageUrl(compactShareCode: compactShareCode!),
       'server': {
         'port': currentPort,
+        'defaultPort': defaultPort,
+        'maxPortSearchSpan': maxPortSearchSpan,
         'running': isRunning,
         'sharePageBaseUrl': sharePageBaseUrl,
       },
@@ -520,7 +580,7 @@ class LanFileShareServer {
   }
 
   String _buildSharePageUrl({required String compactShareCode}) {
-    return '$sharePageBaseUrl#${LanSharePayloadCodec.compactFragmentPrefix}$compactShareCode';
+    return '$sharePageBaseUrl#$compactShareCode';
   }
 
   String _generateToken() {
@@ -529,7 +589,7 @@ class LanFileShareServer {
   }
 
   String _generateShareKey() {
-    final shareKey = _nextShareSequence.toRadixString(36);
+    final shareKey = LanSharePayloadCodec.encodeBase62(_nextShareSequence);
     _nextShareSequence += 1;
     return shareKey;
   }
@@ -550,16 +610,16 @@ class LanFileShareServer {
   String _buildLandingPageHtml(
     _LanFileShareEntry entry, {
     required String downloadUrl,
+    required String previewUrl,
   }) {
     final title = '${entry.fileName} - Vertree LAN Share';
     final safeTitle = htmlEscape.convert(title);
     final safeFileName = htmlEscape.convert(entry.fileName);
     final safeFileSize = htmlEscape.convert(_formatBytes(entry.fileSize));
-    final safeExpiresAt = htmlEscape.convert(
-      entry.expiresAt.toLocal().toIso8601String(),
-    );
+    final safeExpiresAt = htmlEscape.convert(_formatLocalDateTime(entry.expiresAt));
     final safeDownloadUrl = htmlEscape.convert(downloadUrl);
     final downloadUrlJson = jsonEncode(downloadUrl);
+    final previewSection = _buildPreviewSection(entry, previewUrl: previewUrl);
 
     return '''
 <!doctype html>
@@ -572,23 +632,32 @@ class LanFileShareServer {
     :root {
       color-scheme: light;
       font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --page-bg: #f3f6f1;
+      --surface: #fbfcfa;
+      --surface-soft: #f6f8f4;
+      --border: rgba(23, 59, 36, 0.08);
+      --text-primary: #173b24;
+      --text-secondary: #52705f;
+      --accent: #2f6b42;
     }
     body {
       margin: 0;
-      background: linear-gradient(180deg, #eef4ea 0%, #f8fbf7 100%);
-      color: #173b24;
+      background:
+        radial-gradient(circle at top left, rgba(70, 125, 86, 0.08), transparent 28%),
+        linear-gradient(180deg, var(--page-bg) 0%, #f7faf6 100%);
+      color: var(--text-primary);
     }
     main {
-      max-width: 760px;
+      max-width: 860px;
       margin: 0 auto;
       padding: 40px 20px 56px;
     }
     .card {
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(23, 59, 36, 0.1);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 28px;
-      box-shadow: 0 18px 60px rgba(60, 90, 70, 0.08);
-      padding: 28px;
+      box-shadow: 0 20px 50px rgba(50, 78, 58, 0.08);
+      padding: 30px;
     }
     h1 {
       font-size: 34px;
@@ -597,7 +666,7 @@ class LanFileShareServer {
     }
     p {
       margin: 0 0 16px;
-      color: #3f5e4a;
+      color: var(--text-secondary);
       line-height: 1.7;
       font-size: 16px;
     }
@@ -609,11 +678,12 @@ class LanFileShareServer {
     }
     .meta {
       border-radius: 20px;
-      background: #f4f8f2;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
       padding: 16px;
     }
     .label {
-      color: #5e7768;
+      color: #647c6d;
       font-size: 13px;
       margin-bottom: 6px;
     }
@@ -628,6 +698,18 @@ class LanFileShareServer {
       gap: 12px;
       margin-top: 24px;
     }
+    .section {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 24px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+    }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
     .button {
       appearance: none;
       border: 0;
@@ -639,12 +721,8 @@ class LanFileShareServer {
       font-weight: 700;
     }
     .button-primary {
-      background: #2f6b42;
+      background: var(--accent);
       color: white;
-    }
-    .button-secondary {
-      background: #e8f0e6;
-      color: #29553a;
     }
     .hint {
       margin-top: 18px;
@@ -656,10 +734,57 @@ class LanFileShareServer {
       margin-top: 10px;
       padding: 14px;
       border-radius: 16px;
-      background: #f4f8f2;
+      background: #f0f4ef;
       color: #325240;
       word-break: break-all;
       font-size: 13px;
+    }
+    .previewFrame {
+      margin-top: 14px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: white;
+    }
+    .previewImage,
+    .previewPdf {
+      display: block;
+      width: 100%;
+      border: 0;
+      background: white;
+    }
+    .previewImage {
+      max-height: 420px;
+      object-fit: contain;
+    }
+    .previewPdf {
+      min-height: 480px;
+    }
+    .previewText {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: #f0f4ef;
+      color: #274636;
+      font-size: 13px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 420px;
+      overflow: auto;
+    }
+    .previewTag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(47, 107, 66, 0.1);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
   </style>
 </head>
@@ -667,7 +792,7 @@ class LanFileShareServer {
   <main>
     <section class="card">
       <h1>准备下载 $safeFileName</h1>
-      <p>你已经进入分享者电脑提供的局域网下载页。下载会从当前这个本地 HTTP 页面发起，比直接从公网桥接页跳到下载更稳定。</p>
+      <p>你已经进入分享者电脑提供的局域网下载页。下载会从当前这个本地 HTTP 页面发起，比直接从公网分享页跳转到下载更稳定。</p>
       <div class="grid">
         <div class="meta">
           <div class="label">文件名</div>
@@ -682,9 +807,9 @@ class LanFileShareServer {
           <div class="value">$safeExpiresAt</div>
         </div>
       </div>
+$previewSection
       <div class="actions">
         <a id="downloadLink" class="button button-primary" href="$safeDownloadUrl">立即下载</a>
-        <button id="retryButton" class="button button-secondary" type="button">重新触发下载</button>
       </div>
       <p class="hint">如果浏览器没有自动开始下载，可以点击上面的按钮。下载地址：</p>
       <code>$safeDownloadUrl</code>
@@ -695,12 +820,64 @@ class LanFileShareServer {
     const triggerDownload = () => {
       window.location.assign(downloadUrl);
     };
-    document.getElementById('retryButton')?.addEventListener('click', triggerDownload);
     window.setTimeout(triggerDownload, 320);
   </script>
 </body>
 </html>
 ''';
+  }
+
+  String _buildPreviewSection(
+    _LanFileShareEntry entry, {
+    required String previewUrl,
+  }) {
+    final file = File(entry.filePath);
+    if (!file.existsSync()) {
+      return '';
+    }
+
+    final safePreviewUrl = htmlEscape.convert(previewUrl);
+    final fileName = htmlEscape.convert(entry.fileName);
+
+    if (_isImagePreviewFile(entry.fileName)) {
+      return '''
+      <section class="section">
+        <span class="previewTag">图片预览</span>
+        <h2>文件预览</h2>
+        <p>这是浏览器可直接展示的图片预览，完整文件仍以下载结果为准。</p>
+        <div class="previewFrame">
+          <img class="previewImage" src="$safePreviewUrl" alt="$fileName" loading="eager">
+        </div>
+      </section>
+''';
+    }
+
+    if (_isPdfPreviewFile(entry.fileName)) {
+      return '''
+      <section class="section">
+        <span class="previewTag">PDF 预览</span>
+        <h2>文件预览</h2>
+        <p>浏览器支持时会直接内嵌 PDF 预览；如果未显示，仍可以直接下载原文件。</p>
+        <div class="previewFrame">
+          <iframe class="previewPdf" src="$safePreviewUrl" title="$fileName"></iframe>
+        </div>
+      </section>
+''';
+    }
+
+    if (_isTextPreviewFile(entry.fileName)) {
+      final textPreview = htmlEscape.convert(_readTextPreview(file));
+      return '''
+      <section class="section">
+        <span class="previewTag">文本预览</span>
+        <h2>文件预览</h2>
+        <p>这里展示的是文件开头的一部分内容，适合快速确认文本、代码、配置或日志文件。</p>
+        <pre class="previewText">$textPreview</pre>
+      </section>
+''';
+    }
+
+    return '';
   }
 
   static String _formatBytes(int bytes) {
@@ -714,6 +891,113 @@ class LanFileShareServer {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  static String _formatLocalDateTime(DateTime value) {
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  static String _readTextPreview(File file) {
+    const maxBytes = 24 * 1024;
+    const maxChars = 5000;
+    RandomAccessFile? handle;
+    try {
+      handle = file.openSync(mode: FileMode.read);
+      final bytes = handle.readSync(maxBytes);
+      var text = utf8.decode(bytes, allowMalformed: true).replaceAll(
+        '\r\n',
+        '\n',
+      );
+      final wasTrimmedByBytes = handle.positionSync() < handle.lengthSync();
+      if (text.length > maxChars) {
+        text = text.substring(0, maxChars);
+      }
+      if (wasTrimmedByBytes || text.length >= maxChars) {
+        text = '$text\n\n... 仅显示前部内容，完整内容请下载原文件查看。';
+      }
+      return text.trimRight();
+    } catch (_) {
+      return '当前文件无法生成文本预览，请直接下载查看。';
+    } finally {
+      handle?.closeSync();
+    }
+  }
+
+  static bool _isImagePreviewFile(String fileName) {
+    const imageExtensions = <String>{
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.webp',
+      '.bmp',
+      '.svg',
+    };
+    return imageExtensions.contains(p.extension(fileName).toLowerCase());
+  }
+
+  static bool _isPdfPreviewFile(String fileName) {
+    return p.extension(fileName).toLowerCase() == '.pdf';
+  }
+
+  static bool _isTextPreviewFile(String fileName) {
+    const textExtensions = <String>{
+      '.txt',
+      '.md',
+      '.markdown',
+      '.json',
+      '.yaml',
+      '.yml',
+      '.xml',
+      '.html',
+      '.css',
+      '.js',
+      '.ts',
+      '.tsx',
+      '.jsx',
+      '.dart',
+      '.java',
+      '.kt',
+      '.py',
+      '.sh',
+      '.bat',
+      '.ps1',
+      '.csv',
+      '.log',
+      '.ini',
+      '.toml',
+      '.sql',
+      '.conf',
+    };
+    return textExtensions.contains(p.extension(fileName).toLowerCase());
+  }
+
+  static ContentType? _previewContentTypeForFile(String fileName) {
+    switch (p.extension(fileName).toLowerCase()) {
+      case '.png':
+        return ContentType('image', 'png');
+      case '.jpg':
+      case '.jpeg':
+        return ContentType('image', 'jpeg');
+      case '.gif':
+        return ContentType('image', 'gif');
+      case '.webp':
+        return ContentType('image', 'webp');
+      case '.bmp':
+        return ContentType('image', 'bmp');
+      case '.svg':
+        return ContentType('image', 'svg+xml');
+      case '.pdf':
+        return ContentType('application', 'pdf');
+      default:
+        return null;
+    }
   }
 
   Future<void> _writeOptionsResponse(HttpRequest request) async {
@@ -786,11 +1070,14 @@ class LanFileShareServer {
           continue;
         }
         final raw = address.address.trim();
-        if (raw.isEmpty || raw == '0.0.0.0') {
-          continue;
-        }
-        results.add(raw);
+      if (raw.isEmpty || raw == '0.0.0.0') {
+        continue;
       }
+      if (!_isRfc1918Ipv4(raw)) {
+        continue;
+      }
+      results.add(raw);
+    }
     }
 
     final sorted = results.toList(growable: false)..sort();
@@ -806,6 +1093,26 @@ class LanFileShareServer {
       return null;
     }
     return normalized;
+  }
+
+  static bool _isRfc1918Ipv4(String ip) {
+    final segments = ip.split('.');
+    if (segments.length != 4) {
+      return false;
+    }
+
+    final numbers = segments
+        .map((segment) => int.tryParse(segment))
+        .toList(growable: false);
+    if (numbers.any((value) => value == null || value < 0 || value > 255)) {
+      return false;
+    }
+
+    final first = numbers[0]!;
+    final second = numbers[1]!;
+    return first == 10 ||
+        (first == 172 && second >= 16 && second <= 31) ||
+        (first == 192 && second == 168);
   }
 
   static Future<String?> _discoverWifiName() async {

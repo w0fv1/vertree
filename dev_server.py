@@ -25,6 +25,7 @@ import queue
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -54,6 +55,11 @@ class ControllerConfig:
   startup_timeout_seconds: int = 120
   api_port_start: int = 31414
   api_port_end: int = 31614
+  local_docs_enabled: bool = False
+  local_docs_host: str = "127.0.0.1"
+  local_docs_port: int = 33030
+  local_docs_path: str = "/f"
+  npm_bin: str = "npm"
   extra_flutter_args: list[str] = field(default_factory=list)
 
 
@@ -71,11 +77,23 @@ class FlutterAppController:
     self._last_exited_at: float | None = None
     self._last_exit_code: int | None = None
     self._run_count = 0
+    self._docs_process: subprocess.Popen[str] | None = None
+    self._docs_reader_thread: threading.Thread | None = None
+    self._docs_url = (
+      f"http://{self.config.local_docs_host}:{self.config.local_docs_port}{self.config.local_docs_path}"
+      if self.config.local_docs_enabled
+      else None
+    )
+    self._docs_last_started_at: float | None = None
+    self._docs_last_exited_at: float | None = None
+    self._docs_last_exit_code: int | None = None
 
   def status(self) -> dict[str, Any]:
     with self._lock:
       process = self._process
       running = process is not None and process.poll() is None
+      docs_process = self._docs_process
+      docs_running = docs_process is not None and docs_process.poll() is None
       return {
         "running": running,
         "pid": process.pid if running and process else None,
@@ -90,15 +108,28 @@ class FlutterAppController:
         "lastExitedAt": _iso_or_none(self._last_exited_at),
         "lastExitCode": self._last_exit_code,
         "runCount": self._run_count,
+        "localDocs": {
+          "enabled": self.config.local_docs_enabled,
+          "running": docs_running,
+          "pid": docs_process.pid if docs_running and docs_process else None,
+          "url": self._docs_url,
+          "host": self.config.local_docs_host,
+          "port": self.config.local_docs_port,
+          "lastStartedAt": _iso_or_none(self._docs_last_started_at),
+          "lastExitedAt": _iso_or_none(self._docs_last_exited_at),
+          "lastExitCode": self._docs_last_exit_code,
+        },
         "recentLogs": list(self._logs),
       }
 
   def start(self) -> dict[str, Any]:
     with self._lock:
       if self._is_running_locked():
+        self._ensure_local_docs_locked()
         self._last_command = "start(no-op)"
         return self.status()
 
+      self._ensure_local_docs_locked()
       command = self._build_flutter_command()
       env = _augment_loopback_no_proxy_env(os.environ.copy())
       process = subprocess.Popen(
@@ -140,17 +171,24 @@ class FlutterAppController:
     return self.status()
 
   def stop(self) -> dict[str, Any]:
-    process = self._get_running_process()
     self._last_command = "stop"
-    self._append_log("[controller] stopping app")
-    self._write_to_process(process, "q\n")
-    if not self._wait_for_exit(process, timeout_seconds=12):
-      self._append_log("[controller] graceful stop timed out, terminating")
-      process.terminate()
-      if not self._wait_for_exit(process, timeout_seconds=6):
-        self._append_log("[controller] terminate timed out, killing")
-        process.kill()
-        self._wait_for_exit(process, timeout_seconds=3)
+    process = None
+    with self._lock:
+      if self._is_running_locked():
+        assert self._process is not None
+        process = self._process
+
+    if process is not None:
+      self._append_log("[controller] stopping app")
+      self._write_to_process(process, "q\n")
+      if not self._wait_for_exit(process, timeout_seconds=12):
+        self._append_log("[controller] graceful stop timed out, terminating")
+        process.terminate()
+        if not self._wait_for_exit(process, timeout_seconds=6):
+          self._append_log("[controller] terminate timed out, killing")
+          process.kill()
+          self._wait_for_exit(process, timeout_seconds=3)
+    self._stop_local_docs()
     return self.status()
 
   def restart_process(self) -> dict[str, Any]:
@@ -209,12 +247,18 @@ class FlutterAppController:
     }
 
   def _build_flutter_command(self) -> list[str]:
+    extra_args = list(self.config.extra_flutter_args)
+    if self.config.local_docs_enabled and self._docs_url:
+      extra_args = [
+        *extra_args,
+        f"--dart-define=VERTREE_SHARE_PAGE_BASE_URL={self._docs_url}",
+      ]
     return [
       self.config.flutter_bin,
       "run",
       "-d",
       self.config.device,
-      *self.config.extra_flutter_args,
+      *extra_args,
     ]
 
   def _reader_loop(self, process: subprocess.Popen[str]) -> None:
@@ -238,6 +282,23 @@ class FlutterAppController:
         if self._process is process:
           self._process = None
       self._append_log(f"[controller] process exited code={exit_code}")
+
+  def _docs_reader_loop(self, process: subprocess.Popen[str]) -> None:
+    assert process.stdout is not None
+    try:
+      for raw_line in iter(process.stdout.readline, ""):
+        line = raw_line.rstrip("\r\n")
+        if not line:
+          continue
+        self._append_log(f"[docs] {line}")
+    finally:
+      exit_code = process.poll()
+      with self._lock:
+        self._docs_last_exited_at = time.time()
+        self._docs_last_exit_code = exit_code
+        if self._docs_process is process:
+          self._docs_process = None
+      self._append_log(f"[docs] process exited code={exit_code}")
 
   def _send_stdin_command(self, command: str, label: str) -> None:
     process = self._get_running_process()
@@ -296,6 +357,123 @@ class FlutterAppController:
   def _append_log(self, line: str) -> None:
     with self._lock:
       self._logs.append(line)
+
+  def _ensure_local_docs_locked(self) -> None:
+    if not self.config.local_docs_enabled:
+      return
+    if self._docs_process is not None and self._docs_process.poll() is None:
+      return
+
+    docs_dir = self.config.project_root / "docs"
+    if not docs_dir.exists():
+      raise RuntimeError(f"docs directory not found: {docs_dir}")
+
+    env = _augment_loopback_no_proxy_env(os.environ.copy())
+    build_command = [self.config.npm_bin, "run", "build"]
+    self._append_log("[docs] building local docs")
+    build_result = subprocess.run(
+      build_command,
+      cwd=str(docs_dir),
+      env=env,
+      capture_output=True,
+      text=True,
+      encoding="utf-8",
+      errors="replace",
+      check=False,
+    )
+    for line in build_result.stdout.splitlines():
+      if line.strip():
+        self._append_log(f"[docs] {line}")
+    for line in build_result.stderr.splitlines():
+      if line.strip():
+        self._append_log(f"[docs] {line}")
+    if build_result.returncode != 0:
+      raise RuntimeError(
+        f"local docs build failed with code {build_result.returncode}"
+      )
+
+    docs_port, docs_url, reused_existing = _resolve_local_docs_endpoint(
+      host=self.config.local_docs_host,
+      preferred_port=self.config.local_docs_port,
+      path=self.config.local_docs_path,
+    )
+    self.config.local_docs_port = docs_port
+    self._docs_url = docs_url
+    if reused_existing:
+      self._append_log(f"[docs] reusing existing local docs at {docs_url}")
+      return
+
+    command = [
+      self.config.npm_bin,
+      "run",
+      "serve",
+      "--",
+      "--host",
+      self.config.local_docs_host,
+      "--port",
+      str(docs_port),
+    ]
+    process = subprocess.Popen(
+      command,
+      cwd=str(docs_dir),
+      stdin=subprocess.DEVNULL,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.STDOUT,
+      text=True,
+      bufsize=1,
+      encoding="utf-8",
+      errors="replace",
+      env=env,
+    )
+    self._docs_process = process
+    self._docs_last_started_at = time.time()
+    self._docs_last_exited_at = None
+    self._docs_last_exit_code = None
+    self._append_log(f"[docs] started process pid={process.pid}")
+    self._docs_reader_thread = threading.Thread(
+      target=self._docs_reader_loop,
+      args=(process,),
+      name="vertree-docs-log-reader",
+      daemon=True,
+    )
+    self._docs_reader_thread.start()
+
+    docs_url = self._docs_url
+    assert docs_url is not None
+    deadline = time.time() + 60
+    last_error: str | None = None
+    while time.time() < deadline:
+      if process.poll() is not None:
+        raise RuntimeError(
+          f"local docs process exited early with code {process.poll()}"
+        )
+      try:
+        request = urllib.request.Request(url=docs_url, method="GET")
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(request, timeout=2) as response:
+          if 200 <= response.status < 500:
+            self._append_log(f"[docs] ready at {docs_url}")
+            return
+      except Exception as exc:  # noqa: BLE001
+        last_error = str(exc)
+      time.sleep(1)
+
+    raise RuntimeError(
+      f"local docs did not become ready at {docs_url} in time: {last_error}"
+    )
+
+  def _stop_local_docs(self) -> None:
+    with self._lock:
+      process = self._docs_process
+      if process is None or process.poll() is not None:
+        return
+      self._append_log("[docs] stopping local docs")
+
+    process.terminate()
+    if not self._wait_for_exit(process, timeout_seconds=8):
+      self._append_log("[docs] terminate timed out, killing")
+      process.kill()
+      self._wait_for_exit(process, timeout_seconds=3)
 
 
 class ControllerRequestHandler(BaseHTTPRequestHandler):
@@ -436,6 +614,53 @@ def _http_json_or_none(
     return None
 
 
+def _can_open_url(url: str, timeout_seconds: int | float = 2) -> bool:
+  try:
+    parsed = urllib.parse.urlparse(url)
+    request = urllib.request.Request(url=url, method="GET")
+    opener = urllib.request.build_opener(
+      urllib.request.ProxyHandler(
+        {} if parsed.hostname in LOOPBACK_NO_PROXY_TOKENS else None
+      )
+    )
+    with opener.open(request, timeout=float(timeout_seconds)) as response:
+      return 200 <= response.status < 500
+  except Exception:  # noqa: BLE001
+    return False
+
+
+def _is_tcp_port_in_use(host: str, port: int) -> bool:
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.settimeout(0.5)
+    return sock.connect_ex((host, port)) == 0
+
+
+def _find_next_available_port(host: str, preferred_port: int, span: int = 100) -> int:
+  for port in range(preferred_port, preferred_port + span):
+    if not _is_tcp_port_in_use(host, port):
+      return port
+  raise RuntimeError(
+    f"Could not find an available local docs port in range {preferred_port}-{preferred_port + span - 1}"
+  )
+
+
+def _resolve_local_docs_endpoint(
+  *,
+  host: str,
+  preferred_port: int,
+  path: str,
+) -> tuple[int, str, bool]:
+  preferred_url = f"http://{host}:{preferred_port}{path}"
+  if _can_open_url(preferred_url):
+    return preferred_port, preferred_url, True
+
+  if _is_tcp_port_in_use(host, preferred_port):
+    next_port = _find_next_available_port(host, preferred_port + 1)
+    return next_port, f"http://{host}:{next_port}{path}", False
+
+  return preferred_port, preferred_url, False
+
+
 def _augment_no_proxy_value(existing: str | None) -> str:
   tokens: list[str] = []
   seen: set[str] = set()
@@ -483,6 +708,23 @@ def _resolve_flutter_bin(flutter_bin: str) -> str:
   return flutter_bin
 
 
+def _resolve_command_bin(command_bin: str) -> str:
+  candidate = shutil.which(command_bin)
+  if candidate is not None:
+    return candidate
+
+  if os.name == "nt" and "." not in Path(command_bin).name:
+    cmd_candidate = shutil.which(f"{command_bin}.cmd")
+    if cmd_candidate is not None:
+      return cmd_candidate
+
+    bat_candidate = shutil.which(f"{command_bin}.bat")
+    if bat_candidate is not None:
+      return bat_candidate
+
+  return command_bin
+
+
 def _controller_base_url(host: str, port: int) -> str:
   return f"http://{host}:{port}"
 
@@ -505,6 +747,11 @@ def _spawn_detached_controller(script_path: Path, args: argparse.Namespace) -> N
     "--startup-timeout",
     str(args.startup_timeout),
   ]
+  if args.local_docs:
+    command.append("--local-docs")
+    command.extend(["--local-docs-host", args.local_docs_host])
+    command.extend(["--local-docs-port", str(args.local_docs_port)])
+    command.extend(["--npm-bin", _resolve_command_bin(args.npm_bin)])
   for extra_arg in args.extra_flutter_arg:
     command.extend(["--extra-flutter-arg", extra_arg])
 
@@ -625,6 +872,14 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument("--device", default="windows")
   parser.add_argument("--project-root", default=str(Path(__file__).resolve().parent))
   parser.add_argument("--startup-timeout", type=int, default=120)
+  parser.add_argument(
+    "--local-docs",
+    action="store_true",
+    help="Start local Docusaurus docs and point LAN share page URLs to it.",
+  )
+  parser.add_argument("--local-docs-host", default="127.0.0.1")
+  parser.add_argument("--local-docs-port", type=int, default=33030)
+  parser.add_argument("--npm-bin", default="npm")
   parser.add_argument("--extra-flutter-arg", action="append", default=[])
   return parser.parse_args()
 
@@ -643,6 +898,10 @@ def main() -> int:
     controller_host=args.host,
     controller_port=args.port,
     startup_timeout_seconds=args.startup_timeout,
+    local_docs_enabled=bool(args.local_docs),
+    local_docs_host=args.local_docs_host,
+    local_docs_port=args.local_docs_port,
+    npm_bin=_resolve_command_bin(args.npm_bin),
     extra_flutter_args=list(args.extra_flutter_arg),
   )
   controller = FlutterAppController(config)

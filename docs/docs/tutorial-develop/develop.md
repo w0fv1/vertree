@@ -49,6 +49,12 @@ flutter pub get
 flutter run -d windows
 ```
 
+如果你想以前台模式直接联调本地分享页：
+
+```bash
+python tools/dev_run.py --device windows --local-docs
+```
+
 如果你要验证注册表菜单、Win11 新菜单或开机自启，可能需要提升权限；普通 UI 和版本树/监控逻辑不要求始终以管理员身份运行。
 
 ### macOS
@@ -71,6 +77,14 @@ flutter run -d linux
 ```bash
 python dev_server.py --bootstrap --device windows
 ```
+
+如果你正在联调局域网分享页，也可以顺手启动本地 docs，并让应用里生成的分享链接直接指向本地文档站：
+
+```bash
+python dev_server.py --bootstrap --device windows --local-docs
+```
+
+默认会把本地分享页挂到 `http://127.0.0.1:33030/f`，并通过 `dart-define` 注入到应用里的 `LanFileShareServer`。
 
 默认控制器地址为 `http://127.0.0.1:32500`，支持：
 
@@ -95,7 +109,7 @@ python dev_server.py --bootstrap --device windows
 - `GET /api/v1/file-shares/{token}`：读取单个局域网分享详情
 - `DELETE /api/v1/file-shares/{token}`：撤销临时局域网分享
 
-其中局域网分享能力由一个独立的临时 HTTP 服务承载，默认起始端口为 `31424`，会自动绑定本机所有 IPv4 接口。它只暴露受 token 保护的下载、探活和信息接口，真正的分享入口由文档站桥接页 `https://vertree.w0fv1.dev/file_share` 承接。
+其中局域网分享能力由一个独立的临时 HTTP 服务承载，默认起始端口为 `31424`，会自动绑定本机 RFC1918 IPv4 接口。它只暴露受分享键保护的下载、探活和信息接口，真正的分享入口由文档站分享页 `https://vertree.w0fv1.dev/f` 承接。当前默认分享格式是 `/f#<payload>`；其中 `payload` 由 `shareKey` 长度标记、Base62 `shareKey`、以及“RFC1918 私网序号列表排序去重后再做差分 + ULEB128 + Base62 外层”的整体编码串联而成。
 
 ## 项目结构
 

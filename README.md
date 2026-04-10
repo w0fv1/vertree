@@ -2,14 +2,14 @@
 
 Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，并通过系统原生入口尽量不改变你原本的使用习惯。
 
-## 0.12.0 正式版现状
+## 0.13.0 正式版现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
 - 支持 macOS 桌面使用，GitHub Release 会生成带架构标识的 `zip` / `dmg` 和符号包，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
 - 支持 Linux 桌面使用，GitHub Release 会生成便携 `tar.gz`、`.deb` 和 RPM，并提供托盘、GNOME Files 右键菜单、开机自启和设置页集成开关。
 - GitHub Actions 会自动构建 Windows、macOS、Linux 三个平台的发布产物。
 - 新增本机 HTTP API 和 OpenAPI 文档，可用于本地自动化测试、监控任务检查、版本树与备份验证。
-- 新增局域网文件分享能力，可为某个版本文件生成局域网下载链接、二维码和自动选路桥接页。
+- 新增局域网文件分享能力，可为某个版本文件生成局域网短分享链接、二维码和自动选路分享页。
 - 提供本地开发控制脚本 `dev_server.py`，可托管 `flutter run` 进程并发送 hot reload / hot restart / restart 命令。
 
 ## 核心能力
@@ -126,6 +126,12 @@ flutter pub get
 flutter run -d windows
 ```
 
+如果你想一条命令同时启动本地 docs，并让局域网分享页走本地站点：
+
+```bash
+python tools/dev_run.py --device windows --local-docs
+```
+
 ### macOS
 
 ```bash
@@ -166,6 +172,14 @@ linux/build_linux_rpm.sh
 python dev_server.py --bootstrap --device windows
 ```
 
+如果你要在开发态顺手启动本地 docs，并让局域网分享页直接指向本地 Docusaurus：
+
+```bash
+python dev_server.py --bootstrap --device windows --local-docs
+```
+
+这会额外拉起 `http://127.0.0.1:33030/f`，并通过 `dart-define` 把局域网分享页基地址切到本地 docs。
+
 默认控制器地址为 `http://127.0.0.1:32500`，支持：
 
 - `GET /status`
@@ -196,7 +210,7 @@ python dev_server.py --bootstrap --device windows
 ## 文档
 
 - 用户文档：[https://vertree.w0fv1.dev/](https://vertree.w0fv1.dev/)
-- 局域网分享桥接页：[https://vertree.w0fv1.dev/file_share](https://vertree.w0fv1.dev/file_share)
+- 局域网分享页：[https://vertree.w0fv1.dev/f](https://vertree.w0fv1.dev/f)
 - 本地文档开发：[docs/README.md](docs/README.md)
 
 ## 已知限制

@@ -37,6 +37,10 @@ import 'package:window_manager/window_manager.dart';
 import 'component/AppVersionInfo.dart';
 
 final logger = AppLogger(LogLevel.debug);
+const String configuredLanSharePageBaseUrl = String.fromEnvironment(
+  'VERTREE_SHARE_PAGE_BASE_URL',
+  defaultValue: LanFileShareServer.defaultSharePageBaseUrl,
+);
 late void Function(Widget page) go;
 late MonitManager monitService;
 late LocalHttpApiServer localHttpApiServer;
@@ -54,7 +58,7 @@ Map<String, dynamic> _currentUiPageState = const {'page': 'brand'};
 FileTreeViewportController? _currentFileTreeViewportController;
 
 final appVersionInfo = AppVersionInfo(
-  currentVersion: "V0.11.3",
+  currentVersion: "V0.13.0",
   releaseApiUrl: "https://api.github.com/repos/w0fv1/vertree/releases",
   readConfigString: (key, defaultValue) =>
       configer.get<String>(key, defaultValue),
@@ -435,6 +439,7 @@ Future<void> runVertreeApp(
 
   monitService = MonitManager();
   lanFileShareServer = LanFileShareServer(
+    sharePageBaseUrl: configuredLanSharePageBaseUrl,
     onLogInfo: logger.info,
     onLogError: logger.error,
   );

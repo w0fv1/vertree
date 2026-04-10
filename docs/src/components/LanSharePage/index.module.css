@@ -1,0 +1,313 @@
+.page {
+  --share-bg-primary: #f5f8f4;
+  --share-bg-secondary: #eef3ed;
+  --share-bg-accent: rgba(61, 134, 84, 0.2);
+  --share-badge-bg: rgba(34, 84, 54, 0.08);
+  --share-badge-text: #225436;
+  --share-title: #173a24;
+  --share-text: #486153;
+  --share-muted: #667b6d;
+  --share-card-bg: rgba(255, 255, 255, 0.84);
+  --share-card-border: rgba(46, 74, 54, 0.12);
+  --share-card-shadow: rgba(22, 44, 29, 0.08);
+  --share-candidate-bg: #f6faf6;
+  --share-candidate-border: rgba(46, 74, 54, 0.1);
+  --share-retry-bg: #e6efe8;
+  --share-retry-text: #173a24;
+  --share-download-bg: #1f6b3a;
+  --share-download-text: #ffffff;
+  --share-pending-bg: #edf2c8;
+  --share-pending-text: #6b650f;
+  --share-success-bg: #d9f0de;
+  --share-success-text: #1f6b3a;
+  --share-stopped-bg: #e8ece9;
+  --share-stopped-text: #5f6f64;
+  --share-failed-bg: #f8dedd;
+  --share-failed-text: #8f2d2d;
+  --share-failure-card-border: rgba(143, 45, 45, 0.16);
+  --share-failure-card-bg: linear-gradient(
+    135deg,
+    rgba(248, 222, 221, 0.9),
+    rgba(255, 245, 230, 0.95)
+  );
+  --share-failure-card-text: #7d2f2f;
+}
+
+[data-theme='dark'] .page {
+  --share-bg-primary: #0f1412;
+  --share-bg-secondary: #171f1a;
+  --share-bg-accent: rgba(126, 211, 161, 0.14);
+  --share-badge-bg: rgba(126, 211, 161, 0.12);
+  --share-badge-text: #b7efc8;
+  --share-title: #eff9f1;
+  --share-text: #b8ccbe;
+  --share-muted: #93a89a;
+  --share-card-bg: rgba(21, 29, 24, 0.9);
+  --share-card-border: rgba(144, 180, 154, 0.14);
+  --share-card-shadow: rgba(0, 0, 0, 0.34);
+  --share-candidate-bg: #18211c;
+  --share-candidate-border: rgba(144, 180, 154, 0.12);
+  --share-retry-bg: #243128;
+  --share-retry-text: #e8f7ea;
+  --share-download-bg: #3f9d5d;
+  --share-download-text: #08140c;
+  --share-pending-bg: rgba(176, 157, 54, 0.18);
+  --share-pending-text: #f2dd7f;
+  --share-success-bg: rgba(70, 163, 99, 0.2);
+  --share-success-text: #98ebb0;
+  --share-stopped-bg: rgba(129, 145, 135, 0.18);
+  --share-stopped-text: #b7c4bb;
+  --share-failed-bg: rgba(160, 72, 72, 0.22);
+  --share-failed-text: #ffb1b1;
+  --share-failure-card-border: rgba(220, 113, 113, 0.18);
+  --share-failure-card-bg: linear-gradient(
+    135deg,
+    rgba(92, 32, 32, 0.85),
+    rgba(82, 52, 24, 0.78)
+  );
+  --share-failure-card-text: #ffd1d1;
+}
+
+.page {
+  min-height: calc(100vh - 60px);
+  padding: 56px 20px 80px;
+  background:
+    radial-gradient(circle at top left, var(--share-bg-accent), transparent 32%),
+    linear-gradient(180deg, var(--share-bg-primary) 0%, var(--share-bg-secondary) 100%);
+}
+
+.hero {
+  max-width: 920px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--share-badge-bg);
+  color: var(--share-badge-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 18px 0 12px;
+  color: var(--share-title);
+  font-size: clamp(2rem, 3.8vw, 3.3rem);
+  line-height: 1.05;
+}
+
+.description {
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--share-text);
+  font-size: 1.05rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  align-items: stretch;
+}
+
+.grid > .card {
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+}
+
+.card {
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  padding: 24px;
+  border: 1px solid var(--share-card-border);
+  border-radius: 28px;
+  background: var(--share-card-bg);
+  box-shadow: 0 18px 42px var(--share-card-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.card h2 {
+  margin: 0 0 16px;
+  color: var(--share-title);
+}
+
+.metaList {
+  display: grid;
+  gap: 16px;
+}
+
+.metaList div {
+  display: grid;
+  gap: 6px;
+}
+
+.metaList span {
+  color: var(--share-muted);
+  font-size: 0.92rem;
+}
+
+.metaList strong {
+  color: var(--share-title);
+  font-size: 1.05rem;
+  word-break: break-word;
+}
+
+.statusText {
+  margin-bottom: 10px;
+  color: var(--share-title);
+  font-size: 1.02rem;
+}
+
+.note {
+  margin: 0;
+  color: var(--share-muted);
+  line-height: 1.6;
+}
+
+.failureHint {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--share-failure-card-border);
+  border-radius: 18px;
+  background: var(--share-failure-card-bg);
+  color: var(--share-failure-card-text);
+  line-height: 1.65;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.retryButton,
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.retryButton {
+  padding: 10px 16px;
+  background: var(--share-retry-bg);
+  color: var(--share-retry-text);
+}
+
+.downloadButton {
+  padding: 11px 18px;
+  background: var(--share-download-bg);
+  color: var(--share-download-text);
+  text-decoration: none;
+}
+
+.retryButton:hover,
+.downloadButton:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.candidateList {
+  display: grid;
+  gap: 14px;
+}
+
+.moreCandidates {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.candidateCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--share-candidate-bg);
+  border: 1px solid var(--share-candidate-border);
+}
+
+.candidateIp {
+  color: var(--share-title);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.candidateUrl {
+  margin-top: 6px;
+  color: var(--share-text);
+  font-size: 0.94rem;
+  word-break: break-all;
+}
+
+.candidateActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.candidateState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.pending {
+  background: var(--share-pending-bg);
+  color: var(--share-pending-text);
+}
+
+.success {
+  background: var(--share-success-bg);
+  color: var(--share-success-text);
+}
+
+.stopped {
+  background: var(--share-stopped-bg);
+  color: var(--share-stopped-text);
+}
+
+.failed {
+  background: var(--share-failed-bg);
+  color: var(--share-failed-text);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .candidateCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .candidateActions {
+    justify-content: flex-start;
+  }
+}
