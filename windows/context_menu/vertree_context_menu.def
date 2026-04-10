@@ -1,4 +1,0 @@
-LIBRARY "vertree_context_menu"
-EXPORTS
-    DllGetClassObject PRIVATE
-    DllCanUnloadNow PRIVATE
