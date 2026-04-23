@@ -92,6 +92,21 @@ jobs:
         shell: pwsh
         run: choco install wixtoolset -y --no-progress
 
+      - name: Prepare MSIX signing certificate
+        shell: pwsh
+        env:
+          VERTREE_MSIX_CERTIFICATE_BASE64: ${{ secrets.VERTREE_MSIX_CERTIFICATE_BASE64 }}
+          VERTREE_MSIX_CERTIFICATE_PASSWORD: ${{ secrets.VERTREE_MSIX_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VERTREE_MSIX_CERTIFICATE_BASE64)) {
+            Write-Host "No MSIX signing certificate secret configured; sparse identity package signing will be skipped."
+            exit 0
+          }
+          $certPath = Join-Path $env:RUNNER_TEMP "vertree-msix-signing.pfx"
+          [System.IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:VERTREE_MSIX_CERTIFICATE_BASE64))
+          "VERTREE_MSIX_CERTIFICATE_PATH=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERTREE_MSIX_CERTIFICATE_PASSWORD=$env:VERTREE_MSIX_CERTIFICATE_PASSWORD" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build Windows artifacts
         shell: pwsh
         run: |

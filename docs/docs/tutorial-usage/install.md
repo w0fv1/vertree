@@ -11,8 +11,9 @@ Windows 仍然是当前最完整的桌面发布形态。
 1. 打开 [GitHub Releases](https://github.com/w0fv1/vertree/releases)
 2. 下载最新版本的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
 3. 如果下载的是 `setup.exe` 或 `msi`，直接运行安装；如果下载的是 `zip`，解压后直接运行其中的 `vertree.exe`
-4. 如需 unsigned `msix`，可在本地 Windows 构建时设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`
-5. 首次启动后完成初始化
+4. Windows 11 一级右键菜单依赖 `IExplorerCommand` 和带应用身份的 sparse MSIX；面向新设备发布时，sparse MSIX 必须使用目标设备信任的证书签名
+5. 本地调试 unsigned `msix` 可设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`，但 clean Windows 11 终端设备通常不会接受未签名包
+6. 首次启动后完成初始化
 
 初始化通常会完成这些动作：
 

@@ -1,6 +1,6 @@
 {
-  "uuid": "v0-13-1-release-20260411",
-  "content": "Vertree V0.13.1 已发布，补充了浏览器本地网络权限引导，修正分享页相关警告，并继续打磨局域网分享闭环。",
-  "expiresAt": "2026-05-11T23:59:59+08:00",
+  "uuid": "v0-14-0-release-20260423",
+  "content": "Vertree V0.14.0 已发布，修复 Windows 11 新设备上的新右键菜单注册链路，并限制局域网分享页失败探测时的候选地址膨胀。",
+  "expiresAt": "2026-05-23T23:59:59+08:00",
   "link": "https://github.com/w0fv1/vertree/releases"
 }

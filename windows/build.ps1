@@ -7,6 +7,9 @@ param(
     [string]$ISCC = "",
     [string]$WixBin = "",
     [string]$MakeAppx = "",
+    [string]$SignTool = "",
+    [string]$MsixCertificatePath = "",
+    [string]$MsixCertificatePassword = "",
     [string]$Target = "lib/main.dart"
 )
 
@@ -156,11 +159,134 @@ function Resolve-MakeAppx([string]$preferred) {
     return ""
 }
 
+function Resolve-SignTool([string]$preferred) {
+    if (-not [string]::IsNullOrWhiteSpace($preferred) -and (Test-Path $preferred)) {
+        return $preferred
+    }
+
+    $cmd = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $cmd.Source
+    }
+
+    $kitsRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+    if (-not (Test-Path $kitsRoot)) {
+        return ""
+    }
+
+    $candidates = Get-ChildItem -Path $kitsRoot -Filter signtool.exe -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+        Sort-Object FullName -Descending
+    if ($candidates) {
+        return $candidates[0].FullName
+    }
+
+    return ""
+}
+
 function Escape-XmlAttribute([string]$value) {
     if ($null -eq $value) {
         return ""
     }
     return [System.Security.SecurityElement]::Escape($value)
+}
+
+function New-SparseIdentityPackage(
+    [string]$sourceSparseDir,
+    [string]$outputDir,
+    [string]$packageVersion,
+    [string]$makeAppxPreferred,
+    [string]$signToolPreferred,
+    [string]$certificatePath,
+    [string]$certificatePassword
+) {
+    if ([string]::IsNullOrWhiteSpace($certificatePath)) {
+        $certificatePath = $env:VERTREE_MSIX_CERTIFICATE_PATH
+    }
+    if ([string]::IsNullOrWhiteSpace($certificatePassword)) {
+        $certificatePassword = $env:VERTREE_MSIX_CERTIFICATE_PASSWORD
+    }
+    $allowUnsignedSparse = ($env:VERTREE_ENABLE_UNSIGNED_MSIX -eq '1')
+    if ([string]::IsNullOrWhiteSpace($certificatePath) -and -not $allowUnsignedSparse) {
+        Write-Host "跳过 Win11 sparse MSIX；如需终端设备可注册的新菜单包，请提供 MSIX 签名证书。"
+        return ""
+    }
+
+    if (-not (Test-Path $sourceSparseDir)) {
+        Write-Warning "未找到 sparse manifest 目录，跳过 Win11 sparse MSIX: $sourceSparseDir"
+        return ""
+    }
+
+    $makeAppxExe = Resolve-MakeAppx -preferred $makeAppxPreferred
+    if ([string]::IsNullOrWhiteSpace($makeAppxExe)) {
+        Write-Warning "未找到 MakeAppx.exe，跳过 Win11 sparse MSIX。"
+        return ""
+    }
+
+    $stageRoot = Join-Path $scriptDir "..\\build\\windows\\sparse_identity"
+    $stageDir = Join-Path $stageRoot "package"
+    $manifestPath = Join-Path $stageDir "AppxManifest.xml"
+    $packagePath = Join-Path $outputDir "VertreeSparse.msix"
+
+    if (Test-Path $stageDir) {
+        Remove-Item $stageDir -Recurse -Force
+    }
+    if (Test-Path $packagePath) {
+        Remove-Item $packagePath -Force
+    }
+
+    New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+    Copy-Item (Join-Path $sourceSparseDir "*") $stageDir -Recurse -Force
+
+    if (-not (Test-Path $manifestPath)) {
+        Write-Warning "未找到 sparse AppxManifest.xml，跳过 Win11 sparse MSIX。"
+        return ""
+    }
+
+    $manifestContent = Get-Content $manifestPath -Raw
+    $manifestContent = $manifestContent.Replace('Version="1.0.0.0"', "Version=`"$packageVersion`"")
+    [System.IO.File]::WriteAllText(
+        $manifestPath,
+        $manifestContent,
+        [System.Text.UTF8Encoding]::new($false)
+    )
+
+    & $makeAppxExe pack /o /nv /d $stageDir /p $packagePath | Out-Null
+    if ($LASTEXITCODE -ne 0 -or (-not (Test-Path $packagePath))) {
+        Write-Warning "Win11 sparse MSIX 打包失败，已跳过。"
+        $global:LASTEXITCODE = 0
+        return ""
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($certificatePath)) {
+        if (-not (Test-Path $certificatePath)) {
+            Write-Warning "MSIX 证书不存在，保留未签名 sparse MSIX: $certificatePath"
+            return $packagePath
+        }
+
+        $signToolExe = Resolve-SignTool -preferred $signToolPreferred
+        if ([string]::IsNullOrWhiteSpace($signToolExe)) {
+            Write-Warning "未找到 SignTool.exe，保留未签名 sparse MSIX。"
+            return $packagePath
+        }
+
+        $signArgs = @("sign", "/fd", "SHA256", "/f", $certificatePath)
+        if (-not [string]::IsNullOrWhiteSpace($certificatePassword)) {
+            $signArgs += @("/p", $certificatePassword)
+        }
+        $signArgs += $packagePath
+        & $signToolExe @signArgs | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Win11 sparse MSIX 已签名：" $packagePath
+        } else {
+            Write-Warning "Win11 sparse MSIX 签名失败，保留未签名包。"
+            $global:LASTEXITCODE = 0
+        }
+    } else {
+        Write-Warning "Win11 sparse MSIX 未签名；终端设备通常需要受信任签名后才能注册。"
+    }
+
+    return $packagePath
 }
 
 # 当前脚本目录
@@ -262,6 +388,18 @@ if (Test-Path $packagingSourceDir) {
     } catch {
         Write-Warning "复制 Win11 sparse package 资源失败：$($_.Exception.Message)"
     }
+}
+
+$sparseIdentityPackage = New-SparseIdentityPackage `
+    -sourceSparseDir (Join-Path $packagingSourceDir "sparse") `
+    -outputDir $packagingTargetDir `
+    -packageVersion $msixPackageVersion `
+    -makeAppxPreferred $MakeAppx `
+    -signToolPreferred $SignTool `
+    -certificatePath $MsixCertificatePath `
+    -certificatePassword $MsixCertificatePassword
+if (-not [string]::IsNullOrWhiteSpace($sparseIdentityPackage)) {
+    Write-Host "Win11 sparse identity package 已复制到 Runner 目录：" $sparseIdentityPackage
 }
 
 function New-PortableArchive([string]$sourceDir, [string]$archivePath, [string]$folderName) {

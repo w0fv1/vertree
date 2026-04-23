@@ -38,27 +38,25 @@ class WindowsPackageIdentity {
       r'Software\Classes\PackagedCom\Package',
       r'Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages',
     ];
-    for (final hive in [RegistryHive.currentUser, RegistryHive.localMachine]) {
-      for (final packageRoot in packageRoots) {
-        try {
-          final key = Registry.openPath(
-            hive,
-            path: packageRoot,
-            desiredAccessRights: AccessRights.readOnly,
-          );
-          final names = key.subkeyNames;
-          key.close();
-          for (final name in names) {
-            if (name.startsWith('${packageName}_')) {
-              return true;
-            }
+    for (final packageRoot in packageRoots) {
+      try {
+        final key = Registry.openPath(
+          RegistryHive.currentUser,
+          path: packageRoot,
+          desiredAccessRights: AccessRights.readOnly,
+        );
+        final names = key.subkeyNames;
+        key.close();
+        for (final name in names) {
+          if (name.startsWith('${packageName}_')) {
+            return true;
           }
-        } catch (_) {
-          // ignore and continue
         }
+      } catch (_) {
+        // ignore and continue
       }
     }
-    // Fallback for cases where registry enumeration is blocked (e.g. elevated).
+    // Fallback for cases where registry enumeration is blocked.
     return _isSparsePackageRegisteredByRegQuery();
   }
 
@@ -78,13 +76,6 @@ class WindowsPackageIdentity {
       [
         'query',
         r'HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages',
-        '/f',
-        '${packageName}_',
-        '/s',
-      ],
-      [
-        'query',
-        r'HKLM\Software\Classes\PackagedCom\Package',
         '/f',
         '${packageName}_',
         '/s',

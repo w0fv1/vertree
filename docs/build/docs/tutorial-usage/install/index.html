@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.0">
 <title data-rh="true">安装 | Vertree维树</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://vertree.w0fv1.dev/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://vertree.w0fv1.dev/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://vertree.w0fv1.dev/docs/tutorial-usage/install"><meta data-rh="true" property="og:locale" content="zh"><meta data-rh="true" name="docusaurus_locale" content="zh"><meta data-rh="true" name="docsearch:language" content="zh"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="安装 | Vertree维树"><meta data-rh="true" name="description" content="Windows"><meta data-rh="true" property="og:description" content="Windows"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://vertree.w0fv1.dev/docs/tutorial-usage/install"><link data-rh="true" rel="alternate" href="https://vertree.w0fv1.dev/docs/tutorial-usage/install" hreflang="zh"><link data-rh="true" rel="alternate" href="https://vertree.w0fv1.dev/docs/tutorial-usage/install" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Tutorial - 使用","item":"https://vertree.w0fv1.dev/docs/category/tutorial---使用"},{"@type":"ListItem","position":2,"name":"安装","item":"https://vertree.w0fv1.dev/docs/tutorial-usage/install"}]}</script><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="Vertree维树 RSS Feed">
-<link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="Vertree维树 Atom Feed"><link rel="stylesheet" href="/assets/css/styles.6486c27b.css">
-<script src="/assets/js/runtime~main.34cacdb9.js" defer="defer"></script>
+<link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="Vertree维树 Atom Feed"><link rel="stylesheet" href="/assets/css/styles.10557c8b.css">
+<script src="/assets/js/runtime~main.8657861b.js" defer="defer"></script>
 <script src="/assets/js/main.8063099a.js" defer="defer"></script>
 </head>
 <body>
@@ -19,7 +19,8 @@
 <li class="">打开 <a href="https://github.com/w0fv1/vertree/releases" target="_blank" rel="noopener noreferrer" class="">GitHub Releases</a></li>
 <li class="">下载最新版本的 <code>vertree-windows-x64-&lt;version&gt;.zip</code>、<code>vertree-windows-x64-&lt;version&gt;-setup.exe</code>、<code>vertree-windows-x64-&lt;version&gt;.msi</code>，或用于 Win11 菜单调试的 <code>vertree-windows-x64-&lt;version&gt;-win11-dev.zip</code></li>
 <li class="">如果下载的是 <code>setup.exe</code> 或 <code>msi</code>，直接运行安装；如果下载的是 <code>zip</code>，解压后直接运行其中的 <code>vertree.exe</code></li>
-<li class="">如需 unsigned <code>msix</code>，可在本地 Windows 构建时设置 <code>VERTREE_ENABLE_UNSIGNED_MSIX=1</code></li>
+<li class="">Windows 11 一级右键菜单依赖 <code>IExplorerCommand</code> 和带应用身份的 sparse MSIX；面向新设备发布时，sparse MSIX 必须使用目标设备信任的证书签名</li>
+<li class="">本地调试 unsigned <code>msix</code> 可设置 <code>VERTREE_ENABLE_UNSIGNED_MSIX=1</code>，但 clean Windows 11 终端设备通常不会接受未签名包</li>
 <li class="">首次启动后完成初始化</li>
 </ol>
 <p>初始化通常会完成这些动作：</p>

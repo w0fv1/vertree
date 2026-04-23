@@ -159,7 +159,15 @@ pwsh -File windows/build.ps1 -BuildMode Release
 - `windows/vertree-windows-x64-<version>-symbols.zip`
 - `windows/vertree-windows-x64-<version>-win11-dev.zip`
 
-如需本地额外生成 unsigned `msix`，可在构建前设置环境变量 `VERTREE_ENABLE_UNSIGNED_MSIX=1`。
+Windows 11 一级右键菜单使用 sparse MSIX 提供应用身份。面向新设备发布时，构建前需要提供受信任证书：
+
+```powershell
+$env:VERTREE_MSIX_CERTIFICATE_PATH="C:\path\to\certificate.pfx"
+$env:VERTREE_MSIX_CERTIFICATE_PASSWORD="<password>"
+pwsh -File windows/build.ps1 -BuildMode Release
+```
+
+如需本地额外生成 unsigned `msix`，可在构建前设置环境变量 `VERTREE_ENABLE_UNSIGNED_MSIX=1`；这只适合开发调试，不适合 clean Windows 11 终端设备。
 
 ### macOS
 

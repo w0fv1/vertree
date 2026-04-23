@@ -1,9 +1,18 @@
 param(
   [string]$ExternalLocation = "",
+  [string]$IdentityPackagePath = "",
+  [switch]$AllowUnsigned,
   [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
+
+function Resolve-ExistingPath([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path $Path)) {
+    return ""
+  }
+  return (Resolve-Path $Path).Path
+}
 
 function Get-StagedSparseRoot {
   if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
@@ -35,6 +44,43 @@ function Update-StagedSparsePackage {
   return $stagedManifest
 }
 
+function Resolve-IdentityPackagePath {
+  if (-not [string]::IsNullOrWhiteSpace($IdentityPackagePath)) {
+    if (-not (Test-Path $IdentityPackagePath)) {
+      Write-Error "Identity package not found: $IdentityPackagePath"
+    }
+    return (Resolve-Path $IdentityPackagePath).Path
+  }
+
+  $preferred = Join-Path $PSScriptRoot "VertreeSparse.msix"
+  if (Test-Path $preferred) {
+    return (Resolve-Path $preferred).Path
+  }
+
+  $packages = Get-ChildItem -Path $PSScriptRoot -Filter "*.msix" -File -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending
+  if ($packages) {
+    return $packages[0].FullName
+  }
+
+  return ""
+}
+
+function Get-PackageExternalLocation($Package) {
+  if ($null -eq $Package) {
+    return ""
+  }
+
+  foreach ($name in @("ExternalLocation", "InstallLocation")) {
+    $property = $Package.PSObject.Properties[$name]
+    if ($property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+      return [string]$property.Value
+    }
+  }
+
+  return ""
+}
+
 if ([string]::IsNullOrWhiteSpace($ExternalLocation)) {
   $ExternalLocation = (Resolve-Path (Join-Path $PSScriptRoot "..\\..\\build\\windows\\x64\\runner\\Debug")).Path
 }
@@ -42,21 +88,40 @@ if ([string]::IsNullOrWhiteSpace($ExternalLocation)) {
 if (-not (Test-Path $ExternalLocation)) {
   Write-Error "ExternalLocation not found: $ExternalLocation"
 }
+$ExternalLocation = (Resolve-Path $ExternalLocation).Path
 
 $packageName = "w0fv1.vertree"
 $existing = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
 if ($existing) {
-  $currentLocation = $existing.InstallLocation
-  $resolvedCurrent = if ($currentLocation) { (Resolve-Path $currentLocation).Path } else { "" }
-  $resolvedTarget = (Resolve-Path $ExternalLocation).Path
+  $currentLocation = Get-PackageExternalLocation $existing
+  $resolvedCurrent = Resolve-ExistingPath $currentLocation
+  $resolvedTarget = Resolve-ExistingPath $ExternalLocation
   if ($Force -or ($resolvedCurrent -ne $resolvedTarget)) {
     Write-Host "Remove existing sparse package: $($existing.PackageFullName)"
     Remove-AppxPackage -Package $existing.PackageFullName -ErrorAction Stop
   }
 }
 
+$identityPackage = Resolve-IdentityPackagePath
+if (-not [string]::IsNullOrWhiteSpace($identityPackage)) {
+  Write-Host "Register sparse identity package with ExternalLocation: $ExternalLocation"
+  Write-Host "Identity package: $identityPackage"
+  $args = @(
+    "-Path", $identityPackage,
+    "-ExternalLocation", $ExternalLocation,
+    "-ForceUpdateFromAnyVersion",
+    "-ForceApplicationShutdown"
+  )
+  if ($AllowUnsigned -or $env:VERTREE_ALLOW_UNSIGNED_MSIX -eq "1") {
+    $args += "-AllowUnsigned"
+  }
+  Add-AppxPackage @args
+  exit 0
+}
+
 $manifest = Update-StagedSparsePackage
 
-Write-Host "Register sparse package with ExternalLocation: $ExternalLocation"
+Write-Host "Register loose sparse manifest with ExternalLocation: $ExternalLocation"
 Write-Host "Manifest staging path: $manifest"
+Write-Warning "No signed sparse MSIX was found. Loose manifest registration is intended for local development and may fail on clean end-user machines."
 Add-AppxPackage -Register $manifest -ExternalLocation $ExternalLocation -ForceUpdateFromAnyVersion -ForceApplicationShutdown

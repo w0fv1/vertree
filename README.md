@@ -2,7 +2,7 @@
 
 Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿、文档、脚本、配置文件这类不适合直接放进 Git 工作流的内容。它用树状结构组织版本，用监控机制做自动备份，并通过系统原生入口尽量不改变你原本的使用习惯。
 
-## 0.13.1 正式版现状
+## 0.14.0 正式版现状
 
 - 支持 Windows 桌面使用，提供安装包、托盘、右键菜单、Windows 11 新菜单适配、监控页、版本树、设置页。
 - 支持 macOS 桌面使用，GitHub Release 会生成带架构标识的 `zip` / `dmg` 和符号包，并提供菜单栏/托盘、Finder Services、应用菜单和开机自启。
@@ -10,6 +10,7 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 - GitHub Actions 会自动构建 Windows、macOS、Linux 三个平台的发布产物。
 - 新增本机 HTTP API 和 OpenAPI 文档，可用于本地自动化测试、监控任务检查、版本树与备份验证。
 - 新增局域网文件分享能力，可为某个版本文件生成局域网短分享链接、二维码和自动选路分享页。
+- 修复 Windows 11 新设备上一级右键菜单注册链路，并限制分享页失败探测时的候选地址膨胀。
 - 提供本地开发控制脚本 `dev_server.py`，可托管 `flutter run` 进程并发送 hot reload / hot restart / restart 命令。
 
 ## 核心能力
@@ -29,9 +30,10 @@ Vertree 是一个面向单文件的可视化版本管理工具，适合设计稿
 
 1. 到 [GitHub Releases](https://github.com/w0fv1/vertree/releases) 下载最新的 `vertree-windows-x64-<version>.zip`、`vertree-windows-x64-<version>-setup.exe`、`vertree-windows-x64-<version>.msi`，或用于 Win11 菜单调试的 `vertree-windows-x64-<version>-win11-dev.zip`
 2. `setup.exe` / `msi` 适合常规安装；`zip` 是真正的便携版，解压后可直接运行 `vertree.exe`
-3. 如需 unsigned `msix` 供本地开发调试或后续签名，可在 Windows 本地构建时设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`
-3. 首次启动完成初始化
-4. 通过文件右键菜单、托盘或设置页开始使用
+3. Windows 11 一级右键菜单依赖带应用身份的 sparse MSIX；面向新设备发布时需要使用目标设备信任的证书签名
+4. 如需 unsigned `msix` 供本地开发调试或后续签名，可在 Windows 本地构建时设置 `VERTREE_ENABLE_UNSIGNED_MSIX=1`
+5. 首次启动完成初始化
+6. 通过文件右键菜单、托盘或设置页开始使用
 
 ### macOS
 

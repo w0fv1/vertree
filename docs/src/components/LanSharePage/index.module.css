@@ -223,6 +223,12 @@
   opacity: 0.96;
 }
 
+.retryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
 .candidateList {
   display: grid;
   gap: 14px;

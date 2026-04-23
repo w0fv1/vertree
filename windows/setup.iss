@@ -46,12 +46,23 @@ Name: "{commonprograms}\Uninstall Vertree"; Filename: "{uninstallexe}"; IconFile
 Name: "{commondesktop}\Vertree"; Filename: "{app}\vertree.exe"; IconFilename: "{app}\data\flutter_assets\assets\img\logo\logo.ico"
 
 [Run]
-Filename: "{app}\vertree.exe"; Description: "Launch Vertree"; Flags: nowait postinstall skipifsilent
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\win11_packaging\install_sparse_package.ps1"" -ExternalLocation ""{app}"" -Force"; StatusMsg: "Registering Windows 11 context menu..."; Flags: runhidden waituntilterminated runasoriginaluser; Check: Win11PackagingScriptExists
+Filename: "{app}\vertree.exe"; Description: "Launch Vertree"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+
+function Win11PackagingScriptExists(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\win11_packaging\install_sparse_package.ps1'));
+end;
+
+function Win11UninstallPackagingScriptExists(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\win11_packaging\uninstall_sparse_package.ps1'));
+end;
 
 function InitializeUninstall(): Boolean;
 var
@@ -83,12 +94,16 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
+    if Win11UninstallPackagingScriptExists() then
+    begin
+      ExecAsOriginalUser(
+        'powershell.exe',
+        '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\win11_packaging\uninstall_sparse_package.ps1') + '"',
+        '',
+        SW_HIDE,
+        ewWaitUntilTerminated,
+        ResultCode);
+    end;
     DeleteRegistryKeys();
-    Exec('powershell.exe',
-      '-NoProfile -ExecutionPolicy Bypass -Command "Get-AppxPackage -Name w0fv1.vertree -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue"',
-      '',
-      SW_HIDE,
-      ewWaitUntilTerminated,
-      ResultCode);
   end;
 end;

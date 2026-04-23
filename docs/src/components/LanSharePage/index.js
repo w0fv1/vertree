@@ -5,6 +5,8 @@ import styles from './index.module.css';
 const DEFAULT_LAN_SHARE_PORT = 31424;
 const DEFAULT_LAN_SHARE_PORT_SCAN_SPAN = 100;
 const PRIORITY_PORT_SCAN_SPAN = 12;
+const MAX_ROUTE_IPS = 16;
+const MAX_PROBE_CANDIDATES = 240;
 const BASE62_ALPHABET =
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const BASE62_LOOKUP = Object.fromEntries(
@@ -163,6 +165,9 @@ function decodeCompactIpv4ListPayload(payload) {
   if (count <= 0) {
     throw new Error('Compact route must contain at least one LAN IP');
   }
+  if (count > MAX_ROUTE_IPS) {
+    throw new Error(`Compact route contains too many LAN IPs: ${count}`);
+  }
 
   const ids = [];
   ids.push(readFixedWidthBits(reader, FIRST_ID_BIT_WIDTH));
@@ -175,7 +180,7 @@ function decodeCompactIpv4ListPayload(payload) {
     throw new Error('Compact route IPv4 payload contains unexpected trailing bits');
   }
 
-  return ids.map(mapOrdinalToRfc1918Ipv4);
+  return [...new Set(ids.map(mapOrdinalToRfc1918Ipv4))];
 }
 
 function parseCompactRoute(hash) {
@@ -284,17 +289,23 @@ function buildPortRange() {
 function buildCandidates(params) {
   const shareRef = params.shareRef || '';
   const ports = buildPortRange();
-  const ips = (params.ips || []).filter(Boolean);
+  const ips = [...new Set((params.ips || []).filter(Boolean))].slice(0, MAX_ROUTE_IPS);
 
   if (!shareRef || ports.length === 0 || ips.length === 0) {
     return [];
   }
 
   const candidates = [];
+  const seen = new Set();
   ports.forEach((port) => {
     ips.forEach((ip) => {
+      const id = `${ip}:${port}`;
+      if (seen.has(id) || candidates.length >= MAX_PROBE_CANDIDATES) {
+        return;
+      }
+      seen.add(id);
       candidates.push({
-        id: `${ip}:${port}`,
+        id,
         ip,
         port,
         label: `${ip}:${port}`,
@@ -424,6 +435,7 @@ export default function FileSharePage() {
   const [resolvedInfo, setResolvedInfo] = useState(null);
   const [showAllFailedCandidates, setShowAllFailedCandidates] = useState(false);
   const [needsLocalNetworkPermission, setNeedsLocalNetworkPermission] = useState(false);
+  const [probeAttempt, setProbeAttempt] = useState(0);
 
   useEffect(() => {
     const onHashChange = () => setFragment(window.location.hash || '');
@@ -459,6 +471,10 @@ export default function FileSharePage() {
   }, [browserSupported, fragment]);
 
   const candidates = useMemo(() => buildCandidates(shareParams), [shareParams]);
+  const candidateIds = useMemo(
+    () => candidates.map((candidate) => candidate.id).join('|'),
+    [candidates],
+  );
   const visibleCandidates = useMemo(() => {
     if (status !== 'failed' || candidates.length <= MAX_VISIBLE_FAILED_CANDIDATES) {
       return candidates;
@@ -515,7 +531,7 @@ export default function FileSharePage() {
     return () => {
       cancelled = true;
     };
-  }, [browserSupported, candidates]);
+  }, [browserSupported, candidateIds, candidates]);
 
   useEffect(() => {
     if (!browserSupported) {
@@ -536,6 +552,8 @@ export default function FileSharePage() {
 
     setStatus('probing');
     setSelectedCandidate(null);
+    setNeedsLocalNetworkPermission(false);
+    setShowAllFailedCandidates(false);
     setCandidateStates(
       Object.fromEntries(candidates.map((candidate) => [candidate.id, 'pending'])),
     );
@@ -598,7 +616,7 @@ export default function FileSharePage() {
     return () => {
       cancelled = true;
     };
-  }, [browserSupported, candidates, fragment, shareParams]);
+  }, [browserSupported, candidateIds, candidates, fragment, probeAttempt, shareParams]);
 
   const headline = {
     idle: '准备开始局域网探测',
@@ -689,7 +707,8 @@ export default function FileSharePage() {
             <button
               className={styles.retryButton}
               type="button"
-              onClick={() => setFragment(`${window.location.hash}&retry=${Date.now()}`)}
+              disabled={status === 'probing' || status === 'redirecting'}
+              onClick={() => setProbeAttempt((current) => current + 1)}
             >
               重新探测
             </button>
